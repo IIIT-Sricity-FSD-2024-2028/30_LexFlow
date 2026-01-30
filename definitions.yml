@@ -1,0 +1,263 @@
+# Domain: Legal Services (Online Consultation + Law Firm ERP)
+# Problem Statement: A Unified Digital Platform for Online Legal Consultation and Law Firm ERP.
+# Last Updated: 2026-01-30
+
+  name: Client
+  definition: A person or organization that seeks legal advice or representation through the platform and owns the matters, documents, and payments associated with their legal service lifecycle.
+  examples:
+    - "Priya books an online consultation for a property dispute and uploads sale deed documents."
+  aliases:
+    - Customer
+    - Litigant
+
+
+  name: Lawyer
+  definition: A legal professional registered on the platform who offers consultations and may be assigned to manage cases, hearings, documents, tasks, and billing for clients.
+  examples:
+    - "Advocate Kumar accepts a consultation request and converts it into a civil case in the ERP."
+  aliases:
+    - Advocate
+    - Counsel
+    - Adv.
+
+
+  name: Law Firm
+  definition: An organizational entity that groups lawyers and staff under shared administration, configuration, billing rules, and data access boundaries within the ERP module.
+  examples:
+    - "M/s Rao & Associates manages all firm cases, staff, invoices, and dashboards."
+  aliases:
+    - Firm
+    - Practice
+
+
+  name: Firm Admin
+  definition: An administrator within a law firm who manages firm users, roles, billing settings, operational oversight for that firm only.
+  examples:
+    - "Firm Admin adds a new clerk user and assigns access to specific cases."
+  aliases:
+    - Practice Admin
+    - Office Admin
+
+
+  name: Clerk / Intern
+  definition: A firm staff member who supports lawyers by preparing documents, updating case notes, scheduling, and managing tasks, typically with limited role-based permissions.
+  examples:
+    - "A clerk uploads a drafted affidavit and tags it for lawyer review."
+  aliases:
+    - Paralegal
+    - Intern
+
+
+
+  name: Lawyer Discovery
+  definition: The search and recommendation workflow that helps clients find lawyers based on expertise, location, languages, availability, and fees.
+  examples:
+    - "Client filters for 'Family Law' lawyers available for video consultation in Chennai."
+  aliases:
+    - Search
+    - Find a lawyer
+
+
+  name: Expertise Area
+  definition: A standardized categorization of legal practice domains used for discovery, profiling, and case tagging (e.g., criminal, civil, corporate).
+  examples:
+    - "The lawyer sets expertise as 'Labour Law' and 'Employment Contracts'."
+  aliases:
+    - Practice Area
+    - Specialization
+
+
+  name: Consultation
+  definition: A time-bound professional interaction between a client and a lawyer (chat/video/in-person) intended to provide legal advice and collect initial facts, optionally leading to a case.
+  examples:
+    - "A 30-minute video consultation to review a legal notice draft."
+  aliases:
+    - Appointment
+    - Session
+
+
+  name: Consultation Booking
+  definition: The workflow where a client selects a lawyer, chooses consultation mode and slot, confirms details, and optionally pays to finalize the consultation.
+  examples:
+    - "Client books a 6 PM chat consultation and receives confirmation."
+  aliases:
+    - Scheduling
+    - Appointment booking
+
+
+  name: Consultation Mode
+  definition: The channel through which a consultation is conducted, typically chat, video, or in-person, each with its own operational and audit requirements.
+  examples:
+    - "Mode set to Video with a meeting link generated at confirmation."
+  aliases:
+    - Meeting type
+    - Channel
+
+
+  name: Secure Messaging
+  definition: Encrypted, access-controlled communication between client and lawyer (and optionally firm staff) with message retention and audit logging.
+  examples:
+    - "Client shares clarifications and receives advice via in-app chat."
+  aliases:
+    - In-app chat
+    - Messaging
+
+  name: Case
+  definition: A structured legal matter record created in the ERP to manage representation work, including parties, documents, tasks, hearings, notes, and billing.
+  examples:
+    - "Consultation is converted into 'Case #CIV-2026-0142' for a property injunction."
+  aliases:
+    - Matter
+    - File
+
+
+  name: Consultation-to-Case Conversion
+  definition: The process of transforming consultation details (facts, documents, parties, scope, fee agreement) into a formal case record with workflows and ownership.
+  examples:
+    - "System auto-creates a case draft after the lawyer marks consultation as 'Proceed'."
+  aliases:
+    - Case initiation
+    - Matter creation
+
+
+  name: Client Intake
+  definition: The collection of initial client details, conflict checks (if applicable), matter description, and consent needed to start consultation or case work.
+  examples:
+    - "Client provides identity details and brief issue summary before booking."
+  aliases:
+    - Onboarding
+    - Intake form
+
+
+  name: Case Status
+  definition: A controlled set of states representing the lifecycle of a case (e.g., Draft, Active, On Hold, Closed) used for tracking and reporting.
+  examples:
+    - "Case moves from Active to Closed after final order and billing settlement."
+  aliases:
+    - Matter status
+    - Stage
+
+
+  name: Hearing
+  definition: A scheduled court/tribunal appearance or procedural date linked to a case, with associated venue, agenda, outcomes, and reminders.
+  examples:
+    - "Hearing scheduled on 2026-02-10 for 'Arguments' in District Court."
+  aliases:
+    - Court date
+    - Listing
+
+  name: Hearing Schedule
+  definition: The calendar plan for hearings and procedural deadlines for a case, including automated reminders and assignment to responsible users.
+  examples:
+    - "System sends reminders 3 days and 3 hours before a hearing."
+  aliases:
+    - Cause list tracking
+    - Calendar
+
+
+  name: Task
+  definition: A unit of work assigned to a user (lawyer/clerk) with a due date, priority, and linkage to a case, document, or hearing.
+  examples:
+    - "Task: 'Draft written statement' due by 2026-02-03."
+  aliases:
+    - To-do
+    - Work item
+
+
+  name: Deadline
+  definition: A date/time constraint for completing tasks, filings, payments, or hearing preparation, used for reminders and escalation.
+  examples:
+    - "Filing deadline set to 2026-02-05 with high priority alerts."
+  aliases:
+    - Due date
+    - Limitation date
+
+
+  name: Document
+  definition: Any digital file stored in the platform associated with a consultation or case, including pleadings, evidence, IDs, invoices, and orders.
+  examples:
+    - "Upload: 'SaleDeed.pdf' tagged as Evidence for Case #CIV-2026-0142."
+  aliases:
+    - File
+    - Attachment
+
+
+  name: Document Version Control
+  definition: A mechanism to store and track multiple revisions of the same document, including who changed what and when, enabling rollback and audit.
+  examples:
+    - "Draft petition v1, v2 after edits, and final signed version."
+  aliases:
+    - Versioning
+    - Revision history
+
+
+  name: Document Access Policy
+  definition: Rules determining which roles can view, edit, download, or share a document, often scoped by firm, case, and sensitivity level.
+  examples:
+    - "Client can view final petition but cannot access internal strategy notes."
+  aliases:
+    - Sharing rules
+    - Document permissions
+
+
+  name: Case Note
+  definition: An internal or shared text record capturing observations, advice, call summaries, hearing outcomes, or next steps, linked to a case timeline.
+  examples:
+    - "Lawyer logs hearing outcome and next date in a case note."
+  aliases:
+    - Note
+    - Memo
+
+  name: Internal Communication
+  definition: Messages and discussions among firm users (lawyers, clerks, admins) related to a case, distinct from client-facing communication.
+  examples:
+    - "Lawyer asks clerk to compile exhibits for tomorrow’s hearing."
+  aliases:
+    - Team chat
+    - Staff messaging
+
+
+  name: Payment
+  definition: A recorded financial transaction initiated by the client to pay consultation fees, retainers, or invoices, with status tracking and reconciliation.
+  examples:
+    - "Client pays (₹1500) online for a consultation and receives a receipt."
+  aliases:
+    - Transaction
+    - Online payment
+
+
+  name: Invoice
+  definition: A formal billing document issued to a client for consultation or case services, capturing line items, taxes, totals, and payment status.
+  examples:
+    - "Invoice generated for drafting services and court appearance fees."
+  aliases:
+    - Bill
+    - Tax invoice
+
+
+  name: Fee Structure
+  definition: The configured pricing model for services (fixed fee, hourly, retainer, per hearing) used to generate estimates and invoices.
+  examples:
+    - "Case set to retainer of (₹25,000) plus (₹3,000) per hearing."
+  aliases:
+    - Pricing model
+    - Charges
+
+
+  name: Audit Log
+  definition: An immutable record of key system actions (logins, data access, document changes, billing events) for accountability and compliance.
+  examples:
+    - "Audit entry: 'Clerk downloaded Exhibit-A at 2026-01-29 10:12 IST'."
+  aliases:
+    - Activity log
+    - Trace log
+
+
+  name: Data Retention
+  definition: Policies that define how long consultations, messages, documents, and billing records are stored and when they are archived or deleted.
+  examples:
+    - "Closed case documents retained for 7 years per firm policy."
+  aliases:
+    - Record retention
+    - Archival policy
+
