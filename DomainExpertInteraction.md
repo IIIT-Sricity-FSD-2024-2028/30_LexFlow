@@ -1,11 +1,13 @@
 # Summary of the interaction
 ## Basic information
-    Domain: Law 
-    Problem statement: A Unified Digital Platform for Online Legal Consultation and Law Firm ERP
-    Date of interaction: 31-1-2026
-    Mode of interaction: video call
-    Duration (in-minutes):33mins
-    Publicly accessible Video link: [text](https://drive.google.com/file/d/1Dh2gzy5vnhfzDItBVz4XFIGoXVoSpAO3/view?usp=sharing)
+   **Domain:** Law  
+   **Problem Statement:** A Unified Digital Platform for Online Legal Consultation and Law Firm ERP  
+   **Date of Interaction:** 31-01-2026  
+   **Mode of Interaction:** Video Call  
+   **Duration:** 33 minutes  
+   **Publicly Accessible Video Link:**  
+   [Google Drive Video](https://drive.google.com/file/d/1Dh2gzy5vnhfzDItBVz4XFIGoXVoSpAO3/view?usp=sharing)
+
 ## Domain Expert Details
     Role/ designation: Associate Lawyer
     Experience in the domain: Corporate Law(4yrs or Exp.)
