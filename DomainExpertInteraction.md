@@ -6,7 +6,7 @@
    **Mode of Interaction:** Video Call  
    **Duration:** 33 minutes  
    **Publicly Accessible Video Link:**  
-   [Google Drive Video](https://drive.google.com/file/d/1Dh2gzy5vnhfzDItBVz4XFIGoXVoSpAO3/view?usp=drive_link)
+   [Google Drive Video](https://drive.google.com/file/d/1guLhmq1VhBtsZW4wDvy54PLFX-EWRa6g/view?usp=drive_link)
 
 ## Domain Expert Details
     Role/ designation: Associate Lawyer
