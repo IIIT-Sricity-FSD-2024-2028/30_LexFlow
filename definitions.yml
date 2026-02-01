@@ -1,6 +1,6 @@
 # Domain: Legal Services (Online Consultation + Law Firm ERP)
 # Problem Statement: A Unified Digital Platform for Online Legal Consultation and Law Firm ERP.
-# Last Updated: 2026-01-30
+# Last Updated: 01-02-2026
 
   name: Client
   definition: A person or organization that seeks legal advice or representation through the platform and owns the matters, documents, and payments associated with their legal service lifecycle.
@@ -260,4 +260,37 @@
   aliases:
     - Record retention
     - Archival policy
+
+  name: Brief 
+  definition: Brief represents the centralized digital "case file" or dossier that consolidates all information regarding a client's legal matter. It replaces "paper files" and "fragmented systems" by aggregating client instructions, submitted documents, communication history, and legal research into a single, secure digital profile. This ensures that any assigned lawyer has the full context (the "brief") of the case, preventing the loss of information when lawyers change or interns handle initial interactions.
+  examples:
+    - "I have assigned the Mehta case to you; please read the digital brief on the dashboard so you understand the context before calling the client."
+    - "Don't ask the client for the land documents again; just check the brief, the intern uploaded them last week."
+  aliases:
+    - Case File
+    - Matter Record
+    - Case Bundle
+    - Digital Docket
+
+  name: Cause List 
+  definition: The Cause List is the official schedule of cases to be heard by a court on a specific day. In the proposed platform, this feature would automate the tracking of "hearing schedules", replacing the manual "physical diaries" currently used by law firms. The system would likely fetch the official Cause List from court websites to automatically notify lawyers of upcoming hearings, thereby solving the stated problem of "missed hearings" and "inefficiencies" in allocation.
+  examples:
+    - "You don't need to check the court website manually; the app has already synced tomorrow's Cause List and flagged item 45 for us."
+    - "We almost missed the hearing because the case was added to the supplementary Cause List late last night, but the system sent a notification."   
+  aliases:
+    - Court List
+    - Daily Board
+    - Hearing Schedule
+    - Court Diary
+
+  name: Communication Logs
+  definition: A centralized, chronological record of all interactions between the firm and the client, including emails, chat messages, call notes, and meeting minutes. In the platform, this feature solves the problem of "lost context" by ensuring that every conversation is permanently recorded and accessible to any lawyer assigned to the case, rather than being trapped on a personal device.
+  examples:
+  - "The client claims they never received the bill, but the communication logs show it was viewed and downloaded last Tuesday."
+  - "Since I'm new to this file, I'm reading through the communication logs to understand exactly what was promised during the initial consultation."
+  aliases:
+  - Interaction History
+  - Client Correspondence
+  - Activity Trail
+  - Audit Trail
 
