@@ -1,6 +1,6 @@
 # Domain: Legal Services (Online Consultation + Law Firm ERP)
 # Problem Statement: A Unified Digital Platform for Online Legal Consultation and Law Firm ERP.
-# Last Updated: 02-02-2026
+# Last Updated: 05-02-2026
 
   name: Client
   definition: A person or organization that seeks legal advice or representation through the platform and owns the matters, documents, and payments associated with their legal service lifecycle.
@@ -283,4 +283,16 @@
   - Client Correspondence
   - Activity Trail
   - Audit Trail
+
+
+  name: System
+  definition: System refers to the Unified Digital Legal Platform that acts as the central software application responsible for managing, controlling, and coordinating all interactions between users and internal services.
+  examples:
+    - "The system automatically generates an invoice after the consultation is marked as completed."
+    - "When a client uploads a document, the system checks before allowing access."
+  aliases:
+    - Platform
+    - Enterprise System
+    
+
 
