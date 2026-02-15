@@ -47,20 +47,11 @@
     - Paralegal
     - Intern
   
-  name: Clerk
-  definition: A permanent staff member responsible for administrative court procedures, such as filing documents, tracking hearing dates (cause list), managing the case calendar, and coordinating with the court registry.
-  examples:
-    - "The clerk rushed to the registry to file the caveat before the counter closed."
-    - "Clerk updates the hearing date in the ERP after checking the court display board."
-  aliases:
-    - Munshi (common in Indian courts)
-  
-  
-
+ 
   name: Expertise Area
   definition: A standardized categorization of legal practice domains used for discovery, profiling, and case tagging (e.g., criminal, civil, corporate).
   examples:
-    - "The lawyer sets expertise as 'Labour Law' and 'Employment Contracts'."
+    - "The lawyer who is going to fight my case has expertise in the area of commercial litigation."
   aliases:
     - Practice Area
     - Specialization
@@ -68,8 +59,6 @@
 
   name: Consultation
   definition: A time-bound professional interaction between a client and a lawyer (chat/video/in-person) intended to provide legal advice and collect facts.
-  examples:
-    - "A 30-minute video consultation to review a legal notice draft."
   aliases:
     - Appointment
     - Session
@@ -84,28 +73,10 @@
     - File
 
 
-  name: Client Intake
-  definition: The collection of initial client details, conflict checks (if applicable), matter description, and consent needed to start consultation or case work.
-  examples:
-    - "Client provides identity details and brief issue summary before booking."
-  aliases:
-    - Onboarding
-    - Intake form
-
-
-  name: Conflict Check
-  definition: A mandatory procedure to ensure the firm does not represent a client whose interests are adverse to an existing client.
-  examples:
-    - "System alerts risk: 'Proposed client is the defendant in active Case #CIV-2025-0081'."
-  aliases:
-    - Conflict of interest check
-    - Independence check
-
-
   name: Case Status
   definition: A controlled set of states representing the lifecycle of a case (e.g., Draft, Active, On Hold, Closed) used for tracking and reporting.
   examples:
-    - "Case moves from Active to Closed after final order and billing settlement."
+    - "Since the case is over the case status has been set to closed."
   aliases:
     - Matter status
     - Stage
