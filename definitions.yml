@@ -1,6 +1,6 @@
 # Domain: Legal Services (Online Consultation + Law Firm ERP)
 # Problem Statement: A Unified Digital Platform for Online Legal Consultation and Law Firm ERP.
-# Last Updated: 09-03-2026
+# Last Updated: 14-02-2026
 
   name: Client
   definition: A person or organization that seeks legal advice or representation through the platform and owns the matters, documents, and payments associated with the law firm.
