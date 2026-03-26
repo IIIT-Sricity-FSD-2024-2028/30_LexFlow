@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@700;900&display=swap");
 @import url("https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css");
 
 * {
@@ -21,44 +22,8 @@ a {
     text-decoration: none;
 }
 
-/* @FONTWARNING[{"type": "restricted", "family": "Inter-Bold", "weight": "700", "style": "normal", "allowsCrossOrigin": false}] */
-
-@font-face {
-    font-family: "Inter-Bold";
-    src: local("Inter-Bold");
-}
-
-/* @FONTWARNING[{"type": "restricted", "family": "Inter-Regular", "weight": "400", "style": "normal", "allowsCrossOrigin": false}] */
-
-@font-face {
-    font-family: "Inter-Regular";
-    src: local("Inter-Regular");
-}
-
-/* @FONTWARNING[{"type": "restricted", "family": "Poppins-Bold", "weight": "700", "style": "normal", "allowsCrossOrigin": false}] */
-
-@font-face {
-    font-family: "Poppins-Bold";
-    src: local("Poppins-Bold");
-}
-
-/* @FONTWARNING[{"type": "restricted", "family": "Inter-SemiBold", "weight": "600", "style": "normal", "allowsCrossOrigin": false}] */
-
-@font-face {
-    font-family: "Inter-SemiBold";
-    src: local("Inter-SemiBold");
-}
-
-/* @FONTWARNING[{"type": "restricted", "family": "Poppins-Black", "weight": "900", "style": "normal", "allowsCrossOrigin": false}] */
-
-@font-face {
-    font-family: "Poppins-Black";
-    src: local("Poppins-Black");
-}
-
-/* @FONTWARNING[{"type": "restricted", "family": "Inter-Medium", "weight": "500", "style": "normal", "allowsCrossOrigin": false}] */
-
-@font-face {
-    font-family: "Inter-Medium";
-    src: local("Inter-Medium");
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
 }
