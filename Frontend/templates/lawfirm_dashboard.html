@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>User Management - LexFlow Dashboard</title>
+    <link rel="stylesheet" href="../static/globals.css" />
+    <link rel="stylesheet" href="../static/lawfirm_dashboard.css" />
+</head>
+
+<body>
+    <div class="dashboard-layout">
+
+        <!-- ── Left Sidebar ── -->
+        <nav class="sidebar">
+
+            <!-- LexFlow logo — replace src with your real logo path later -->
+            <img class="sidebar-logo" src="images/lexflow-logo.svg" alt="LexFlow" />
+
+            <!-- Navigation links -->
+            <ul class="sidebar-nav">
+                <li>
+                    <a href="#" class="nav-link">
+                        <!-- Replace src with your real icon path later -->
+                        <img src="images/icons/schedules.svg" alt="" />
+                        <span>Schedules</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link nav-link--active">
+                        <!-- Replace src with your real icon path later -->
+                        <img src="images/icons/cases.svg" alt="" />
+                        <span>Cases</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link">
+                        <!-- Replace src with your real icon path later -->
+                        <img src="images/icons/documents.svg" alt="" />
+                        <span>Documents</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link">
+                        <!-- Replace src with your real icon path later -->
+                        <img src="images/icons/billing.svg" alt="" />
+                        <span>Billing</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- User profile card pinned to bottom of sidebar -->
+            <div class="sidebar-profile">
+                <div class="profile-avatar">JD</div>
+                <div class="profile-info">
+                    <span class="profile-name">John Doe</span>
+                    <span class="profile-role">Firm Admin</span>
+                </div>
+                <button class="btn-icon" type="button">
+                    <!-- Replace src with your real icon path later -->
+                    <img src="images/icons/logout.svg" alt="Log out" />
+                </button>
+            </div>
+
+        </nav>
+
+        <!-- ── Main Content ── -->
+        <main class="main-content">
+
+            <!-- Top bar: search + notification icon -->
+            <header class="topbar">
+                <input class="search-input" type="text" placeholder="Search users, roles, or status..." />
+                <button class="btn-icon" type="button">
+                    <!-- Replace src with your real icon path later -->
+                    <img src="images/icons/notification.svg" alt="Notifications" />
+                </button>
+            </header>
+
+            <!-- Page title + Add New User CTA -->
+            <div class="page-header">
+                <h1 class="page-title">User Management</h1>
+                <button class="btn btn-add-user" type="button">
+                    <!-- Replace src with your real icon path later -->
+                    <img src="images/icons/plus.svg" alt="" />
+                    Add New User
+                </button>
+            </div>
+
+            <!-- Stats row: three summary cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-text">
+                        <span class="stat-label">Total Users</span>
+                        <strong class="stat-value">0,000</strong>
+                    </div>
+                    <!-- Replace src with your real icon path later -->
+                    <img class="stat-icon" src="images/icons/users.svg" alt="" />
+                </div>
+                <div class="stat-card">
+                    <div class="stat-text">
+                        <span class="stat-label">Active Lawyers</span>
+                        <strong class="stat-value">000</strong>
+                    </div>
+                    <!-- Replace src with your real icon path later -->
+                    <img class="stat-icon" src="images/icons/lawyer.svg" alt="" />
+                </div>
+                <div class="stat-card">
+                    <div class="stat-text">
+                        <span class="stat-label">Active Clients</span>
+                        <strong class="stat-value">000</strong>
+                    </div>
+                    <!-- Replace src with your real icon path later -->
+                    <img class="stat-icon" src="images/icons/client.svg" alt="" />
+                </div>
+            </div>
+
+            <!-- User table section -->
+            <section class="user-table-section">
+
+                <!-- Toolbar: table title + filter/export icon buttons -->
+                <div class="table-toolbar">
+                    <h2 class="table-title">All Users</h2>
+                    <div class="table-actions">
+                        <button class="btn-icon" type="button">
+                            <!-- Replace src with your real icon path later -->
+                            <img src="images/icons/filter.svg" alt="Filter" />
+                        </button>
+                        <button class="btn-icon" type="button">
+                            <!-- Replace src with your real icon path later -->
+                            <img src="images/icons/export.svg" alt="Export" />
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Data table: proper semantic table replaces the nested div grid -->
+                <table class="user-table">
+                    <thead>
+                        <tr>
+                            <th>NAME</th>
+                            <th>EMAIL ADDRESS</th>
+                            <th>ROLE</th>
+                            <th>STATUS</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        <!-- Row 1: Julius Ceaser -->
+                        <tr>
+                            <td class="cell-user">
+                                <!-- Replace src with your real avatar path later -->
+                                <img class="user-avatar" src="images/avatars/julius-ceaser.svg" alt="" />
+                                <div>
+                                    <span class="user-name">Julius Ceaser</span>
+                                    <span class="user-id">ID: LF-001</span>
+                                </div>
+                            </td>
+                            <td class="cell-email">j.ceaser@lexflow.com</td>
+                            <td><span class="badge badge-manager">Manager</span></td>
+                            <td>
+                                <div class="status-cell">
+                                    <span class="status-dot status-dot--available"></span>
+                                    <span>Available</span>
+                                </div>
+                            </td>
+                            <td class="cell-actions">
+                                <button class="btn-icon" type="button">
+                                    <!-- Replace src with your real icon path later -->
+                                    <img src="images/icons/edit.svg" alt="Edit" />
+                                </button>
+                                <button class="btn-icon" type="button">
+                                    <!-- Replace src with your real icon path later -->
+                                    <img src="images/icons/delete.svg" alt="Delete" />
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Row 2: Jk Rowling -->
+                        <tr>
+                            <td class="cell-user">
+                                <!-- Replace src with your real avatar path later -->
+                                <img class="user-avatar" src="images/avatars/jk-rowling.svg" alt="" />
+                                <div>
+                                    <span class="user-name">Jk Rowling</span>
+                                    <span class="user-id">ID: LF-002</span>
+                                </div>
+                            </td>
+                            <td class="cell-email">j.rowling@lexflow.com</td>
+                            <td><span class="badge badge-lawyer">Lawyer</span></td>
+                            <td>
+                                <div class="status-cell">
+                                    <span class="status-dot status-dot--available"></span>
+                                    <span>Available</span>
+                                </div>
+                            </td>
+                            <td class="cell-actions">
+                                <button class="btn-icon" type="button">
+                                    <!-- Replace src with your real icon path later -->
+                                    <img src="images/icons/edit.svg" alt="Edit" />
+                                </button>
+                                <button class="btn-icon" type="button">
+                                    <!-- Replace src with your real icon path later -->
+                                    <img src="images/icons/delete.svg" alt="Delete" />
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Row 3: S Bose -->
+                        <tr>
+                            <td class="cell-user">
+                                <!-- Replace src with your real avatar path later -->
+                                <img class="user-avatar" src="images/avatars/s-bose.svg" alt="" />
+                                <div>
+                                    <span class="user-name">S Bose</span>
+                                    <span class="user-id">ID: LF-003</span>
+                                </div>
+                            </td>
+                            <td class="cell-email">s.bose@globalcorp.com</td>
+                            <td><span class="badge badge-client">Client</span></td>
+                            <td>
+                                <div class="status-cell">
+                                    <span class="status-dot status-dot--unavailable"></span>
+                                    <span>Not Available</span>
+                                </div>
+                            </td>
+                            <td class="cell-actions">
+                                <button class="btn-icon" type="button">
+                                    <!-- Replace src with your real icon path later -->
+                                    <img src="images/icons/edit.svg" alt="Edit" />
+                                </button>
+                                <button class="btn-icon" type="button">
+                                    <!-- Replace src with your real icon path later -->
+                                    <img src="images/icons/delete.svg" alt="Delete" />
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Row 4: R Sharma -->
+                        <tr>
+                            <td class="cell-user">
+                                <!-- Replace src with your real avatar path later -->
+                                <img class="user-avatar" src="images/avatars/r-sharma.svg" alt="" />
+                                <div>
+                                    <span class="user-name">R Sharma</span>
+                                    <span class="user-id">ID: LF-004</span>
+                                </div>
+                            </td>
+                            <td class="cell-email">r.sharma@lexflow.com</td>
+                            <td><span class="badge badge-lawyer">Lawyer</span></td>
+                            <td>
+                                <div class="status-cell">
+                                    <span class="status-dot status-dot--available"></span>
+                                    <span>Available</span>
+                                </div>
+                            </td>
+                            <td class="cell-actions">
+                                <button class="btn-icon" type="button">
+                                    <!-- Replace src with your real icon path later -->
+                                    <img src="images/icons/edit.svg" alt="Edit" />
+                                </button>
+                                <button class="btn-icon" type="button">
+                                    <!-- Replace src with your real icon path later -->
+                                    <img src="images/icons/delete.svg" alt="Delete" />
+                                </button>
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    <button type="button" class="page-btn">Previous</button>
+                    <button type="button" class="page-btn page-btn--active">1</button>
+                    <button type="button" class="page-btn">2</button>
+                    <button type="button" class="page-btn">3</button>
+                    <button type="button" class="page-btn">Next</button>
+                </div>
+
+            </section>
+        </main>
+
+    </div>
+</body>
+
+</html>

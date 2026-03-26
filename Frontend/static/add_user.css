@@ -1,0 +1,257 @@
+
+
+/* --- Modal card ---
+   Centred wherever it's rendered.
+   The backdrop/overlay is handled by the page that opens this. */
+.add-user-modal {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 512px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+
+/* =============================================
+   HEADER
+   ============================================= */
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 32px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.modal-title {
+    font-family: "Poppins", Helvetica, sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 28px;
+    color: #1f3a60;
+    margin: 0;
+}
+
+.modal-subtitle {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Close icon — no background, just the SVG */
+.btn-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.btn-close img {
+    width: 14px;
+    height: 14px;
+}
+
+
+/* =============================================
+   FORM
+   32px padding on all sides matches the header;
+   bottom reduced to 16px per the original design.
+   ============================================= */
+.modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 32px 32px 16px;
+}
+
+/* Shared field wrapper: label stacked above control */
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field-label {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    color: #334155;
+}
+
+/* Shared style for text inputs and the select element */
+.field-input,
+.field-select {
+    width: 100%;
+    padding: 11px 16px 12px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-family: "Inter", Helvetica, sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    color: #0f172a;
+    outline: none;
+}
+
+.field-input::placeholder {
+    color: #6b7280;
+}
+
+.field-input:focus,
+.field-select:focus {
+    border-color: #1f3a60;
+}
+
+
+/* ---- Phone + Role: two equal columns ---- */
+.form-row {
+    display: flex;
+    gap: 16px;
+}
+
+.form-row .form-field {
+    flex: 1;
+}
+
+
+/* ---- Role select ----
+   appearance:none removes the browser arrow so we can use our own icon.
+   The wrapper positions the custom arrow absolutely over the select. */
+.select-wrapper {
+    position: relative;
+}
+
+.field-select {
+    appearance: none;
+    padding-right: 40px;
+    /* room for the arrow icon */
+    cursor: pointer;
+}
+
+/* Custom chevron icon — pointer-events:none lets clicks pass through to the select */
+.select-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: auto;
+    pointer-events: none;
+}
+
+
+/* ---- Status segmented control ----
+   Gray track with a white pill that follows the checked radio.
+   :has() is well supported in all modern desktop browsers. */
+.status-fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.status-toggle {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background-color: #f1f5f9;
+    border-radius: 8px;
+}
+
+.status-option {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    color: #64748b;
+    transition: color 0.15s;
+}
+
+/* Hide the native radio — label click still toggles it */
+.status-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.status-option img {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+}
+
+/* Checked state: white pill with soft shadow */
+.status-option:has(input:checked) {
+    background-color: #ffffff;
+    color: #1f3a60;
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+
+/* =============================================
+   FOOTER
+   ============================================= */
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    padding: 24px 32px;
+    background-color: rgba(248, 250, 252, 0.5);
+    border-top: 1px solid #f1f5f9;
+}
+
+/* Shared button base */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: "Inter", Helvetica, sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 20px;
+    white-space: nowrap;
+}
+
+/* Cancel: white with border */
+.btn-cancel {
+    padding: 10px 24px;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+}
+
+.btn-cancel:hover {
+    background-color: #f8fafc;
+}
+
+/* Create User: navy with layered shadow */
+.btn-create {
+    padding: 10px 32px;
+    background-color: #1f3a60;
+    border: none;
+    color: #ffffff;
+    box-shadow: 0px 4px 6px -4px rgba(31, 58, 96, 0.2),
+        0px 10px 15px -3px rgba(31, 58, 96, 0.2);
+}
+
+.btn-create:hover {
+    background-color: #162d4d;
+}

@@ -1,0 +1,538 @@
+
+
+/* K2D font — only used on this page for the page title */
+@import url("https://fonts.googleapis.com/css2?family=K2D:wght@700&display=swap");
+
+
+/* =============================================
+   PAGE LAYOUT
+   Sidebar fixed on the left; main content fills the rest.
+   ============================================= */
+.dashboard-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f6f7f8;
+}
+
+
+/* =============================================
+   SIDEBAR
+   flex-column: logo at top → nav grows → profile pinned at bottom.
+   ============================================= */
+.sidebar {
+    width: 256px;
+    flex-shrink: 0;
+    min-height: 100vh;
+    background-color: #1f3a60;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px 16px;
+}
+
+.sidebar-logo {
+    width: 120px;
+    /* adjust to match real logo dimensions */
+    height: auto;
+    margin-bottom: 32px;
+}
+
+/* Nav list takes remaining vertical space so profile is pushed to bottom */
+.sidebar-nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 68px;
+    /* matches Figma vertical spacing below logo */
+}
+
+.sidebar-nav li {
+    list-style: none;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 21px;
+    /* design spec */
+    line-height: 20px;
+}
+
+.nav-link img {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.nav-link--active {
+    background-color: rgba(255, 255, 255, 0.12);
+    font-weight: 600;
+}
+
+
+/* ---- User profile card at the bottom of the sidebar ---- */
+.sidebar-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+}
+
+/* Initials circle */
+.profile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 9999px;
+    background-color: rgba(6, 74, 203, 0.2);
+    color: #064acb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-name {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    color: #ffffff;
+}
+
+.profile-role {
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 16px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Logout button in sidebar — no border, just hover bg */
+.sidebar-profile .btn-icon {
+    border: none;
+}
+
+
+/* =============================================
+   MAIN CONTENT
+   ============================================= */
+.main-content {
+    flex: 1;
+    min-width: 0;
+    /* prevents flex blowout */
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    max-width: 1400px;
+}
+
+
+/* ---- Topbar ---- */
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    height: 64px;
+    padding: 0 32px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+/* 40px left padding leaves room to add a search icon later */
+.search-input {
+    flex: 1;
+    max-width: 384px;
+    padding: 9px 16px 10px 40px;
+    background-color: #f1f5f9;
+    border: none;
+    border-radius: 8px;
+    font-family: "Inter", Helvetica, sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    color: #0f172a;
+    outline: none;
+}
+
+.search-input::placeholder {
+    color: #6b7280;
+}
+
+
+/* ---- Page header: title + Add User CTA ---- */
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 32px 32px 0;
+}
+
+.page-title {
+    font-family: "K2D", Helvetica, sans-serif;
+    font-weight: 700;
+    font-size: 32px;
+    line-height: 32px;
+    letter-spacing: -0.6px;
+    color: #0f172a;
+}
+
+.btn-add-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background-color: #1f3a60;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: "Inter", Helvetica, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: #ffffff;
+    box-shadow: 0px 1px 2px rgba(31, 58, 96, 0.2);
+    white-space: nowrap;
+}
+
+.btn-add-user:hover {
+    background-color: #162d4d;
+}
+
+.btn-add-user img {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+
+/* =============================================
+   STATS GRID
+   Three equal cards. Icon sits faded in top-right corner.
+   ============================================= */
+.stats-grid {
+    display: flex;
+    gap: 24px;
+    padding: 32px 32px 0;
+}
+
+.stat-card {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 24px;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.stat-text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stat-label {
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    color: #64748b;
+}
+
+.stat-value {
+    font-weight: 700;
+    font-size: 30px;
+    line-height: 36px;
+    color: #0f172a;
+}
+
+/* Large decorative icon in the card corner — faded */
+.stat-icon {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    opacity: 0.1;
+}
+
+
+/* =============================================
+   USER TABLE SECTION
+   ============================================= */
+.user-table-section {
+    margin: 32px;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+/* Toolbar: title on left, icon buttons on right */
+.table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background-color: rgba(248, 250, 252, 0.5);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.table-title {
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 24px;
+    color: #0f172a;
+}
+
+.table-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ---- Shared icon-only button ---- */
+.btn-icon {
+    background: none;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+.btn-icon:hover {
+    background-color: #f1f5f9;
+}
+
+.btn-icon img {
+    width: 14px;
+    height: 14px;
+}
+
+/* Toolbar filter/export buttons get a visible border */
+.table-actions .btn-icon {
+    border: 1px solid #e2e8f0;
+}
+
+
+/* ---- Data table ----
+   Proper <table> element — no div grid needed.
+   Rows are uniform; role/status use modifier classes. */
+.user-table {
+    width: 100%;
+}
+
+.user-table thead tr {
+    background-color: rgba(248, 250, 252, 0.5);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.user-table th {
+    padding: 16px 24px;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.55px;
+    color: #64748b;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.user-table th:last-child {
+    text-align: right;
+}
+
+.user-table tbody tr {
+    border-top: 1px solid #f1f5f9;
+}
+
+.user-table tbody tr:hover {
+    background-color: #fafafa;
+}
+
+/* Default cell: padding + vertical centering */
+.user-table td {
+    padding: 16px 24px;
+    font-size: 14px;
+    color: #475569;
+    vertical-align: middle;
+}
+
+/* Name cell: avatar + stacked name/id horizontally */
+.cell-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 9999px;
+    border: 1px solid #e2e8f0;
+    background-color: #e2e8f0;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+/* The <div> wrapping name + id spans */
+.cell-user div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    color: #0f172a;
+    white-space: nowrap;
+}
+
+.user-id {
+    font-weight: 400;
+    font-size: 11px;
+    line-height: 14px;
+    color: #64748b;
+}
+
+.cell-email {
+    white-space: nowrap;
+}
+
+/* Actions column: right-aligned small icon buttons */
+.cell-actions {
+    text-align: right;
+}
+
+.cell-actions .btn-icon {
+    padding: 6px;
+    border-radius: 4px;
+}
+
+
+/* ---- Role badges ---- */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+.badge-manager {
+    background-color: rgba(31, 58, 96, 0.1);
+    color: #475569;
+}
+
+.badge-lawyer {
+    background-color: #f1f5f9;
+    color: #475569;
+}
+
+.badge-client {
+    background-color: rgba(212, 175, 55, 0.1);
+    color: #d4af37;
+}
+
+
+/* ---- Status: dot + text ---- */
+.status-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    flex-shrink: 0;
+}
+
+.status-dot--available {
+    background-color: #10b981;
+}
+
+.status-dot--unavailable {
+    background-color: #94a3b8;
+}
+
+/* Text colour matches dot */
+.status-dot--available+span {
+    color: #059669;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.status-dot--unavailable+span {
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+
+/* =============================================
+   PAGINATION
+   ============================================= */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 24px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.page-btn {
+    all: unset;
+    box-sizing: border-box;
+    padding: 4px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-family: "Inter", Helvetica, sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 16px;
+    color: #475569;
+    cursor: pointer;
+    text-align: center;
+}
+
+.page-btn:hover {
+    background-color: #f8fafc;
+}
+
+/* Active / current page */
+.page-btn--active {
+    background-color: #1f3a60;
+    border-color: #1f3a60;
+    color: #ffffff;
+}

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Book Consultation</title>
+    <link rel="stylesheet" href="../static/globals.css" />
+    <link rel="stylesheet" href="../static/book_consultation.css" />
+</head>
+
+<body>
+    <div class="modal-container">
+
+        <!-- Left decorative sidebar -->
+        <aside class="modal-sidebar">
+            <img class="sidebar-logo" src="images/lexflow-logo.svg" alt="Lexflow" />
+            <h2 class="sidebar-title">Expert Legal<br />Guidance</h2>
+            <div class="sidebar-features">
+                <div class="sidebar-feature">
+                    <!-- Replace src with your real icon path later -->
+                    <img class="feature-icon" src="images/icons/verified.svg" alt="" />
+                    <span>Verified Professionals</span>
+                </div>
+                <div class="sidebar-feature">
+                    <!-- Replace src with your real icon path later -->
+                    <img class="feature-icon" src="images/icons/secure.svg" alt="" />
+                    <span>Secure Encryption</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right form panel -->
+        <div class="modal-body">
+
+            <!-- Header: title + close -->
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title">Book Consultation</h2>
+                    <p class="modal-subtitle">Secure your appointment in a few steps.</p>
+                </div>
+                <button class="btn-close" type="button">
+                    <!-- Replace src with your real icon path later -->
+                    <img src="images/icons/close.svg" alt="Close" />
+                </button>
+            </div>
+
+            <form class="booking-form">
+
+                <!-- Lawyer name (read-only display) -->
+                <div class="form-field">
+                    <label class="field-label">LawFirm Name</label>
+                    <div class="input-wrapper">
+                        <!-- Replace src with your real icon path later -->
+                        <img class="input-icon" src="images/icons/lawyer.svg" alt="" />
+                        <div class="input-display">Julian Vance</div>
+                    </div>
+                </div>
+
+                <!-- Consultation type toggle -->
+                <div class="form-field">
+                    <label class="field-label">Consultation Type</label>
+                    <div class="type-selector">
+                        <button type="button" class="type-option type-option--active">
+                            <!-- Replace src with your real icon path later -->
+                            <img class="type-icon" src="images/icons/video.svg" alt="" />
+                            <span>Video Call</span>
+                        </button>
+                        <button type="button" class="type-option">
+                            <!-- Replace src with your real icon path later -->
+                            <img class="type-icon" src="images/icons/chat.svg" alt="" />
+                            <span>Chat</span>
+                        </button>
+                        <button type="button" class="type-option">
+                            <!-- Replace src with your real icon path later -->
+                            <img class="type-icon" src="images/icons/inperson.svg" alt="" />
+                            <span>In-person</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Date picker + time slots side by side -->
+                <div class="date-time-row">
+
+                    <!-- Mini calendar -->
+                    <div class="form-field">
+                        <label class="field-label">Select Date</label>
+                        <div class="calendar">
+                            <div class="calendar-header">
+                                <span class="calendar-month">October 2023</span>
+                                <div class="calendar-nav">
+                                    <button type="button" class="cal-nav-btn" id="cal-prev">&#8249;</button>
+                                    <button type="button" class="cal-nav-btn" id="cal-next">&#8250;</button>
+                                </div>
+                            </div>
+                            <div class="calendar-grid">
+                                <!-- Day name headers -->
+                                <span class="cal-day-name">S</span>
+                                <span class="cal-day-name">M</span>
+                                <span class="cal-day-name">T</span>
+                                <span class="cal-day-name">W</span>
+                                <span class="cal-day-name">T</span>
+                                <span class="cal-day-name">F</span>
+                                <span class="cal-day-name">S</span>
+                                <!-- Dates: "7" is the trailing day from September -->
+                                <button type="button" class="cal-day cal-day--prev-month">7</button>
+                                <button type="button" class="cal-day">1</button>
+                                <button type="button" class="cal-day">2</button>
+                                <button type="button" class="cal-day cal-day--selected">3</button>
+                                <button type="button" class="cal-day">4</button>
+                                <button type="button" class="cal-day">5</button>
+                                <button type="button" class="cal-day">6</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Time slots -->
+                    <div class="form-field">
+                        <label class="field-label">Available Time</label>
+                        <div class="time-slots">
+                            <button type="button" class="time-slot">09:00 AM</button>
+                            <button type="button" class="time-slot time-slot--selected">10:30 AM</button>
+                            <button type="button" class="time-slot">01:00 PM</button>
+                            <button type="button" class="time-slot">02:30 PM</button>
+                            <button type="button" class="time-slot">04:00 PM</button>
+                            <button type="button" class="time-slot">05:30 PM</button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Case description -->
+                <div class="form-field">
+                    <label class="field-label">Brief Case Description</label>
+                    <textarea class="case-textarea"
+                        placeholder="Tell us more about your legal requirements..."></textarea>
+                </div>
+
+                <!-- Actions -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-confirm">Confirm Booking</button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

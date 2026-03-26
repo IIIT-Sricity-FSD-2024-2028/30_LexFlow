@@ -1,0 +1,371 @@
+
+/* --- Page wrapper ---
+   Centered inside whatever content area wraps it
+   (e.g. to the right of a sidebar).
+   max-width keeps it readable on very wide screens. */
+.lawyer-profile-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    /* centres horizontally on zoom-out */
+    padding: 24px;
+    background-color: #e2e8f0;
+    box-sizing: border-box;
+}
+
+
+/* =============================================
+   SHARED CARD SHELL
+   Used for the header, every stat card, and
+   every content card — avoids repeating border /
+   shadow / background in four separate places.
+   ============================================= */
+.profile-header-card,
+.stat-card,
+.content-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+    padding: 24px;
+}
+
+
+/* =============================================
+   PROFILE HEADER CARD
+   Photo + name/role/location on the left,
+   action buttons on the right.
+   flex-wrap lets buttons drop below on narrow views.
+   ============================================= */
+.profile-header-main {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+/* Photo + text info side-by-side */
+.profile-intro {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.profile-photo {
+    width: 128px;
+    height: 128px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    /* photo never squishes */
+}
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.profile-name {
+    font-weight: 700;
+    font-size: 30px;
+    line-height: 1.25;
+    letter-spacing: -0.75px;
+    color: #0f172a;
+    margin: 0;
+}
+
+.profile-role {
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 28px;
+    color: #1f3a60;
+    margin: 0;
+}
+
+/* Location: pin icon + address inline */
+.profile-location {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.location-icon {
+    width: 11px;
+    height: 13px;
+    flex-shrink: 0;
+}
+
+.profile-location address {
+    font-style: normal;
+    /* <address> is italic by default; override it */
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    color: #64748b;
+}
+
+
+/* ---- Action buttons ---- */
+.profile-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+/* Shared base for both buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    min-width: 140px;
+    padding: 0 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: "Inter", Helvetica, sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 20px;
+    white-space: nowrap;
+}
+
+/* Primary: solid blue with a subtle shadow */
+.btn-primary {
+    background-color: #064acb;
+    color: #ffffff;
+    box-shadow: 0px 2px 4px -2px rgba(0, 0, 0, 0.1),
+        0px 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover {
+    background-color: #0540b0;
+}
+
+/* Secondary: light gray */
+.btn-secondary {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}
+
+.btn-secondary:hover {
+    background-color: #e2e8f0;
+}
+
+
+/* =============================================
+   STATS GRID
+   Three equal-width cards in a row.
+   flex:1 means they share available space equally,
+   so they never overflow on zoom-out.
+   ============================================= */
+.stats-grid {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+}
+
+.stat-card {
+    flex: 1;
+    /* equal share of row width */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Icon + label in a row */
+.stat-label-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stat-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+.stat-label {
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    color: #64748b;
+}
+
+.stat-value {
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 30px;
+    color: #0f172a;
+}
+
+/* Rating card: value and review count on the same baseline line.
+   Previously used position:absolute which broke on zoom-out. */
+.stat-rating {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0;
+}
+
+.stat-meta {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    color: #94a3b8;
+}
+
+
+/* =============================================
+   PROFILE CONTENT — Two-column layout
+   Left: bio + practice areas  |  Right: sidebar
+   min-width:0 on the left prevents flex blowout
+   when content is wider than the container.
+   ============================================= */
+.profile-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    width: 100%;
+}
+
+.profile-main-column {
+    flex: 1;
+    min-width: 0;
+    /* allows the column to shrink below its content size */
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Sidebar: fixed width, never shrinks */
+.profile-side-column {
+    width: 304px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+
+/* =============================================
+   CONTENT CARDS (left + right column cards)
+   ============================================= */
+.content-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Section headings inside cards */
+.content-card h2 {
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 28px;
+    color: #0f172a;
+    margin: 0;
+}
+
+/* Bio paragraph */
+.content-card p {
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 26px;
+    color: #475569;
+    margin: 0;
+}
+
+/* Card title row: icon + heading side-by-side (sidebar only) */
+.card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Sidebar headings are slightly smaller than the main column */
+.card-title-row h2 {
+    font-size: 18px;
+    line-height: 28px;
+}
+
+.section-icon {
+    flex-shrink: 0;
+    width: 22px;
+    height: 20px;
+}
+
+
+/* =============================================
+   PRACTICE AREA TAGS
+   Previously used absolute positioning with fixed
+   left offsets — that caused cut-off on zoom-out.
+   Now uses flex-wrap so tags reflow naturally.
+   ============================================= */
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Blue pill tags (practice areas) */
+.tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 16px;
+    background-color: rgba(31, 58, 96, 0.1);
+    border-radius: 9999px;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    color: #1f3a60;
+    white-space: nowrap;
+}
+
+/* Soft gray tags (languages) */
+.tag-soft {
+    background-color: #f1f5f9;
+    border-radius: 4px;
+    color: #334155;
+    font-weight: 400;
+    padding: 4px 12px;
+}
+
+
+/* =============================================
+   EDUCATION LIST
+   Two stacked entries, each with a bold school
+   name and a smaller descriptor beneath it.
+   ============================================= */
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.info-item strong {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    color: #0f172a;
+}
+
+.info-item span {
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 16px;
+    color: #64748b;
+}

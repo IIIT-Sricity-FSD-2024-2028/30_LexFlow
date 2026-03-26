@@ -1,0 +1,265 @@
+
+
+/* --- Outer card ---
+   Centred in whatever page context wraps it.
+   padding-bottom instead of uniform padding
+   because the header has its own 32px padding. */
+.booking-confirmation {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+    padding-bottom: 32px;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+
+/* =============================================
+   SUCCESS HEADER
+   ============================================= */
+.success-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 32px;
+    width: 100%;
+    text-align: center;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Green circle around the checkmark icon */
+.success-icon-circle {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #dcfce7;
+    border-radius: 9999px;
+    margin-bottom: 16px;
+    /* extra gap before the title */
+    flex-shrink: 0;
+}
+
+.success-icon {
+    width: 40px;
+    height: 40px;
+}
+
+.success-title {
+    font-weight: 700;
+    font-size: 30px;
+    line-height: 36px;
+    color: #0f172a;
+    margin: 0;
+}
+
+.success-subtitle {
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 24px;
+    color: #64748b;
+    margin: 0;
+}
+
+
+/* =============================================
+   CONSULTATION DETAILS
+   ============================================= */
+.consultation-details {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 32px;
+    width: 100%;
+}
+
+/* Gray card containing the four detail rows */
+.details-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    background-color: #f6f7f8;
+    border-radius: 12px;
+}
+
+/* "MEETING DETAILS" uppercase section heading */
+.section-heading {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.7px;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.details-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Each row: left side (icon + label) and right side (value) */
+.detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Left side: icon and label text */
+.detail-key {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.detail-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* "Consultation ID", "Date" etc. */
+.detail-name {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    color: #475569;
+}
+
+/* "#LF-88291", "Sarah Jenkins, Esq." etc. */
+.detail-value {
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 24px;
+    color: #0f172a;
+}
+
+
+/* ---- Virtual room decorative banner ----
+   Uses flex centering so the pill sits naturally
+   in the middle without any absolute wrapper div. */
+.virtual-room-banner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 128px;
+    background-color: #f1f5f9;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Subtle blue radial glow behind the pill */
+.banner-gradient {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(50% 50% at 50% 50%,
+            rgba(6, 74, 203, 1) 4%,
+            rgba(6, 74, 203, 0) 100%);
+    opacity: 0.2;
+    pointer-events: none;
+    /* purely decorative */
+}
+
+/* White pill badge centred over the gradient */
+.banner-pill {
+    position: relative;
+    /* sits above the absolute gradient */
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 9999px;
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 16px;
+    color: #0f172a;
+}
+
+.pill-icon {
+    width: 12px;
+    height: 10px;
+    flex-shrink: 0;
+}
+
+
+/* =============================================
+   ACTION BUTTONS
+   Two equal-width buttons side by side.
+   ============================================= */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    padding: 0 32px 32px;
+    width: 100%;
+}
+
+/* Shared base */
+.btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: "Inter", Helvetica, sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 24px;
+    white-space: nowrap;
+}
+
+.btn img {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* Primary: dark navy */
+.btn-primary {
+    background-color: #1f3a60;
+    color: #ffffff;
+}
+
+.btn-primary:hover {
+    background-color: #162d4d;
+}
+
+/* Secondary: light gray */
+.btn-secondary {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}
+
+.btn-secondary:hover {
+    background-color: #e2e8f0;
+}
+
+
+/* =============================================
+   FOOTER NOTE
+   ============================================= */
+.footer-note {
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 16px;
+    color: #94a3b8;
+    text-align: center;
+    padding: 0 32px;
+    margin: 0;
+}

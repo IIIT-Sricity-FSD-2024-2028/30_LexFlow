@@ -1,0 +1,418 @@
+
+
+
+/* --- Modal shell ---
+   Centered in whatever context it sits inside.
+   overflow:hidden clips the sidebar corners. */
+.modal-container {
+    display: flex;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+
+/* =============================================
+   LEFT SIDEBAR
+   justify-content:space-between pushes the
+   feature list to the bottom of the panel.
+   ============================================= */
+.modal-sidebar {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 266px;
+    flex-shrink: 0;
+    /* sidebar never squishes */
+    padding: 32px;
+    background-color: #1f3a60;
+}
+
+.sidebar-title {
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 30px;
+    color: #ffffff;
+    margin: 0;
+    padding-top: 68px;
+    
+}
+
+.sidebar-features {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sidebar-feature {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sidebar-feature span {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    color: #e2e8f0;
+}
+
+.feature-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+
+/* =============================================
+   RIGHT FORM PANEL
+   ============================================= */
+.modal-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 40px;
+    overflow-y: auto;
+}
+
+/* Header row: title block on left, close icon on right */
+.modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.modal-title {
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 32px;
+    color: #0f172a;
+    margin: 0;
+}
+
+.modal-subtitle {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Close icon — no background, just the SVG */
+.btn-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    line-height: 0;
+    /* removes extra gap below inline img */
+}
+
+.btn-close img {
+    width: 14px;
+    height: 14px;
+}
+
+
+/* =============================================
+   FORM
+   ============================================= */
+.booking-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Shared wrapper: label stacked above its control */
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.field-label {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    color: #334155;
+}
+
+
+/* ---- Lawyer name display ---- */
+.input-wrapper {
+    position: relative;
+    /* positions the icon absolutely inside */
+}
+
+/* Icon pinned to the left of the input */
+.input-icon {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.input-display {
+    display: block;
+    width: 100%;
+    padding: 12px 16px 12px 40px;
+    /* 40px left = icon width + gap */
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 24px;
+    color: #475569;
+}
+
+
+/* ---- Consultation type toggle ----
+   Three equal-width buttons in a row. */
+.type-selector {
+    display: flex;
+    gap: 12px;
+}
+
+.type-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: none;
+    cursor: pointer;
+    font-family: "Inter", Helvetica, sans-serif;
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 16px;
+    color: #475569;
+}
+
+/* Active / selected type */
+.type-option--active {
+    background-color: rgba(6, 74, 203, 0.05);
+    border-color: #064acb;
+    color: #064acb;
+}
+
+.type-icon {
+    width: 20px;
+    height: 20px;
+}
+
+
+/* ---- Date + Time side by side ---- */
+.date-time-row {
+    display: flex;
+    gap: 16px;
+}
+
+/* Each sub-field takes equal space */
+.date-time-row .form-field {
+    flex: 1;
+}
+
+
+/* ---- Mini calendar ---- */
+.calendar {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 13px;
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.calendar-month {
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 16px;
+    color: #0f172a;
+}
+
+/* 7-column grid shared by day-name row and date-button row */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+/* S M T W T F S headers */
+.cal-day-name {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 10px;
+    line-height: 15px;
+    color: #94a3b8;
+}
+
+/* Default date button */
+.cal-day {
+    all: unset;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    cursor: pointer;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 16px;
+    color: #475569;
+    text-align: center;
+}
+
+.cal-day:hover {
+    background-color: #f1f5f9;
+}
+
+/* Trailing day from previous month */
+.cal-day--prev-month {
+    color: #cbd5e1;
+}
+
+/* Currently selected date */
+.cal-day--selected {
+    background-color: #064acb;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.cal-day--selected:hover {
+    background-color: #0540b0;
+}
+
+
+/* ---- Time slots ----
+   2-column grid replaces the old absolute-positioned buttons
+   that caused clipping on zoom-out. */
+.time-slots {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.time-slot {
+    all: unset;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: "Inter", Helvetica, sans-serif;
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 16px;
+    color: #0f172a;
+    text-align: center;
+}
+
+.time-slot:hover {
+    background-color: #f8fafc;
+}
+
+/* Selected time slot */
+.time-slot--selected {
+    background-color: rgba(6, 74, 203, 0.05);
+    border-color: #064acb;
+    color: #064acb;
+}
+
+
+/* ---- Case description textarea ---- */
+.case-textarea {
+    width: 100%;
+    padding: 16px;
+    min-height: 96px;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-family: "Inter", Helvetica, sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 24px;
+    color: #0f172a;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.case-textarea::placeholder {
+    color: #6b7280;
+}
+
+
+/* ---- Action buttons ---- */
+.form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid #f1f5f9;
+}
+
+/* Shared base */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: "Inter", Helvetica, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    white-space: nowrap;
+}
+
+/* Cancel: no background, subtle hover */
+.btn-cancel {
+    padding: 10px 24px;
+    background: none;
+    color: #475569;
+}
+
+.btn-cancel:hover {
+    background-color: #f1f5f9;
+}
+
+/* Confirm: solid blue with shadow */
+.btn-confirm {
+    padding: 10px 32px;
+    background-color: #064acb;
+    color: #ffffff;
+    box-shadow: 0px 4px 6px -4px rgba(6, 74, 203, 0.2),
+        0px 10px 15px -3px rgba(6, 74, 203, 0.2);
+}
+
+.btn-confirm:hover {
+    background-color: #0540b0;
+}

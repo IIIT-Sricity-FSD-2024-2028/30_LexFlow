@@ -1,0 +1,458 @@
+
+
+body {
+    background-color: #f2f3f3;
+}
+
+.dashboard-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* --- Sidebar --- */
+
+.sidebar {
+    width: 256px;
+    background-color: var(--color-primary);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+}
+
+.sidebar-logo {
+    font-family: "Poppins", system-ui, sans-serif;
+    font-weight: 900;
+    font-size: 24px;
+    margin-bottom: 40px;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: auto;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.sidebar-link--active,
+.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sidebar-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background-color: rgba(6, 74, 203, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.sidebar-user-name {
+    font-weight: 600;
+}
+
+.sidebar-user-role {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.sidebar-user-menu {
+    margin-left: auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+}
+
+/* --- Main column --- */
+
+.main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+/* keeps content centered and prevents weird clipping when zooming out */
+.main-inner {
+    width: 100%;
+    max-width: 1120px;
+    padding: 32px 32px 48px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.page-subtitle {
+    margin-top: 4px;
+    color: var(--color-text-muted);
+    font-size: 14px;
+}
+
+/* Buttons */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background-color: #064acb;
+    color: #ffffff;
+}
+
+.btn-outline {
+    background-color: #ffffff;
+    color: #475569;
+    border-color: #e2e8f0;
+}
+
+.btn-danger {
+    background-color: #ffffff;
+    color: #dc2626;
+    border-color: #fee2e2;
+}
+
+.btn-sm {
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+.btn-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Generic sections */
+
+.section {
+    margin-bottom: 32px;
+}
+
+.section-header {
+    margin-bottom: 16px;
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.section-subtitle {
+    margin-top: 4px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+/* Scheduled consultation cards */
+
+.card-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.card-grid--two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.card-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 960px) {
+
+    .card-grid--two,
+    .card-grid--three {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.consult-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.consult-main {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.consult-person {
+    display: flex;
+    gap: 16px;
+}
+
+.avatar-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    background-color: #f1f5f9;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 4px;
+}
+
+.pill--outline {
+    background-color: #eff6ff;
+    color: #064acb;
+}
+
+.pill--blue {
+    background-color: #366ed8;
+    color: #ffffff;
+}
+
+.pill--green {
+    background-color: #d1fae5;
+    color: #047857;
+}
+
+.consult-name {
+    margin-top: 8px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.consult-meta {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.consult-time {
+    text-align: right;
+    font-size: 13px;
+}
+
+.consult-date {
+    font-weight: 600;
+}
+
+.consult-slot {
+    margin-top: 2px;
+    color: var(--color-text-muted);
+}
+
+.consult-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 12px;
+}
+
+/* Past consultations table */
+
+.table-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.table-row {
+    display: grid;
+    grid-template-columns: 1.1fr 1.4fr 1.1fr 1.1fr 0.9fr 1fr 1.1fr;
+    padding: 12px 20px;
+    font-size: 14px;
+    align-items: center;
+}
+
+.table-row--head {
+    background-color: #f8fafc;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.table-row+.table-row {
+    border-top: 1px solid #f1f5f9;
+}
+
+.status-pill {
+    display: inline-flex;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.status-pill--success {
+    background-color: #d1fae5;
+    color: #047857;
+}
+
+.status-pill--danger {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.link-button {
+    padding: 0;
+    border: none;
+    background: none;
+    color: #064acb;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Lawyer cards */
+
+.lawyer-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.lawyer-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.lawyer-photo {
+    width: 48px;
+    height: 64px;
+    border-radius: 12px;
+    background-color: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #4b5563;
+}
+
+.lawyer-name {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.lawyer-firm {
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.availability-pill {
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background-color: #d1fae5;
+    color: #047857;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.lawyer-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.lawyer-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.meta-icon {
+    font-size: 14px;
+}
+
+.meta-muted {
+    color: var(--color-text-muted);
+}
+
+.lawyer-rate {
+    font-weight: 700;
+}
+
+.lawyer-actions {
+    display: flex;
+    gap: 12px;
+}
+
+@media (max-width: 768px) {
+    .dashboard-layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .sidebar-nav {
+        flex-direction: row;
+        margin-bottom: 0;
+        margin-left: 24px;
+    }
+}

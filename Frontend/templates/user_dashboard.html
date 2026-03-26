@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Consultations Dashboard</title>
+    <link rel="stylesheet" href="../static/globals.css" />
+    <link rel="stylesheet" href="../static/user_dashboard.css" />
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <!-- Left sidebar with logo, navigation and user summary -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">LexFlow</div>
+
+            <nav class="sidebar-nav">
+                <a href="#consultations" class="sidebar-link sidebar-link--active">
+                    <span class="sidebar-icon"><!-- consultations icon --></span>
+                    <span class="sidebar-label">Consultations</span>
+                </a>
+                <a href="#cases" class="sidebar-link">
+                    <span class="sidebar-icon"><!-- cases icon --></span>
+                    <span class="sidebar-label">Cases</span>
+                </a>
+                <a href="#documents" class="sidebar-link">
+                    <span class="sidebar-icon"><!-- documents icon --></span>
+                    <span class="sidebar-label">Documents</span>
+                </a>
+                <a href="#billing" class="sidebar-link">
+                    <span class="sidebar-icon"><!-- billing icon --></span>
+                    <span class="sidebar-label">Billing</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-user">
+                <div class="sidebar-avatar">JD</div>
+                <div class="sidebar-user-text">
+                    <div class="sidebar-user-name">John Doe</div>
+                    <div class="sidebar-user-role">User</div>
+                </div>
+                <button type="button" class="sidebar-user-menu"><!-- settings icon --></button>
+            </div>
+        </aside>
+
+        <!-- Main column (everything except sidebar). This is centered via max-width. -->
+        <main class="main">
+            <div class="main-inner">
+                <!-- Page heading and primary CTA -->
+                <header class="page-header">
+                    <div>
+                        <h1 class="page-title">Consultations Dashboard</h1>
+                        <p class="page-subtitle">Manage your upcoming and past legal consultations.</p>
+                    </div>
+                    <button type="button" class="btn btn-primary">
+                        <span class="btn-icon"><!-- plus icon --></span>
+                        <span>Book Consultation</span>
+                    </button>
+                </header>
+
+                <!-- Scheduled consultations list. Heading is left-aligned with page title. -->
+                <section id="consultations" class="section">
+                    <header class="section-header">
+                        <h2 class="section-title">Scheduled Consultations</h2>
+                        <p class="section-subtitle">Upcoming consultations that have been confirmed.</p>
+                    </header>
+
+                    <div class="card-grid card-grid--two">
+                        <!-- Card 1 -->
+                        <article class="consult-card">
+                            <div class="consult-main">
+                                <div class="consult-person">
+                                    <!-- Replace src with real avatar later -->
+                                    <div class="avatar-circle"></div>
+                                    <div>
+                                        <div class="pill pill--outline">CONS-882</div>
+                                        <div class="pill pill--blue">SCHEDULED</div>
+                                        <h3 class="consult-name">Dr. Julian Voss</h3>
+                                        <p class="consult-meta">Voss &amp; Associates
+
+
+
+
+
+
+
+
+
+
+
+                                            • Video Call</p>
+                                    </div>
+                                </div>
+                                <div class="consult-time">
+                                    <div class="consult-date">Oct 24, 2023</div>
+                                    <div class="consult-slot">10:30 AM - 11:00 AM</div>
+                                </div>
+                            </div>
+
+                            <div class="consult-actions">
+                                <button type="button" class="btn btn-primary btn-sm">Join Meeting</button>
+                                <button type="button" class="btn btn-outline btn-sm">View Details</button>
+                                <button type="button" class="btn btn-outline btn-sm">Reschedule</button>
+                                <button type="button" class="btn btn-danger btn-sm">Cancel</button>
+                            </div>
+                        </article>
+
+                        <!-- Card 2 -->
+                        <article class="consult-card">
+                            <div class="consult-main">
+                                <div class="consult-person">
+                                    <div class="avatar-circle"></div>
+                                    <div>
+                                        <div class="pill pill--outline">CONS-895</div>
+                                        <div class="pill pill--green">CONFIRMED</div>
+                                        <h3 class="consult-name">Sarah Jenkins</h3>
+                                        <p class="consult-meta">Jenkins Family Law • In-person</p>
+                                    </div>
+                                </div>
+                                <div class="consult-time">
+                                    <div class="consult-date">Oct 26, 2023</div>
+                                    <div class="consult-slot">02:00 PM - 03:00 PM</div>
+                                </div>
+                            </div>
+
+                            <div class="consult-actions">
+                                <button type="button" class="btn btn-primary btn-sm">Join Meeting</button>
+                                <button type="button" class="btn btn-outline btn-sm">View Details</button>
+                                <button type="button" class="btn btn-outline btn-sm">Reschedule</button>
+                                <button type="button" class="btn btn-danger btn-sm">Cancel</button>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- Past consultations table -->
+                <section class="section">
+                    <header class="section-header">
+                        <h2 class="section-title">Past Consultations</h2>
+                        <p class="section-subtitle">History of your completed or cancelled consultations.</p>
+                    </header>
+
+                    <div class="table-card">
+                        <div class="table-row table-row--head">
+                            <div>Consultation ID</div>
+                            <div>Lawyer Name</div>
+                            <div>Case Type</div>
+                            <div>Date</div>
+                            <div>Duration</div>
+                            <div>Status</div>
+                            <div>Actions</div>
+                        </div>
+
+                        <div class="table-row">
+                            <div>CONS-204</div>
+                            <div>Adv. Rahul Mehta</div>
+                            <div>Property Law</div>
+                            <div>Mar 14, 2026</div>
+                            <div>30 min</div>
+                            <div><span class="status-pill status-pill--success">COMPLETED</span></div>
+                            <div><button type="button" class="link-button">View Summary</button></div>
+                        </div>
+
+                        <div class="table-row">
+                            <div>CONS-156</div>
+                            <div>Elena Rodriguez</div>
+                            <div>Civil Law</div>
+                            <div>Jan 10, 2026</div>
+                            <div>-</div>
+                            <div><span class="status-pill status-pill--danger">CANCELLED</span></div>
+                            <div><button type="button" class="link-button">View Details</button></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Lawyer cards -->
+                <section class="section">
+                    <header class="section-header">
+                        <h2 class="section-title">Available Lawyers</h2>
+                    </header>
+
+                    <div class="card-grid card-grid--three">
+                        <!-- Lawyer 1 -->
+                        <article class="lawyer-card">
+                            <div class="lawyer-main">
+                                <!-- Replace src with actual lawyer image path later -->
+                                <div class="lawyer-photo">Photo</div>
+                                <div>
+                                    <h3 class="lawyer-name">JV Ross Associates</h3>
+                                    <p class="lawyer-firm">Voss &amp; Associates</p>
+                                </div>
+                                <div class="availability-pill">AVAILABLE TODAY</div>
+                            </div>
+
+                            <div class="lawyer-meta">
+                                <div class="lawyer-meta-row">
+                                    <span class="meta-icon">★</span>
+                                    <span>4.9</span>
+                                    <span class="meta-muted">(230 reviews)</span>
+                                </div>
+                                <div class="lawyer-meta-row">
+                                    <span class="meta-icon">$</span>
+                                    <span class="lawyer-rate">200/hr</span>
+                                </div>
+                            </div>
+
+                            <div class="lawyer-actions">
+                                <button type="button" class="btn btn-outline btn-sm">View Profile</button>
+                                <button type="button" class="btn btn-primary btn-sm">Book Now</button>
+                            </div>
+                        </article>
+
+                        <!-- Lawyer 2 -->
+                        <article class="lawyer-card">
+                            <div class="lawyer-main">
+                                <div class="lawyer-photo">Photo</div>
+                                <div>
+                                    <h3 class="lawyer-name">JV Ross Associates</h3>
+                                    <p class="lawyer-firm">Voss &amp; Associates</p>
+                                </div>
+                                <div class="availability-pill">AVAILABLE TODAY</div>
+                            </div>
+
+                            <div class="lawyer-meta">
+                                <div class="lawyer-meta-row">
+                                    <span class="meta-icon">★</span>
+                                    <span>4.9</span>
+                                    <span class="meta-muted">(230 reviews)</span>
+                                </div>
+                                <div class="lawyer-meta-row">
+                                    <span class="meta-icon">$</span>
+                                    <span class="lawyer-rate">200/hr</span>
+                                </div>
+                            </div>
+
+                            <div class="lawyer-actions">
+                                <button type="button" class="btn btn-outline btn-sm">View Profile</button>
+                                <button type="button" class="btn btn-primary btn-sm">Book Now</button>
+                            </div>
+                        </article>
+
+                        <!-- Lawyer 3 -->
+                        <article class="lawyer-card">
+                            <div class="lawyer-main">
+                                <div class="lawyer-photo">Photo</div>
+                                <div>
+                                    <h3 class="lawyer-name">JV Ross Associates</h3>
+                                    <p class="lawyer-firm">Voss &amp; Associates</p>
+                                </div>
+                                <div class="availability-pill">AVAILABLE TODAY</div>
+                            </div>
+
+                            <div class="lawyer-meta">
+                                <div class="lawyer-meta-row">
+                                    <span class="meta-icon">★</span>
+                                    <span>4.9</span>
+                                    <span class="meta-muted">(230 reviews)</span>
+                                </div>
+                                <div class="lawyer-meta-row">
+                                    <span class="meta-icon">$</span>
+                                    <span class="lawyer-rate">200/hr</span>
+                                </div>
+                            </div>
+
+                            <div class="lawyer-actions">
+                                <button type="button" class="btn btn-outline btn-sm">View Profile</button>
+                                <button type="button" class="btn btn-primary btn-sm">Book Now</button>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

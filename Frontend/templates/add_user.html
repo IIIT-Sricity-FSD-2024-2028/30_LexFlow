@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Add New User</title>
+    <link rel="stylesheet" href="../static/globals.css" />
+    <link rel="stylesheet" href="../static/add_user.css" />
+</head>
+
+<body>
+    <div class="add-user-modal">
+
+        <!-- Header: title + close button -->
+        <header class="modal-header">
+            <div>
+                <h2 class="modal-title">Add New User</h2>
+                <p class="modal-subtitle">Fill in the details to invite a new firm member.</p>
+            </div>
+            <button class="btn-close" type="button">
+                <!-- Replace src with your real icon path later -->
+                <img src="images/icons/close.svg" alt="Close" />
+            </button>
+        </header>
+
+        <!-- Form fields -->
+        <form class="modal-form" id="add-user-form">
+
+            <!-- Full Name -->
+            <div class="form-field">
+                <label class="field-label" for="full-name">Full Name</label>
+                <input class="field-input" type="text" id="full-name" name="full-name" placeholder="e.g. Michael Ross"
+                    autocomplete="name" />
+            </div>
+
+            <!-- Email Address -->
+            <div class="form-field">
+                <label class="field-label" for="email-address">Email Address</label>
+                <input class="field-input" type="email" id="email-address" name="email-address"
+                    placeholder="michael@lexflow.com" autocomplete="email" />
+            </div>
+
+            <!-- Phone Number + Role side by side -->
+            <div class="form-row">
+                <div class="form-field">
+                    <label class="field-label" for="phone-number">Phone Number</label>
+                    <input class="field-input" type="tel" id="phone-number" name="phone-number"
+                        placeholder="+1 (555) 000-0000" autocomplete="tel" />
+                </div>
+
+                <div class="form-field">
+                    <label class="field-label" for="role-select">Role</label>
+                    <!-- Wrapper positions the custom arrow over the native select -->
+                    <div class="select-wrapper">
+                        <select class="field-select" id="role-select" name="role">
+                            <option value="" disabled selected>Select Role</option>
+                            <option value="admin">Admin</option>
+                            <option value="member">Member</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                        <!-- Replace src with your real icon path later -->
+                        <img class="select-arrow" src="images/icons/chevron-down.svg" alt="" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status segmented control: hidden radios, styled labels -->
+            <fieldset class="form-field status-fieldset">
+                <legend class="field-label">Status</legend>
+                <div class="status-toggle">
+                    <label class="status-option">
+                        <input type="radio" name="status" value="active" checked />
+                        <!-- Replace src with your real icon path later -->
+                        <img src="images/icons/active.svg" alt="" />
+                        <span>Active</span>
+                    </label>
+                    <label class="status-option">
+                        <input type="radio" name="status" value="inactive" />
+                        <!-- Replace src with your real icon path later -->
+                        <img src="images/icons/inactive.svg" alt="" />
+                        <span>Inactive</span>
+                    </label>
+                </div>
+            </fieldset>
+
+        </form>
+
+        <!-- Footer: Cancel + Create User -->
+        <footer class="modal-footer">
+            <button class="btn btn-cancel" type="button">Cancel</button>
+            <button class="btn btn-create" type="submit" form="add-user-form">Create User</button>
+        </footer>
+
+    </div>
+</body>
+
+</html>
