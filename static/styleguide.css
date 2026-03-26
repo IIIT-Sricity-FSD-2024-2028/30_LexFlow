@@ -1,0 +1,38 @@
+:root {
+    --localhost-inter-bold-font-family: "Inter", Helvetica;
+    --localhost-inter-bold-font-weight: 700;
+    --localhost-inter-bold-font-size: 20px;
+    --localhost-inter-bold-letter-spacing: 0px;
+    --localhost-inter-bold-line-height: 30px;
+    --localhost-inter-bold-font-style: normal;
+    --localhost-inter-bold-upper-font-family: "Inter", Helvetica;
+    --localhost-inter-bold-upper-font-weight: 700;
+    --localhost-inter-bold-upper-font-size: 16px;
+    --localhost-inter-bold-upper-letter-spacing: 1px;
+    --localhost-inter-bold-upper-line-height: 24px;
+    --localhost-inter-bold-upper-font-style: normal;
+    --localhost-inter-extra-bold-font-family: "Inter", Helvetica;
+    --localhost-inter-extra-bold-font-weight: 800;
+    --localhost-inter-extra-bold-font-size: 24px;
+    --localhost-inter-extra-bold-letter-spacing: -0.5px;
+    --localhost-inter-extra-bold-line-height: 36px;
+    --localhost-inter-extra-bold-font-style: normal;
+    --localhost-inter-medium-font-family: "Inter", Helvetica;
+    --localhost-inter-medium-font-weight: 500;
+    --localhost-inter-medium-font-size: 15px;
+    --localhost-inter-medium-letter-spacing: 0px;
+    --localhost-inter-medium-line-height: 22.5px;
+    --localhost-inter-medium-font-style: normal;
+    --localhost-inter-regular-font-family: "Inter", Helvetica;
+    --localhost-inter-regular-font-weight: 400;
+    --localhost-inter-regular-font-size: 32px;
+    --localhost-inter-regular-letter-spacing: 0px;
+    --localhost-inter-regular-line-height: 48px;
+    --localhost-inter-regular-font-style: normal;
+    --localhost-inter-semi-bold-font-family: "Inter", Helvetica;
+    --localhost-inter-semi-bold-font-weight: 600;
+    --localhost-inter-semi-bold-font-size: 18px;
+    --localhost-inter-semi-bold-letter-spacing: 0px;
+    --localhost-inter-semi-bold-line-height: 27px;
+    --localhost-inter-semi-bold-font-style: normal;
+}
