@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Change law firm | Django site admin</title>
+    <link rel="stylesheet" href="super-admin-global.css">
+</head>
+<body class="change-form">
+
+    <div id="container">
+
+        <!-- Header -->
+        <div id="header">
+            <div id="branding">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="margin-right: 8px;">
+                    <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)"/>
+                    <path d="M7 6h2v12H7V6zm4 4h2v8h-2v-8zm4-2h2v10h-2V8z" fill="#fff"/>
+                </svg>
+                <h1 id="site-name"><a href="index.html">LexFlow Super Admin</a></h1>
+            </div>
+            <div id="user-tools">
+                WELCOME, <strong>SUPERADMIN</strong>. 
+                <a href="#">VIEW SITE</a> / 
+                <a href="#">CHANGE PASSWORD</a> / 
+                <a href="#">LOG OUT</a>
+            </div>
+        </div>
+
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs">
+            <a href="index.html">Home</a> &rsaquo; 
+            <a href="#">LexFlow Platform</a> &rsaquo; 
+            <a href="firm-list.html">Law Firms</a> &rsaquo; 
+            Julian Vance Associates
+        </div>
+
+        <!-- Main Content -->
+        <div id="content" class="colM">
+            
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <h1>Change law firm</h1>
+                <ul class="object-tools">
+                    <li><a href="#" class="addlink-btn" style="background:#ba2121;">History</a></li>
+                    <li><a href="#" class="addlink-btn" style="background:#79aec8;">View on site ></a></li>
+                </ul>
+            </div>
+
+            <!-- Form -->
+            <form action="" method="post" id="firm_form">
+                
+                <div class="form-horizontal">
+                    
+                    <div class="form-row">
+                        <div>
+                            <label class="required" for="id_name">Name:</label>
+                            <div class="field-box">
+                                <input type="text" name="name" id="id_name" value="Julian Vance Associates">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label class="required" for="id_admin_user">Admin user:</label>
+                            <div class="field-box">
+                                <div class="foreign-key-widget">
+                                    <select name="admin_user" id="id_admin_user" style="max-width:200px;">
+                                        <option value="">---------</option>
+                                        <option value="1" selected>Vance, Julian</option>
+                                    </select>
+                                    <div class="foreign-key-actions">
+                                        <a href="#" class="edit" title="Change selected user">✎</a>
+                                        <a href="#" class="add" title="Add another user">+</a>
+                                        <a href="#" class="delete" title="Delete">x</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label class="required" for="id_description">Description:</label>
+                            <div class="field-box">
+                                <textarea name="description" id="id_description" rows="10" cols="40">Top tier law firm specializing in corporate litigation and intellectual property rights representation for Fortune 500 companies.</textarea>
+                                <span class="help">Enter a brief description of the firm</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label for="id_reg_no">Registration No:</label>
+                            <div class="field-box">
+                                <input type="text" name="reg_no" id="id_reg_no" value="9781473211896">
+                                <span class="help">13 Character <a href="#">Firm Registration number</a></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label class="required" for="id_practice_area">Practice Area:</label>
+                            <div class="field-box foreign-key-widget" style="align-items:flex-end;">
+                                <select name="practice_area" id="id_practice_area" multiple style="width:200px;">
+                                    <option value="1" selected>Corporate Law</option>
+                                    <option value="2">Family Law</option>
+                                    <option value="3" selected>Intellectual Property</option>
+                                    <option value="4">Criminal Defense</option>
+                                </select>
+                                <div class="foreign-key-actions" style="margin-bottom:4px;">
+                                    <a href="#" class="add" title="Add another practice area">+</a>
+                                </div>
+                                <span class="help" style="margin-left:8px; margin-bottom:4px;">Select a generic field for this firm. Hold down "Control", or "Command" on a Mac, to select more than one.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Submit Bar -->
+                <div class="submit-row">
+                    <p class="deletelink-box"><a href="#" class="deletelink">Delete</a></p>
+                    <input type="submit" value="Save and add another" class="btn-secondary" name="_addanother">
+                    <input type="submit" value="Save and continue editing" class="btn-secondary" name="_continue">
+                    <input type="submit" value="SAVE" class="btn-primary" name="_save">
+                </div>
+
+            </form>
+
+        </div> <!-- /content -->
+
+    </div> <!-- /container -->
+
+    <script src="superadmin.js"></script>
+</body>
+</html>

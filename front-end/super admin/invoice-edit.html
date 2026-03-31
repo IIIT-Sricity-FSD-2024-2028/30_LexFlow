@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Change invoice | LexFlow Super Admin</title>
+    <link rel="stylesheet" href="super-admin-global.css">
+</head>
+<body class="change-form">
+
+    <div id="container">
+
+        <!-- Header -->
+        <div id="header">
+            <div id="branding">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="margin-right: 8px;">
+                    <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)"/>
+                    <path d="M7 6h2v12H7V6zm4 4h2v8h-2v-8zm4-2h2v10h-2V8z" fill="#fff"/>
+                </svg>
+                <h1 id="site-name"><a href="index.html">LexFlow Super Admin</a></h1>
+            </div>
+            <div id="user-tools">
+                WELCOME, <strong>SUPERADMIN</strong>. 
+                <a href="#">VIEW SITE</a> / 
+                <a href="#">CHANGE PASSWORD</a> / 
+                <a href="#">LOG OUT</a>
+            </div>
+        </div>
+
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs">
+            <a href="index.html">Home</a> &rsaquo; 
+            <a href="#">LexFlow Platform</a> &rsaquo; 
+            <a href="invoice-list.html">Invoices</a> &rsaquo; 
+            INV-2023-0901
+        </div>
+
+        <!-- Main Content -->
+        <div id="content" class="colM">
+            
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <h1>Change invoice: INV-2023-0901</h1>
+                <ul class="object-tools">
+                    <li><a href="#" class="addlink-btn" style="background:var(--primary-dark);">Download PDF</a></li>
+                </ul>
+            </div>
+
+            <!-- Form -->
+            <form action="" method="post" id="firm_form">
+                
+                <div class="form-horizontal">
+                    
+                    <div class="form-row">
+                        <div>
+                            <label for="id_invoice_no">Invoice ID:</label>
+                            <div class="field-box">
+                                <input type="text" name="invoice_no" id="id_invoice_no" value="INV-2023-0901" readonly style="background:#f3f4f6; color:var(--text-muted); pointer-events:none;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label for="id_firm">Law Firm:</label>
+                            <div class="field-box">
+                                <input type="text" name="firm" id="id_firm" value="Julian Vance Associates">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label for="id_client">Client:</label>
+                            <div class="field-box">
+                                <input type="text" name="client" id="id_client" value="Acme Corp - John Doe">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label for="id_amount">Total Amount Paid by Client:</label>
+                            <div class="field-box">
+                                <input type="text" name="amount" id="id_amount" value="$250.00">
+                                <span class="help">Client's original charge amount on Stripe.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="background:var(--bg-row-hover);">
+                        <div>
+                            <label for="id_fee" style="color:var(--primary-accent);">LexFlow Commission (10%):</label>
+                            <div class="field-box">
+                                <input type="text" name="fee" id="id_fee" value="$25.00" style="font-weight:bold; color:var(--primary-accent);">
+                                <span class="help">The platform cut automatically deducted.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="background:#ecfdf5; border-bottom:1px solid #10b981;">
+                        <div>
+                            <label for="id_payout" style="color:#047857;">Firm Payout Amount:</label>
+                            <div class="field-box">
+                                <input type="text" name="payout" id="id_payout" value="$225.00" style="font-weight:bold; color:#047857;">
+                                <span class="help">Amount wire-transferred to Julian Vance Associates.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label for="id_status">Invoice Status:</label>
+                            <div class="field-box">
+                                <select name="status" id="id_status" style="max-width:200px;">
+                                    <option value="pending" selected>Pending Payout</option>
+                                    <option value="paid">Paid successfully</option>
+                                    <option value="refunded">Refunded to client</option>
+                                    <option value="disputed">Disputed/On-hold</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Submit Bar -->
+                <div class="submit-row">
+                    <!-- Custom Refunds -->
+                    <p class="deletelink-box"><button type="button" class="deletelink" id="btn-issue-refund">Issue Full Refund</button></p>
+                    <input type="submit" value="Save and continue editing" class="btn-secondary" name="_continue">
+                    <input type="submit" value="Process Payout Automatically" class="btn-primary" name="_save" style="background:#10b981; border-color:#059669; box-shadow:0 1px 2px rgba(16,185,129,0.2);">
+                    <input type="submit" value="SAVE CHANGES" class="btn-primary" name="_save">
+                </div>
+
+            </form>
+
+        </div> <!-- /content -->
+
+    </div> <!-- /container -->
+
+    <script src="superadmin.js"></script>
+</body>
+</html>

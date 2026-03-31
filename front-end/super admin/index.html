@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site administration | Django site admin</title>
+    <link rel="stylesheet" href="super-admin-global.css">
+</head>
+<body class="dashboard">
+
+    <!-- Container -->
+    <div id="container">
+
+        <!-- Header -->
+        <div id="header">
+            <div id="branding">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="margin-right: 8px;">
+                    <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)"/>
+                    <path d="M7 6h2v12H7V6zm4 4h2v8h-2v-8zm4-2h2v10h-2V8z" fill="#fff"/>
+                </svg>
+                <h1 id="site-name"><a href="index.html">LexFlow Super Admin</a></h1>
+            </div>
+            <div id="user-tools">
+                WELCOME, <strong>SUPERADMIN</strong>. 
+                <a href="#">VIEW SITE</a> / 
+                <a href="#">CHANGE PASSWORD</a> / 
+                <a href="#">LOG OUT</a>
+            </div>
+        </div>
+
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs">
+            <a href="index.html">Home</a>
+        </div>
+
+        <!-- Main Content Layout -->
+        <div id="content" class="clearfix">
+            <h1>Site administration</h1>
+
+            <!-- KPIs -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <h3>Total Revenue (MTD)</h3>
+                    <div class="kpi-value">$142,500</div>
+                    <div class="kpi-trend positive">↑ 12.5% vs last month</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Active Users</h3>
+                    <div class="kpi-value">3,492</div>
+                    <div class="kpi-trend positive">↑ 8.1% vs last month</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Pending Lawyers</h3>
+                    <div class="kpi-value">24</div>
+                    <div class="kpi-trend">Action required</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Open Disputes</h3>
+                    <div class="kpi-value">3</div>
+                    <div class="kpi-trend negative">Requires attention</div>
+                </div>
+            </div>
+
+            <!-- Left column models -->
+            <div id="content-main" style="float: left; width: 68%;">
+                <div class="app-auth module">
+                    <table>
+                        <caption>
+                            <a href="#" class="section">Authentication and Authorization</a>
+                        </caption>
+                        <tbody>
+                            <tr>
+                                <th scope="row"><a href="#">Groups</a></th>
+                                <td><a href="#" class="addlink">Add</a></td>
+                                <td><a href="#" class="changelink">Change</a></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><a href="#">Users</a></th>
+                                <td><a href="#" class="addlink">Add</a></td>
+                                <td><a href="#" class="changelink">Change</a></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><a href="lawyer-verification.html">Lawyer Verification <span id="pending-chip" style="background:#ef4444; color:#fff; border-radius:12px; padding:2px 6px; font-size:11px; margin-left:4px;">3 Pending</span></a></th>
+                                <td><a href="#" class="addlink">Review</a></td>
+                                <td><a href="lawyer-verification.html" class="changelink">View</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="app-lexflow module">
+                    <table>
+                        <caption>
+                            <a href="#" class="section">LexFlow Platform</a>
+                        </caption>
+                        <tbody>
+                            <tr>
+                                <th scope="row"><a href="#">Clients</a></th>
+                                <td><a href="#" class="addlink">Add</a></td>
+                                <td><a href="#" class="changelink">Change</a></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><a href="firm-list.html">Law Firms</a></th>
+                                <td><a href="firm-edit.html" class="addlink">Add</a></td>
+                                <td><a href="firm-list.html" class="changelink">Change</a></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><a href="#">Lawyers</a></th>
+                                <td><a href="#" class="addlink">Add</a></td>
+                                <td><a href="#" class="changelink">Change</a></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><a href="#">Consultations</a></th>
+                                <td><a href="#" class="addlink">Add</a></td>
+                                <td><a href="#" class="changelink">Change</a></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><a href="invoice-list.html">Invoices & Payouts</a></th>
+                                <td><a href="#" class="addlink">Process</a></td>
+                                <td><a href="invoice-list.html" class="changelink">Review</a></td>
+                            </tr>
+                            <tr style="background:#fefce8;">
+                                <th scope="row"><a href="platform-settings.html" style="color:#a16207;">Platform Settings (Global)</a></th>
+                                <td colspan="2" style="text-align:right;"><a href="platform-settings.html" class="changelink" style="color:#a16207;">Configure</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right Sidebar -->
+            <div id="content-related">
+                <div class="module" id="recent-actions-module">
+                    <h2>Recent actions</h2>
+                    <ul class="actionlist">
+                        <li>
+                            <p><strong>My actions</strong></p>
+                        </li>
+                        <li>
+                            <h3 class="addlink">Julian Vance</h3>
+                            <p>Lawyer</p>
+                        </li>
+                        <li>
+                            <h3 class="changelink">Voss & Associates</h3>
+                            <p>Law Firm</p>
+                        </li>
+                        <li>
+                            <h3 class="deletelink" style="color:#ba2121; gap:4px; display:inline-flex;"><span>×</span> Acme Corp</h3>
+                            <p>Client</p>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </div> <!-- /content -->
+
+    </div> <!-- /container -->
+
+</body>
+</html>

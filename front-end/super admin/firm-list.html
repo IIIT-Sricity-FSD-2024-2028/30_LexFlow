@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select law firm to change | Django site admin</title>
+    <link rel="stylesheet" href="super-admin-global.css">
+</head>
+<body class="change-list">
+
+    <div id="container">
+
+        <!-- Header -->
+        <div id="header">
+            <div id="branding">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="margin-right: 8px;">
+                    <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)"/>
+                    <path d="M7 6h2v12H7V6zm4 4h2v8h-2v-8zm4-2h2v10h-2V8z" fill="#fff"/>
+                </svg>
+                <h1 id="site-name"><a href="index.html">LexFlow Super Admin</a></h1>
+            </div>
+            <div id="user-tools">
+                WELCOME, <strong>SUPERADMIN</strong>. 
+                <a href="#">VIEW SITE</a> / 
+                <a href="#">CHANGE PASSWORD</a> / 
+                <a href="#">LOG OUT</a>
+            </div>
+        </div>
+
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs">
+            <a href="index.html">Home</a> &rsaquo; 
+            <a href="#">LexFlow Platform</a> &rsaquo; 
+            Law Firms
+        </div>
+
+        <!-- Main Content Layout -->
+        <div id="content" class="flex-column">
+            
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <h1>Select law firm to change</h1>
+                <ul class="object-tools">
+                    <li><a href="firm-edit.html" class="addlink-btn">Add law firm</a></li>
+                </ul>
+            </div>
+
+            <div id="content-main">
+                <div class="module" id="changelist">
+                    
+                    <div class="action-row">
+                        <label>Action: 
+                            <select name="action" id="action-select-dropdown">
+                                <option value="" selected>---------</option>
+                                <option value="delete_selected">Delete selected law firms</option>
+                            </select>
+                        </label>
+                        <button type="button" class="button" id="run-action-btn" title="Run the selected action">Go</button>
+                        <span class="action-counter" style="color:var(--text-muted); font-size:12px; margin-left:10px;">0 of 3 selected</span>
+                    </div>
+
+                    <div class="results">
+                        <table id="result_list">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="action-checkbox-column">
+                                        <div class="text"><span><input type="checkbox" id="action-toggle"></span></div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text"><a href="#">LAW FIRM</a></div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="row1">
+                                    <td class="action-checkbox"><input type="checkbox" name="_selected_action" value="1" class="action-select"></td>
+                                    <th class="field-title"><a href="firm-edit.html">Julian Vance Associates</a></th>
+                                </tr>
+                                <tr class="row2">
+                                    <td class="action-checkbox"><input type="checkbox" name="_selected_action" value="2" class="action-select"></td>
+                                    <th class="field-title"><a href="firm-edit.html">Acme Law Corp</a></th>
+                                </tr>
+                                <tr class="row1">
+                                    <td class="action-checkbox"><input type="checkbox" name="_selected_action" value="3" class="action-select"></td>
+                                    <th class="field-title"><a href="firm-edit.html">Global Rights Group</a></th>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p class="paginator">
+                        3 law firms
+                    </p>
+
+                </div>
+            </div>
+
+        </div> <!-- /content -->
+
+    </div> <!-- /container -->
+
+    <script src="superadmin.js"></script>
+</body>
+</html>

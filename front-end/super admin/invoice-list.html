@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select invoice to change | LexFlow Super Admin</title>
+    <link rel="stylesheet" href="super-admin-global.css">
+</head>
+<body class="change-list">
+
+    <div id="container">
+
+        <!-- Header -->
+        <div id="header">
+            <div id="branding">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="margin-right: 8px;">
+                    <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)"/>
+                    <path d="M7 6h2v12H7V6zm4 4h2v8h-2v-8zm4-2h2v10h-2V8z" fill="#fff"/>
+                </svg>
+                <h1 id="site-name"><a href="index.html">LexFlow Super Admin</a></h1>
+            </div>
+            <div id="user-tools">
+                WELCOME, <strong>SUPERADMIN</strong>. 
+                <a href="#">VIEW SITE</a> / 
+                <a href="#">CHANGE PASSWORD</a> / 
+                <a href="#">LOG OUT</a>
+            </div>
+        </div>
+
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs">
+            <a href="index.html">Home</a> &rsaquo; 
+            <a href="#">LexFlow Platform</a> &rsaquo; 
+            Invoices
+        </div>
+
+        <!-- Main Content Layout -->
+        <div id="content" class="flex-column">
+            
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <h1>Select invoice to change</h1>
+                <!-- We don't usually add invoices manually, but keep the button for Django consistency -->
+                <ul class="object-tools">
+                    <li><a href="invoice-edit.html" class="addlink-btn">Add invoice</a></li>
+                </ul>
+            </div>
+
+            <div id="content-main">
+                <div class="module" id="changelist">
+                    
+                    <div class="action-row">
+                        <label>Action: 
+                            <select name="action" id="action-select-dropdown">
+                                <option value="" selected>---------</option>
+                                <option value="refund_selected">Issue refund for selected</option>
+                                <option value="payout_selected">Mark payout as complete</option>
+                            </select>
+                        </label>
+                        <button type="button" class="button" id="run-action-btn" title="Run the selected action">Go</button>
+                        <span class="action-counter" style="color:var(--text-muted); font-size:12px; margin-left:10px;">0 of 4 selected</span>
+                    </div>
+
+                    <div class="results">
+                        <table id="result_list">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="action-checkbox-column" style="width: 40px;">
+                                        <div class="text"><span><input type="checkbox" id="action-toggle"></span></div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text"><a href="#">INVOICE ID</a></div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text"><a href="#">FIRM</a></div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text"><a href="#">TOTAL</a></div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text"><a href="#">LEXFLOW FEE (10%)</a></div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text"><a href="#">FIRM PAYOUT</a></div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text"><a href="#">STATUS</a></div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="row1">
+                                    <td class="action-checkbox"><input type="checkbox" name="_selected_action" value="1" class="action-select"></td>
+                                    <th class="field-title"><a href="invoice-edit.html">INV-2023-0901</a></th>
+                                    <td>Julian Vance Associates</td>
+                                    <td>$250.00</td>
+                                    <td style="color: #10b981; font-weight:600;">$25.00</td>
+                                    <td>$225.00</td>
+                                    <td><span style="color:#f59e0b; font-weight:600;">Pending Payout</span></td>
+                                </tr>
+                                <tr class="row2">
+                                    <td class="action-checkbox"><input type="checkbox" name="_selected_action" value="2" class="action-select"></td>
+                                    <th class="field-title"><a href="invoice-edit.html">INV-2023-0902</a></th>
+                                    <td>Acme Law Corp</td>
+                                    <td>$150.00</td>
+                                    <td style="color: #10b981; font-weight:600;">$15.00</td>
+                                    <td>$135.00</td>
+                                    <td><span style="color:#10b981; font-weight:600;">Paid</span></td>
+                                </tr>
+                                <tr class="row1">
+                                    <td class="action-checkbox"><input type="checkbox" name="_selected_action" value="3" class="action-select"></td>
+                                    <th class="field-title"><a href="invoice-edit.html">INV-2023-0903</a></th>
+                                    <td>Global Rights Group</td>
+                                    <td>$400.00</td>
+                                    <td style="color: #10b981; font-weight:600;">$40.00</td>
+                                    <td>$360.00</td>
+                                    <td><span style="color:#ef4444; font-weight:600;">Refunded</span></td>
+                                </tr>
+                                <tr class="row2">
+                                    <td class="action-checkbox"><input type="checkbox" name="_selected_action" value="4" class="action-select"></td>
+                                    <th class="field-title"><a href="invoice-edit.html">INV-2023-0904</a></th>
+                                    <td>Jenkins Family Law</td>
+                                    <td>$200.00</td>
+                                    <td style="color: #10b981; font-weight:600;">$20.00</td>
+                                    <td>$180.00</td>
+                                    <td><span style="color:#f59e0b; font-weight:600;">Pending Payout</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p class="paginator">
+                        4 invoices
+                    </p>
+
+                </div>
+            </div>
+
+        </div> <!-- /content -->
+
+    </div> <!-- /container -->
+
+    <script src="superadmin.js"></script>
+</body>
+</html>

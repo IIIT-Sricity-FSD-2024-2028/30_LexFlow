@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Configuration | LexFlow Super Admin</title>
+    <link rel="stylesheet" href="super-admin-global.css">
+    <style>
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            margin-top: 6px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--border-color);
+            transition: .2s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .2s;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        input:checked + .slider {
+            background-color: #10b981;
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+    </style>
+</head>
+<body class="change-form">
+
+    <div id="container">
+
+        <!-- Header -->
+        <div id="header">
+            <div id="branding">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="margin-right: 8px;">
+                    <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)"/>
+                    <path d="M7 6h2v12H7V6zm4 4h2v8h-2v-8zm4-2h2v10h-2V8z" fill="#fff"/>
+                </svg>
+                <h1 id="site-name"><a href="index.html">LexFlow Super Admin</a></h1>
+            </div>
+            <div id="user-tools">
+                WELCOME, <strong>SUPERADMIN</strong>. 
+                <a href="#">VIEW SITE</a> / 
+                <a href="#">CHANGE PASSWORD</a> / 
+                <a href="#">LOG OUT</a>
+            </div>
+        </div>
+
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs">
+            <a href="index.html">Home</a> &rsaquo; 
+            <a href="#">LexFlow Core</a> &rsaquo; 
+            Configuration Flags
+        </div>
+
+        <!-- Main Content -->
+        <div id="content" class="colM">
+            
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <h1>Platform Settings</h1>
+                <ul class="object-tools">
+                    <li><a href="#" class="addlink-btn" style="background:#f59e0b;">Reset to Defaults</a></li>
+                </ul>
+            </div>
+
+            <form action="" method="post" id="firm_form">
+                
+                <div class="form-horizontal">
+                    <h2 style="padding:15px 20px; font-size:16px; border-bottom:1px solid var(--border-light); background:var(--bg-table-header);">Core Configuration</h2>
+                    
+                    <div class="form-row">
+                        <div>
+                            <label for="id_comm_rate">Platform Commission Rate (%):</label>
+                            <div class="field-box">
+                                <input type="number" name="commission_rate" id="id_comm_rate" value="10" step="0.5" min="0" max="100" style="max-width:150px;">
+                                <span class="help">The percentage fee LexFlow deducts automatically from every successful Client payment. Default: 10%.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label for="id_support_email">Global Support Email:</label>
+                            <div class="field-box">
+                                <input type="email" name="support_email" id="id_support_email" value="support@lexflow.legal">
+                                <span class="help">Used everywhere as the primary contact fallback for clients and lawyers.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-horizontal">
+                    <h2 style="padding:15px 20px; font-size:16px; border-bottom:1px solid var(--border-light); background:var(--bg-table-header);">Domain Management</h2>
+                    
+                    <div class="form-row">
+                        <div>
+                            <label for="id_practice_areas">Allowed Practice Areas:</label>
+                            <div class="field-box foreign-key-widget" style="align-items:flex-end;">
+                                <select name="practice_areas" id="id_practice_areas" multiple style="width:300px; height:200px;">
+                                    <option value="1">Antitrust</option>
+                                    <option value="2" selected>Corporate Law</option>
+                                    <option value="3">Cyber Law</option>
+                                    <option value="4" selected>Criminal Defense</option>
+                                    <option value="5" selected>Family Law</option>
+                                    <option value="6" selected>Intellectual Property</option>
+                                    <option value="7">Real Estate</option>
+                                    <option value="8">Tax Law</option>
+                                </select>
+                                <div class="foreign-key-actions" style="margin-bottom:4px;">
+                                    <a href="#" class="add" title="Add another domain">+</a>
+                                    <a href="#" class="edit" title="Edit selected domain">✎</a>
+                                    <a href="#" class="delete" title="Delete selected domain">x</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="help" style="margin-left:220px; padding-bottom:15px; display:block;">These values populate dropdowns on the Client search screens and Lawyer signup forms.</span>
+                </div>
+
+                <div class="form-horizontal">
+                    <h2 style="padding:15px 20px; font-size:16px; border-bottom:1px solid #ef4444; background:#fef2f2; color:#ef4444;">Danger Zone</h2>
+                    
+                    <div class="form-row" style="background:#fff;">
+                        <div>
+                            <label style="color:#ef4444;">Maintenance Mode:</label>
+                            <div class="field-box" style="display:flex; align-items:center;">
+                                <label class="toggle-switch">
+                                    <input type="checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="help" style="margin-left:15px; margin-top:2px;">Warning: Turning this ON will instantly cut off all Clients and Firm members. Site will serve a 503 Maintenance page.</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row" style="background:#fff;">
+                        <div>
+                            <label style="color:#ef4444;">Disable New Signups:</label>
+                            <div class="field-box" style="display:flex; align-items:center;">
+                                <label class="toggle-switch">
+                                    <input type="checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="help" style="margin-left:15px; margin-top:2px;">Removes the signup/registration flow from the public site if onboarding needs to be paused.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Bar -->
+                <div class="submit-row">
+                    <!-- Action buttons -->
+                    <p class="deletelink-box"><a href="#" class="deletelink" style="background:transparent; border:1px solid #d1d5db; color:var(--text-main);">Discard Changes</a></p>
+                    <input type="submit" value="SAVE CONFIGURATION" class="btn-primary" name="_save" style="box-shadow:0 1px 2px rgba(79,142,247,0.2);">
+                </div>
+
+            </form>
+
+        </div> <!-- /content -->
+
+    </div> <!-- /container -->
+
+    <script src="superadmin.js"></script>
+</body>
+</html>

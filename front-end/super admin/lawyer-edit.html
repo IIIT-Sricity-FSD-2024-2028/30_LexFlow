@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Change lawyer verification | LexFlow Super Admin</title>
+    <link rel="stylesheet" href="super-admin-global.css">
+</head>
+<body class="change-form">
+
+    <div id="container">
+
+        <!-- Header -->
+        <div id="header">
+            <div id="branding">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="margin-right: 8px;">
+                    <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)"/>
+                    <path d="M7 6h2v12H7V6zm4 4h2v8h-2v-8zm4-2h2v10h-2V8z" fill="#fff"/>
+                </svg>
+                <h1 id="site-name"><a href="index.html">LexFlow Super Admin</a></h1>
+            </div>
+            <div id="user-tools">
+                WELCOME, <strong>SUPERADMIN</strong>. 
+                <a href="#">VIEW SITE</a> / 
+                <a href="#">CHANGE PASSWORD</a> / 
+                <a href="#">LOG OUT</a>
+            </div>
+        </div>
+
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs">
+            <a href="index.html">Home</a> &rsaquo; 
+            <a href="#">LexFlow Platform</a> &rsaquo; 
+            <a href="lawyer-verification.html">Lawyer Verifications</a> &rsaquo; 
+            Erica Vance Review
+        </div>
+
+        <!-- Main Content -->
+        <div id="content" class="colM">
+            
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <h1>Verify Lawyer Credentials: Erica Vance</h1>
+                <ul class="object-tools">
+                    <li><a href="#" class="addlink-btn" style="background:#ef4444;">Ban User</a></li>
+                </ul>
+            </div>
+
+            <!-- Form -->
+            <form action="" method="post" id="firm_form">
+                
+                <div class="form-horizontal">
+                    
+                    <div class="form-row">
+                        <div>
+                            <label for="id_doc">User Data:</label>
+                            <div class="field-box" style="display:flex; gap: 20px;">
+                                <div style="width:120px; height:120px; background:#e5e7eb; border-radius:12px; display:grid; place-items:center; color:#9ca3af; font-size:40px;">
+                                    👩‍⚖️
+                                </div>
+                                <div>
+                                    <p id="id_name_display" style="font-size:16px; font-weight:700; color:var(--text-main); margin-bottom:4px;">Erica Vance (erica@vance.law)</p>
+                                    <p id="id_phone_display" style="color:var(--text-muted); margin-bottom:4px;">Phone: +1 555-019-3829</p>
+                                    <p id="id_practice_display" style="color:var(--text-muted); margin-bottom:4px;">Requested Practice Area: <strong>Corporate Law</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label for="id_bar_number">Bar License Number:</label>
+                            <div class="field-box">
+                                <input type="text" name="bar_number" id="id_bar_number" value="NY-BAR-992384">
+                                <span class="help">Verify this number against the New York State unified court system database.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="background:var(--bg-row-hover);">
+                        <div>
+                            <label for="id_documents">Uploaded Documents:</label>
+                            <div class="field-box">
+                                <ul style="list-style:none; display:flex; gap:12px; flex-direction:column;">
+                                    <li style="display:flex; align-items:center; gap:8px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--primary-accent)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                        <a href="#" style="font-weight:600; text-decoration:underline;">NY_Bar_License_EVance.pdf</a>
+                                        <span style="font-size:12px; color:var(--text-muted);">(Verified un-altered PDF)</span>
+                                    </li>
+                                    <li style="display:flex; align-items:center; gap:8px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--primary-accent)"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                        <a href="#" style="font-weight:600; text-decoration:underline;">State_ID_Front.jpg</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label for="id_admin_notes">Admin Verification Notes:</label>
+                            <div class="field-box">
+                                <textarea name="admin_notes" id="id_admin_notes" rows="6" cols="40" placeholder="E.g. Verified license via NYS database on Oct 26."></textarea>
+                                <span class="help">Internal notes, not visible to the lawyer.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label for="id_status">Approval Status:</label>
+                            <div class="field-box">
+                                <select name="status" id="id_status" style="max-width:200px;">
+                                    <option value="pending" selected>Pending Review</option>
+                                    <option value="approved">Approved / Active</option>
+                                    <option value="rejected">Rejected (Require more info)</option>
+                                </select>
+                                <span class="help">Changing this to "Approved" will immediately give the user Lawyer privileges upon save.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Submit Bar -->
+                <div class="submit-row">
+                    <!-- Action buttons -->
+                    <p class="deletelink-box"><a href="#" class="deletelink">Reject Submission</a></p>
+                    <input type="submit" value="Save and review next pending" class="btn-secondary" name="_addanother">
+                    <input type="submit" value="APPROVE LAWYER" class="btn-primary" name="_save" style="background:#10b981; border-color:#059669; box-shadow:0 1px 2px rgba(16,185,129,0.2);">
+                </div>
+
+            </form>
+
+        </div> <!-- /content -->
+
+    </div> <!-- /container -->
+
+    <script src="superadmin.js"></script>
+</body>
+</html>
