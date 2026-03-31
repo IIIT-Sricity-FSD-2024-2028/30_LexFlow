@@ -1,0 +1,6 @@
+@import url('./shared_base.css');
+
+/* ===================== LAWYER-SPECIFIC OVERRIDES ===================== */
+/* All shared styles (sidebar, cards, badges, cases, details, advocate,
+   tabs, tasks, modals, animations) are now in shared_base.css.
+   Only truly lawyer-unique styles go here. */

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LexFlow – Pay Invoice</title>
+<link rel="stylesheet" href="../styles/client_casemanagement_styles.css">
+<link rel="stylesheet" href="../styles/client_billing.css">
+<link rel="stylesheet" href="../styles/client_billing_pay-now.css">
+<link rel="stylesheet" href="../styles/shared_form-validation.css">
+</head>
+<body>
+<aside class="sidebar">
+<button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+<span class="svg-icon-placeholder" data-icon="icon_1"></span>
+</button>
+<div class="logo">LexFlow</div>
+<nav>
+<a href="#">
+<span class="svg-icon-placeholder" data-icon="icon_2"></span>
+<span>Consultations</span>
+</a>
+<a href="casemanagement_cases.html">
+<span class="svg-icon-placeholder" data-icon="icon_3"></span>
+<span>Cases</span>
+</a>
+<a href="#">
+<span class="svg-icon-placeholder" data-icon="icon_4"></span>
+<span>Documents</span>
+</a>
+<a href="billing.html" class="active">
+<span class="svg-icon-placeholder" data-icon="icon_5"></span>
+<span>Billing</span>
+</a>
+</nav>
+<div class="sidebar-footer">
+<div class="user user-btn" id="currentUserBtn">
+<div class="avatar" id="sidebarAvatar"></div>
+<div class="info">
+<div class="name" id="sidebarName">Loading...</div>
+<div class="role">User</div>
+</div>
+<button class="logout-btn" onclick="window.location.href='../../index.html'" style="width: auto; margin-left: auto;">
+<span class="svg-icon-placeholder" data-icon="icon_6"></span>
+</button>
+</div>
+</div>
+</aside>
+<main class="billing-main">
+<div class="page-header" style="display: flex; gap: 16px; align-items: center; margin-bottom: 30px;">
+<a href="billing.html" style="color: #6b7280; text-decoration: none;">
+<span class="svg-icon-placeholder" data-icon="icon_8"></span>
+</a>
+<div>
+<h1>Complete Payment</h1>
+<p>Review invoice details and process your payment method safely.</p>
+</div>
+</div>
+<div class="checkout-container">
+<div class="card checkout-summary">
+<h2>Invoice Summary <span id="summaryId" style="color:#6b7280; font-size:14px; font-weight:500; margin-left:12px;"></span></h2>
+<div class="summary-details">
+<div class="s-row">
+<span class="s-label">Case Name</span>
+<span class="s-val" id="summaryCaseName">Loading...</span>
+</div>
+<div class="s-row">
+<span class="s-label">Law Firm</span>
+<span class="s-val" id="summaryLawFirm">Loading...</span>
+</div>
+<div class="s-row">
+<span class="s-label">Due Date</span>
+<span class="s-val" id="summaryDueDate">Loading...</span>
+</div>
+</div>
+<div class="total-bar">
+<span class="t-label">Total Amount</span>
+<span class="t-val" id="summaryAmount">$0.00</span>
+</div>
+</div>
+<div class="card checkout-form">
+<h2>Payment Details</h2>
+<form id="paymentForm">
+<div class="input-group">
+<label>Cardholder Name</label>
+<input type="text" id="cardName" placeholder="Name on card" required maxlength="80" autocomplete="cc-name" pattern="[a-zA-Z\s'.,\-]+" title="Letters, spaces and common punctuation only">
+</div>
+<div class="input-group">
+<label>Card Number</label>
+<input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" maxlength="19" required inputmode="numeric" autocomplete="cc-number">
+</div>
+<div class="form-row">
+<div class="input-group">
+<label>Expiry Date</label>
+<input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" required inputmode="numeric" autocomplete="cc-exp">
+</div>
+<div class="input-group">
+<label>CVC</label>
+<input type="password" id="cardCVC" placeholder="***" maxlength="4" minlength="3" required inputmode="numeric" autocomplete="cc-csc">
+</div>
+</div>
+<button type="submit" class="btn-submit-pay">
+<span class="svg-icon-placeholder" data-icon="icon_9"></span>
+Pay <span id="btnPayAmount"></span> securely
+</button>
+</form>
+<div id="paymentSuccess" style="display:none;" class="success-msg">
+<span class="svg-icon-placeholder" data-icon="icon_10"></span>
+<h3>Payment Successful!</h3>
+<p>Your payment has been processed and your invoice is now paid. You will be redirected shortly.</p>
+</div>
+</div>
+</div>
+</main>
+<script src="../scripts/shared_form-validation.js"></script>
+<script src="../scripts/client_casemanagement_sidebar.js"></script>
+<script src="../scripts/client_billing_pay-now.js"></script>
+<script src="../assets/icons.js"></script>
+</body>
+</html>
