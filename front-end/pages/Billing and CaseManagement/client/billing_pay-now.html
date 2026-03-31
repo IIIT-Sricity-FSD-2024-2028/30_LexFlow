@@ -4,48 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LexFlow – Pay Invoice</title>
-<link rel="stylesheet" href="../styles/client_casemanagement_styles.css">
-<link rel="stylesheet" href="../styles/client_billing.css">
-<link rel="stylesheet" href="../styles/client_billing_pay-now.css">
-<link rel="stylesheet" href="../styles/shared_form-validation.css">
+
+<link rel="stylesheet" href="../client_casemanagement_styles.css">
+<link rel="stylesheet" href="../client_billing.css">
+<link rel="stylesheet" href="../client_billing_pay-now.css">
+<link rel="stylesheet" href="../../../styles/sidebar.css">
+<link rel="stylesheet" href="../shared_form-validation.css">
 </head>
 <body>
-<aside class="sidebar">
-<button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
-<span class="svg-icon-placeholder" data-icon="icon_1"></span>
-</button>
-<div class="logo">LexFlow</div>
-<nav>
-<a href="#">
-<span class="svg-icon-placeholder" data-icon="icon_2"></span>
-<span>Consultations</span>
-</a>
-<a href="casemanagement_cases.html">
-<span class="svg-icon-placeholder" data-icon="icon_3"></span>
-<span>Cases</span>
-</a>
-<a href="#">
-<span class="svg-icon-placeholder" data-icon="icon_4"></span>
-<span>Documents</span>
-</a>
-<a href="billing.html" class="active">
-<span class="svg-icon-placeholder" data-icon="icon_5"></span>
-<span>Billing</span>
-</a>
-</nav>
-<div class="sidebar-footer">
-<div class="user user-btn" id="currentUserBtn">
-<div class="avatar" id="sidebarAvatar"></div>
-<div class="info">
-<div class="name" id="sidebarName">Loading...</div>
-<div class="role">User</div>
-</div>
-<button class="logout-btn" onclick="window.location.href='../../index.html'" style="width: auto; margin-left: auto;">
-<span class="svg-icon-placeholder" data-icon="icon_6"></span>
-</button>
-</div>
-</div>
-</aside>
+<div id="sidebar-container"></div>
 <main class="billing-main">
 <div class="page-header" style="display: flex; gap: 16px; align-items: center; margin-bottom: 30px;">
 <a href="billing.html" style="color: #6b7280; text-decoration: none;">
@@ -112,9 +79,11 @@ Pay <span id="btnPayAmount"></span> securely
 </div>
 </div>
 </main>
-<script src="../scripts/shared_form-validation.js"></script>
-<script src="../scripts/client_casemanagement_sidebar.js"></script>
-<script src="../scripts/client_billing_pay-now.js"></script>
-<script src="../assets/icons.js"></script>
+<script>window.BASE_PATH = '../../'; window.SIDEBAR_PATH = '../../sidebar.html';</script>
+<script src="../../../scripts/sidebar.js"></script>
+<script src="../../scripts/shared_form-validation.js"></script>
+
+<script src="../../scripts/client_billing_pay-now.js"></script>
+<script src="../../assets/img/icons.js"></script>
 </body>
 </html>

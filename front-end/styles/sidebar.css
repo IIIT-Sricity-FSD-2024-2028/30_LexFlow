@@ -238,9 +238,16 @@ table {
 }
 
 /* ---------- MAIN CONTENT ---------- */
-.main-content {
+.main-content,
+.billing-main,
+.cases-main,
+.details-main {
     margin-left: var(--sidebar-width);
     flex: 1;
+    min-height: 100vh;
+}
+
+.main-content {
     padding: 28px 36px 48px;
     display: flex;
     flex-direction: column;

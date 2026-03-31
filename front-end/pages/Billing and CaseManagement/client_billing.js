@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let e = [],
     n = [],
     o = "All";
-  fetch("../../scripts/client_casemanagement_mock-data.json")
+  fetch("../client_casemanagement_mock-data.json")
     .then((t) => t.json())
     .then((t) => {
       (t.invoices && (e = t.invoices),

@@ -42,6 +42,9 @@
       const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
       container.innerHTML = bodyMatch ? bodyMatch[1].trim() : html.trim();
 
+      // Signal that sidebar is now in the DOM
+      document.dispatchEvent(new CustomEvent('sidebarLoaded'));
+
       // Auto-set active nav item based on current page filename
       const page = location.pathname.split('/').pop();
       const navId = PAGE_TO_NAV[page];
@@ -51,9 +54,10 @@
       }
 
       // Resolve nav link hrefs for pages that exist
+      const base = window.BASE_PATH || '';
       Object.entries(NAV_TO_PAGE).forEach(([id, pagePath]) => {
         const link = document.getElementById(id);
-        if (link) link.href = pagePath;
+        if (link) link.href = base + pagePath;
       });
 
       // Update role label from localStorage
@@ -70,7 +74,13 @@
         if (searchLink) searchLink.closest('a').style.display = 'none';
 
         const consultLink = document.getElementById('nav-consultations');
-        if (consultLink) consultLink.href = 'firm-consultation-dashboard.html';
+        if (consultLink) consultLink.href = base + 'firm-consultation-dashboard.html';
+
+        const billingLink = document.getElementById('nav-billing');
+        if (billingLink) billingLink.closest('a').href = base + 'Billing and CaseManagement/firm_manager/casemanagement_billing.html';
+
+        const casesLink = document.getElementById('nav-cases');
+        if (casesLink) casesLink.closest('a').href = base + 'Billing and CaseManagement/firm_manager/casemanagement_cases.html';
 
       } else {
         // default to client behaviour
@@ -78,7 +88,13 @@
         if (schedLink) schedLink.closest('a').style.display = 'none';
 
         const consultLink = document.getElementById('nav-consultations');
-        if (consultLink) consultLink.href = 'client-consultation-dashboard.html';
+        if (consultLink) consultLink.href = base + 'client-consultation-dashboard.html';
+
+        const billingLink = document.getElementById('nav-billing');
+        if (billingLink) billingLink.closest('a').href = base + 'Billing and CaseManagement/client/billing.html';
+
+        const casesLink = document.getElementById('nav-cases');
+        if (casesLink) casesLink.closest('a').href = base + 'Billing and CaseManagement/client/casemanagement_cases.html';
       }
 
     } catch (err) {
@@ -86,6 +102,7 @@
     }
   }
 
-  loadComponent('#sidebar-container', '../pages/sidebar.html');
+  const sidebarUrl = window.SIDEBAR_PATH || '../pages/sidebar.html';
+  loadComponent('#sidebar-container', sidebarUrl);
 
 })();

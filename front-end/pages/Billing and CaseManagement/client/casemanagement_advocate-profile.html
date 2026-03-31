@@ -4,45 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LexFlow – Advocate Profile</title>
-<link rel="stylesheet" href="../styles/client_casemanagement_styles.css">
+
+<link rel="stylesheet" href="../client_casemanagement_styles.css">
+<link rel="stylesheet" href="../../../styles/sidebar.css">
 </head>
 <body>
-<aside class="sidebar">
-<button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
-<span class="svg-icon-placeholder" data-icon="icon_1"></span>
-</button>
-<div class="logo">LexFlow</div>
-<nav>
-<a href="casemanagement_cases.html">
-<span class="svg-icon-placeholder" data-icon="icon_2"></span>
-<span>Consultations</span>
-</a>
-<a href="casemanagement_cases.html" class="active">
-<span class="svg-icon-placeholder" data-icon="icon_3"></span>
-<span>Cases</span>
-</a>
-<a href="#">
-<span class="svg-icon-placeholder" data-icon="icon_4"></span>
-<span><span>Documents</span></span>
-</a>
-<a href="billing.html">
-<span class="svg-icon-placeholder" data-icon="icon_5"></span>
-<span>Billing</span>
-</a>
-</nav>
-<div class="sidebar-footer">
-<div class="user user-btn" id="currentUserBtn">
-<div class="avatar" id="sidebarAvatar">JD</div>
-<div class="info">
-<div class="name" id="sidebarName">John Doe</div>
-<div class="role">User</div>
-</div>
-<button class="logout-btn" onclick="window.location.href='../../index.html'" style="width: auto; margin-left: auto;">
-<span class="svg-icon-placeholder" data-icon="icon_6"></span>
-</button>
-</div>
-</div>
-</aside>
+<div id="sidebar-container"></div>
 <div class="details-main">
 <div class="topbar">
 <div class="breadcrumb">
@@ -202,8 +169,10 @@ Qualifications
 </div>
 </div>
 </div>
-<script src="../scripts/client_casemanagement_sidebar.js"></script>
-<script src="../scripts/client_casemanagement_advocate-profile.js"></script>
-<script src="../assets/icons.js"></script>
+<script>window.BASE_PATH = '../../'; window.SIDEBAR_PATH = '../../sidebar.html';</script>
+<script src="../../../scripts/sidebar.js"></script>
+
+<script src="../../scripts/client_casemanagement_advocate-profile.js"></script>
+<script src="../../assets/img/icons.js"></script>
 </body>
 </html>

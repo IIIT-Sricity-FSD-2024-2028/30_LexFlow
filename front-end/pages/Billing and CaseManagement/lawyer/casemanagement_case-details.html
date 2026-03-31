@@ -4,46 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LexFlow – Law Firm Case Detail</title>
-<link rel="stylesheet" href="../../styles/lawyer_casemanagement_styles.css">
-<link rel="stylesheet" href="../../styles/shared_form-validation.css">
+
+<link rel="stylesheet" href="../lawyer_casemanagement_styles.css">
+<link rel="stylesheet" href="../shared_form-validation.css">
+<link rel="stylesheet" href="../../../styles/sidebar.css">
 </head>
 <body>
-<aside class="sidebar">
-<button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
-<span class="svg-icon-placeholder" data-icon="icon_1"></span>
-</button>
-<div class="logo">LexFlow</div>
-<nav>
-<a href="../../index.html">
-<span class="svg-icon-placeholder" data-icon="icon_26"></span>
-<span>Schedules</span>
-</a>
-<a href="casemanagement_cases.html" class="active">
-<span class="svg-icon-placeholder" data-icon="icon_3"></span>
-<span>Cases</span>
-</a>
-<a href="#">
-<span class="svg-icon-placeholder" data-icon="icon_4"></span>
-<span>Documents</span>
-</a>
-<a href="casemanagement_billing.html">
-<span class="svg-icon-placeholder" data-icon="icon_5"></span>
-<span>Billing</span>
-</a>
-</nav>
-<div class="sidebar-footer">
-<div class="user user-btn" id="currentUserBtn">
-<div class="avatar" id="sidebarAvatar">SM</div>
-<div class="info">
-<div class="name" id="sidebarName">Sarah Mitchell</div>
-<div class="role">Firm Admin</div>
-</div>
-<button class="logout-btn" onclick="window.location.href='../../index.html'" style="width: auto; margin-left: auto;">
-<span class="svg-icon-placeholder" data-icon="icon_6"></span>
-</button>
-</div>
-</div>
-</aside>
+<div id="sidebar-container"></div>
 <div class="details-main" style="background: #fdfdfd;">
 <div class="topbar">
 <div class="breadcrumb" id="breadcrumbNav">
@@ -284,9 +251,11 @@ Upload New Document
 </div>
 </div>
 </div>
+<script>window.BASE_PATH = '../../'; window.SIDEBAR_PATH = '../../sidebar.html';</script>
+<script src="../../../scripts/sidebar.js"></script>
 <script src="../../scripts/shared_form-validation.js"></script>
-<script src="../../scripts/lawyer_casemanagement_sidebar.js"></script>
+
 <script src="../../scripts/lawyer_casemanagement_case-details.js"></script>
-<script src="../../assets/icons.js"></script>
+<script src="../../assets/img/icons.js"></script>
 </div></body>
 </html>
