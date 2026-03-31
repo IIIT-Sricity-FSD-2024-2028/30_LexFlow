@@ -13,16 +13,19 @@
     'firm-consultation-dashboard.html':   'nav-consultations',
     'cases.html':                         'nav-cases',
     'documents.html':                     'nav-documents',
+    'index.html':                         'nav-documents', // for DocumentManagement/index.html
     'billing.html':                       'nav-billing',
     'client-law_firm-search.html':        'nav-search',
   };
 
-  // Maps nav item ID → relative page path (for link resolution)
-  // Add entries here as new pages are built
+  // Maps nav item ID → path relative to front-end/pages/
   const NAV_TO_PAGE = {
     'nav-consultations': 'client-consultation-dashboard.html',
     'nav-search':        'client-law_firm-search.html',
     'nav-scheduling':    'ScheduleManagement.html',
+    'nav-documents':     'DocumentManagement/index.html',
+    'nav-billing':       'billing.html',
+    'nav-cases':         'cases.html'
   };
 
   async function loadComponent(selector, url) {
@@ -43,17 +46,24 @@
       container.innerHTML = bodyMatch ? bodyMatch[1].trim() : html.trim();
 
       // Auto-set active nav item based on current page filename
-      const page = location.pathname.split('/').pop();
+      const pathParts = location.pathname.split('/');
+      const page = pathParts.pop() || 'index.html';
+      const folder = pathParts.pop();
+      const isSubDir = folder && folder !== 'pages'; // Simple check if inside a feature folder
+
       const navId = PAGE_TO_NAV[page];
       if (navId) {
         const el = document.getElementById(navId);
         if (el) el.classList.add('active');
       }
 
-      // Resolve nav link hrefs for pages that exist
-      Object.entries(NAV_TO_PAGE).forEach(([id, pagePath]) => {
+      // Resolve nav link hrefs for pages relative to current location
+      Object.entries(NAV_TO_PAGE).forEach(([id, relPath]) => {
         const link = document.getElementById(id);
-        if (link) link.href = pagePath;
+        if (link) {
+          // If we're in a subfolder like DocumentManagement/, we need to go up one level
+          link.href = isSubDir ? `../${relPath}` : relPath;
+        }
       });
 
       // Update role label from localStorage
@@ -86,6 +96,11 @@
     }
   }
 
-  loadComponent('#sidebar-container', '../pages/sidebar.html');
+  // Auto-detect the correct path to sidebar.html based on current page depth
+  const pathParts = location.pathname.split('/');
+  const folder = pathParts[pathParts.length - 2];
+  const sidebarUrl = (folder === 'pages') ? 'sidebar.html' : '../sidebar.html';
+
+  loadComponent('#sidebar-container', sidebarUrl);
 
 })();

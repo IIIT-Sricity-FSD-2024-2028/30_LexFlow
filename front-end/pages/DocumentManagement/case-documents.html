@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- YOUR EXISTING CSS -->
+    <link rel="stylesheet" href="../../styles/globals_harshkumar.css">
     <link rel="stylesheet" href="case-documents.css">
     <link rel="stylesheet" href="../../styles/sidebar.css">
 </head>
@@ -92,7 +93,7 @@
         </div>
     </aside> -->
 
-   <div id="sidebar-container"></div>
+    <div id="sidebar-container"></div>
 
 
 
@@ -324,9 +325,9 @@
 
                     <button class="btn-outline">
                         <a href="./activity-log.html">
-                    
-                        View All Activity
-                    </a>
+
+                            View All Activity
+                        </a>
                     </button>
                 </div>
 
@@ -357,111 +358,130 @@
     </main>
 
 
-<div class="upload-modal">
-  <div class="upload-modal__panel">
- 
-    <!-- Header -->
-    <div class="upload-modal__header">
-      <div class="upload-modal__title-group">
-        <div class="upload-modal__title-icon">
-          <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="20" width="20" xmlns="http://www.w3.org/2000/svg">
-            <path fill="none" stroke-width="2" d="M2.99787498,0.999999992 L17.4999998,0.999999992 L20.9999998,4.50000005 L21,23 L3,23 L2.99787498,0.999999992 Z M16,1 L16,6 L21,6 M12,20 L12,11 M8,14 L12,10 L16,14"></path>
-          </svg>
-        </div>
-        <h2 class="upload-modal__title">Upload New Document</h2>
-      </div>
-      <button class="upload-modal__close">✕</button>
-    </div>
- 
-    <!-- Body -->
-    <div class="upload-modal__body">
- 
-      <div class="upload-modal__grid">
- 
-        <!-- Client Name -->
-        <div class="upload-modal__field">
-          <label class="upload-modal__label">Client Name</label>
-          <div class="upload-modal__input-wrapper">
-            <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
-              <path fill="none" d="M0 0h24v24H0V0z"></path>
-              <path d="M12 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2m0 10c2.7 0 5.8 1.29 6 2H6c.23-.72 3.31-2 6-2m0-12C9.79 4 8 5.79 8 8s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 10c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
-            </svg>
-            <input class="upload-modal__input" type="text" value="Rahul Sharma">
-          </div>
-        </div>
- 
-        <!-- Case ID -->
-        <div class="upload-modal__field">
-          <label class="upload-modal__label">Case ID</label>
-          <div class="upload-modal__input-wrapper">
-            <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
-              <g id="Hashtag">
-                <path d="M20.435,15.506H16.2l.61-7h3.63a.5.5,0,0,0,.5-.5.5.5,0,0,0-.5-.5H16.9l.34-3.87a.509.509,0,0,0-.46-.54.5.5,0,0,0-.54.46l-.35,3.95H8.9l.34-3.87a.509.509,0,0,0-.46-.54.491.491,0,0,0-.54.46l-.35,3.95H3.565a.5.5,0,0,0-.5.5.5.5,0,0,0,.5.5h4.24l-.62,7H3.565a.5.5,0,0,0-.5.5.5.5,0,0,0,.5.5h3.54l-.34,3.86a.508.508,0,0,0,.45.54h.05a.516.516,0,0,0,.5-.46l.34-3.94h7l-.34,3.86a.508.508,0,0,0,.45.54h.05a.516.516,0,0,0,.5-.46l.34-3.94h4.33a.5.5,0,0,0,.5-.5A.5.5,0,0,0,20.435,15.506Zm-5.25,0H8.2l.61-7h7Z"></path>
-              </g>
-            </svg>
-            <input class="upload-modal__input" type="text" value="CASE-45">
-          </div>
-        </div>
- 
-        <!-- Document Type -->
-        <div class="upload-modal__field">
-          <label class="upload-modal__label">Document Type</label>
-          <select class="upload-modal__input">
-            <option>Client Proof</option>
-          </select>
-        </div>
- 
-        <!-- Confidential Level -->
-        <div class="upload-modal__field">
-          <label class="upload-modal__label">Confidential Level</label>
-          <select class="upload-modal__input">
-            <option>Firm Only</option>
-          </select>
-        </div>
- 
-      </div>
- 
-      <!-- Uploaded By -->
-      <div class="upload-modal__field upload-modal__field--full">
-        <label class="upload-modal__label">Uploaded By</label>
-        <div class="upload-modal__input-wrapper">
-          <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
-            <path d="M258.9 48C141.92 46.42 46.42 141.92 48 258.9c1.56 112.19 92.91 203.54 205.1 205.1 117 1.6 212.48-93.9 210.88-210.88C462.44 140.91 371.09 49.56 258.9 48zm126.42 327.25a4 4 0 0 1-6.14-.32 124.27 124.27 0 0 0-32.35-29.59C321.37 329 289.11 320 256 320s-65.37 9-90.83 25.34a124.24 124.24 0 0 0-32.35 29.58 4 4 0 0 1-6.14.32A175.32 175.32 0 0 1 80 259c-1.63-97.31 78.22-178.76 175.57-179S432 158.81 432 256a175.32 175.32 0 0 1-46.68 119.25z"></path>
-            <path d="M256 144c-19.72 0-37.55 7.39-50.22 20.82s-19 32-17.57 51.93C191.11 256 221.52 288 256 288s64.83-32 67.79-71.24c1.48-19.74-4.8-38.14-17.68-51.82C293.39 151.44 275.59 144 256 144z"></path>
-          </svg>
-          <input class="upload-modal__input" type="text" value="Alex Wright - Senior Partner">
-        </div>
-      </div>
- 
-      <!-- Description -->
-      <div class="upload-modal__field upload-modal__field--full">
-        <label class="upload-modal__label">Description</label>
-        <textarea class="upload-modal__textarea" placeholder="Brief overview of the document contents..."></textarea>
-      </div>
- 
-      <!-- Upload Area -->
-      <div class="upload-modal__dropzone">
-        <div class="upload-modal__drop-icon">
-          <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 640 512" height="22" width="22" xmlns="http://www.w3.org/2000/svg">
-            <path d="M144 480C64.5 480 0 415.5 0 336c0-62.8 40.2-116.2 96.2-135.9c-.1-2.7-.2-5.4-.2-8.1c0-88.4 71.6-160 160-160c59.3 0 111 32.2 138.7 80.2C409.9 102 428.3 96 448 96c53 0 96 43 96 96c0 12.2-2.3 23.8-6.4 34.6C596 238.4 640 290.1 640 352c0 70.7-57.3 128-128 128l-368 0zm79-217c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l39-39L296 392c0 13.3 10.7 24 24 24s24-10.7 24-24l0-134.1 39 39c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-80-80c-9.4-9.4-24.6-9.4-33.9 0l-80 80z"></path>
-          </svg>
-        </div>
-        <div class="upload-modal__drop-text">Drag & Drop Files Here or Click to Upload</div>
-        <div class="upload-modal__drop-subtext">Supported formats: PDF, DOCX, JPG • Max size: 10MB</div>
-      </div>
- 
-    </div>
- 
-    <!-- Footer -->
-    <div class="upload-modal__footer">
-      <button class="upload-modal__btn upload-modal__btn--ghost">Cancel</button>
-      <button class="upload-modal__btn upload-modal__btn--primary">+ Upload New Document</button>
-    </div>
- 
-  </div>
-</div>
+    <div class="upload-modal">
+        <div class="upload-modal__panel">
 
-<!-- <script src="../../scripts/sidebar.js"></script> -->
-<script src="case-document.js"></script>
+            <!-- Header -->
+            <div class="upload-modal__header">
+                <div class="upload-modal__title-group">
+                    <div class="upload-modal__title-icon">
+                        <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="20"
+                            width="20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill="none" stroke-width="2"
+                                d="M2.99787498,0.999999992 L17.4999998,0.999999992 L20.9999998,4.50000005 L21,23 L3,23 L2.99787498,0.999999992 Z M16,1 L16,6 L21,6 M12,20 L12,11 M8,14 L12,10 L16,14">
+                            </path>
+                        </svg>
+                    </div>
+                    <h2 class="upload-modal__title">Upload New Document</h2>
+                </div>
+                <button class="upload-modal__close">✕</button>
+            </div>
+
+            <!-- Body -->
+            <div class="upload-modal__body">
+
+                <div class="upload-modal__grid">
+
+                    <!-- Client Name -->
+                    <div class="upload-modal__field">
+                        <label class="upload-modal__label">Client Name</label>
+                        <div class="upload-modal__input-wrapper">
+                            <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24"
+                                height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+                                <path fill="none" d="M0 0h24v24H0V0z"></path>
+                                <path
+                                    d="M12 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2m0 10c2.7 0 5.8 1.29 6 2H6c.23-.72 3.31-2 6-2m0-12C9.79 4 8 5.79 8 8s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 10c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z">
+                                </path>
+                            </svg>
+                            <input class="upload-modal__input" type="text" value="Rahul Sharma">
+                        </div>
+                    </div>
+
+                    <!-- Case ID -->
+                    <div class="upload-modal__field">
+                        <label class="upload-modal__label">Case ID</label>
+                        <div class="upload-modal__input-wrapper">
+                            <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24"
+                                height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+                                <g id="Hashtag">
+                                    <path
+                                        d="M20.435,15.506H16.2l.61-7h3.63a.5.5,0,0,0,.5-.5.5.5,0,0,0-.5-.5H16.9l.34-3.87a.509.509,0,0,0-.46-.54.5.5,0,0,0-.54.46l-.35,3.95H8.9l.34-3.87a.509.509,0,0,0-.46-.54.491.491,0,0,0-.54.46l-.35,3.95H3.565a.5.5,0,0,0-.5.5.5.5,0,0,0,.5.5h4.24l-.62,7H3.565a.5.5,0,0,0-.5.5.5.5,0,0,0,.5.5h3.54l-.34,3.86a.508.508,0,0,0,.45.54h.05a.516.516,0,0,0,.5-.46l.34-3.94h7l-.34,3.86a.508.508,0,0,0,.45.54h.05a.516.516,0,0,0,.5-.46l.34-3.94h4.33a.5.5,0,0,0,.5-.5A.5.5,0,0,0,20.435,15.506Zm-5.25,0H8.2l.61-7h7Z">
+                                    </path>
+                                </g>
+                            </svg>
+                            <input class="upload-modal__input" type="text" value="CASE-45">
+                        </div>
+                    </div>
+
+                    <!-- Document Type -->
+                    <div class="upload-modal__field">
+                        <label class="upload-modal__label">Document Type</label>
+                        <select class="upload-modal__input">
+                            <option>Client Proof</option>
+                        </select>
+                    </div>
+
+                    <!-- Confidential Level -->
+                    <div class="upload-modal__field">
+                        <label class="upload-modal__label">Confidential Level</label>
+                        <select class="upload-modal__input">
+                            <option>Firm Only</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <!-- Uploaded By -->
+                <div class="upload-modal__field upload-modal__field--full">
+                    <label class="upload-modal__label">Uploaded By</label>
+                    <div class="upload-modal__input-wrapper">
+                        <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512"
+                            height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M258.9 48C141.92 46.42 46.42 141.92 48 258.9c1.56 112.19 92.91 203.54 205.1 205.1 117 1.6 212.48-93.9 210.88-210.88C462.44 140.91 371.09 49.56 258.9 48zm126.42 327.25a4 4 0 0 1-6.14-.32 124.27 124.27 0 0 0-32.35-29.59C321.37 329 289.11 320 256 320s-65.37 9-90.83 25.34a124.24 124.24 0 0 0-32.35 29.58 4 4 0 0 1-6.14.32A175.32 175.32 0 0 1 80 259c-1.63-97.31 78.22-178.76 175.57-179S432 158.81 432 256a175.32 175.32 0 0 1-46.68 119.25z">
+                            </path>
+                            <path
+                                d="M256 144c-19.72 0-37.55 7.39-50.22 20.82s-19 32-17.57 51.93C191.11 256 221.52 288 256 288s64.83-32 67.79-71.24c1.48-19.74-4.8-38.14-17.68-51.82C293.39 151.44 275.59 144 256 144z">
+                            </path>
+                        </svg>
+                        <input class="upload-modal__input" type="text" value="Alex Wright - Senior Partner">
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="upload-modal__field upload-modal__field--full">
+                    <label class="upload-modal__label">Description</label>
+                    <textarea class="upload-modal__textarea"
+                        placeholder="Brief overview of the document contents..."></textarea>
+                </div>
+
+                <!-- Upload Area -->
+                <div class="upload-modal__dropzone">
+                    <div class="upload-modal__drop-icon">
+                        <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 640 512"
+                            height="22" width="22" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M144 480C64.5 480 0 415.5 0 336c0-62.8 40.2-116.2 96.2-135.9c-.1-2.7-.2-5.4-.2-8.1c0-88.4 71.6-160 160-160c59.3 0 111 32.2 138.7 80.2C409.9 102 428.3 96 448 96c53 0 96 43 96 96c0 12.2-2.3 23.8-6.4 34.6C596 238.4 640 290.1 640 352c0 70.7-57.3 128-128 128l-368 0zm79-217c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l39-39L296 392c0 13.3 10.7 24 24 24s24-10.7 24-24l0-134.1 39 39c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-80-80c-9.4-9.4-24.6-9.4-33.9 0l-80 80z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="upload-modal__drop-text">Drag & Drop Files Here or Click to Upload</div>
+                    <div class="upload-modal__drop-subtext">Supported formats: PDF, DOCX, JPG • Max size: 10MB</div>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="upload-modal__footer">
+                <button class="upload-modal__btn upload-modal__btn--ghost">Cancel</button>
+                <button class="upload-modal__btn upload-modal__btn--primary">+ Upload New Document</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="../../scripts/sidebar.js"></script>
+    <script src="case-document.js"></script>
 </body>
+
 </html>

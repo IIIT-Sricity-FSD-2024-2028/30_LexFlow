@@ -8,6 +8,8 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="../../styles/globals_harshkumar.css">
+    <link rel="stylesheet" href="../../styles/sidebar.css">
     <style>
         *,
         *::before,
@@ -45,12 +47,15 @@
             background: var(--bg);
             color: var(--text-primary);
             min-height: 100vh;
-            padding: 40px 24px;
+            margin: 0;
+            padding: 0;
+            display: flex;
         }
 
         .container {
+            width: 100%;
             max-width: 1100px;
-            margin: 0 auto;
+            padding: 40px 24px;
         }
 
         /* Header */
@@ -372,7 +377,9 @@
     </style>
 </head>
 
-<body>
+    <div id="sidebar-container"></div>
+
+    <main class="main-content">
     <div class="container">
 
         <div class="page-header">
@@ -457,6 +464,7 @@
         </div>
 
     </div>
+    </main>
 
     <script>
         const ALL_ROWS = [
@@ -553,6 +561,6 @@
 
         render();
     </script>
+    <script src="../../scripts/sidebar.js"></script>
 </body>
-
 </html>
