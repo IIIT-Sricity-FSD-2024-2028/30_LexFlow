@@ -11,11 +11,11 @@
 <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
 <span class="svg-icon-placeholder" data-icon="icon_1"></span>
 </button>
-<div class="logo">LexFlow</div>
+<a href="landing_page.html" class="logo" style="text-decoration:none;color:inherit;">LexFlow</a>
 <nav>
-<a href="../index.html">
-<span class="svg-icon-placeholder" data-icon="icon_26"></span>
-<span>Schedules</span>
+<a href="firm-consultation-dashboard.html">
+<span class="svg-icon-placeholder" data-icon="icon_2"></span>
+<span>Consultations</span>
 </a>
 <a href="firm_manager_casemanagement_cases.html" class="active">
 <span class="svg-icon-placeholder" data-icon="icon_3"></span>
@@ -41,7 +41,7 @@
 <div class="name" id="sidebarName">Sarah Mitchell</div>
 <div class="role">Firm Admin</div>
 </div>
-<button class="logout-btn" onclick="window.location.href='../index.html'" style="width: auto; margin-left: auto;">
+<button class="logout-btn" onclick="localStorage.removeItem('currentUser');localStorage.removeItem('userRole');window.location.href='SignIn.html';" style="width: auto; margin-left: auto;">
 <span class="svg-icon-placeholder" data-icon="icon_6"></span>
 </button>
 </div>

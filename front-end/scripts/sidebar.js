@@ -61,9 +61,16 @@
         if (link) link.href = pagePath;
       });
 
-      // Update role label from localStorage
+      // Resolve userRole: prefer currentUser.role (set by AuthService.login),
+      // fall back to legacy 'userRole' key (set by landing_page.js)
+      let userRole = null;
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        userRole = currentUser?.role ?? localStorage.getItem('userRole');
+      } catch {
+        userRole = localStorage.getItem('userRole');
+      }
       const roleLabels = { client: 'Client', firmAdmin: 'Law Firm' };
-      const userRole = localStorage.getItem('userRole');
       const roleEl = container.querySelector('.user-role');
       if (roleEl && userRole) roleEl.textContent = roleLabels[userRole] ?? 'User';
 
@@ -80,6 +87,9 @@
         const billingLink = document.getElementById('nav-billing');
         if (billingLink) billingLink.href = 'lawyer_casemanagement_billing.html';
 
+        const casesLink = document.getElementById('nav-cases');
+        if (casesLink) casesLink.href = 'firm_manager_casemanagement_cases.html';
+
       } else {
         // default to client behaviour
         const schedLink = document.getElementById('nav-scheduling');
@@ -90,6 +100,32 @@
 
         const billingLink = document.getElementById('nav-billing');
         if (billingLink) billingLink.href = 'client_billing.html';
+
+        const casesLink = document.getElementById('nav-cases');
+        if (casesLink) casesLink.href = 'client_casemanagement_cases.html';
+      }
+
+      // Wire up logo → landing page
+      const brand = container.querySelector('.sidebar-brand');
+      if (brand) {
+        brand.style.cursor = 'pointer';
+        brand.addEventListener('click', () => {
+          window.location.href = 'landing_page.html';
+        });
+      }
+
+      // Wire up logout button → AuthService.logout()
+      const logoutBtn = container.querySelector('#logout-btn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          if (typeof AuthService !== 'undefined') {
+            AuthService.logout();
+          } else {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('userRole');
+            window.location.href = 'SignIn.html';
+          }
+        });
       }
 
     } catch (err) {
