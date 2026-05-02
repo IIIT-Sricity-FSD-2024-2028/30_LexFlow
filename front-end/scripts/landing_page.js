@@ -59,10 +59,11 @@
 
   const loginClientBtn  = document.getElementById('login-client-btn');
   const loginLawfirmBtn = document.getElementById('login-lawfirm-btn');
+  const loginInternBtn = document.getElementById('login-intern-btn');
 
   if (loginClientBtn) {
     loginClientBtn.addEventListener('click', function () {
-      localStorage.setItem('userRole', 'client');
+      localStorage.setItem('loginRole', 'client');
       login.close();
       window.location.href = getSignInPath();
     });
@@ -70,7 +71,15 @@
 
   if (loginLawfirmBtn) {
     loginLawfirmBtn.addEventListener('click', function () {
-      localStorage.setItem('userRole', 'firmAdmin');
+      localStorage.setItem('loginRole', 'firmadmin');
+      login.close();
+      window.location.href = getSignInPath();
+    });
+  }
+
+  if (loginInternBtn) {
+    loginInternBtn.addEventListener('click', function () {
+      localStorage.setItem('loginRole', 'intern');
       login.close();
       window.location.href = getSignInPath();
     });

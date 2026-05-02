@@ -165,46 +165,75 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      const user = StorageService.create('users', {
-        fullName: _val('admin-name'),
-        email: adminEmail,
-        password: _val('password'),
-        phone: draft.phone || '',
-        role: 'firmAdmin'
-      });
-
+      const firmName = draft.fullName || draft.firmName || 'Unnamed Firm';
       const firmData = {
         ...draft,
-        name: draft.fullName || draft.firmName || 'Unnamed Firm', // Use 'name' for search compatibility
-        firmName: draft.fullName || draft.firmName || 'Unnamed Firm',
+        name: firmName,
+        firmName,
         subtitle: `${draft.city || ''}, ${draft.state || ''}`.trim().replace(/^,|,$/g, '') || 'General Practice',
         location: (draft.city || '').toLowerCase(),
         practiceArea: 'general',
-        description: draft.description || `${draft.fullName || draft.firmName} — a registered law firm on LexFlow.`,
+        description: draft.description || `${firmName} — a registered law firm on LexFlow.`,
         rating: 4.0,
         reviews: 0,
         price: 150,
         availability: 'AVAILABLE',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(draft.fullName || draft.firmName)}&background=1e3a5f&color=fff`,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firmName)}&background=1e3a5f&color=fff`,
         adminName: _val('admin-name'),
-        adminEmail: adminEmail,
-        adminId: user.id
+        adminEmail: adminEmail
       };
 
-      StorageService.create('lawFirms', firmData);
+      const payload = {
+        fullName: _val('admin-name'),
+        email: adminEmail,
+        role: 'firmadmin',
+        password: _val('password'),
+        phone: draft.phone || undefined,
+        addressLine1: draft.street || undefined,
+        city: draft.city || undefined,
+        state: draft.state || undefined,
+        pinCode: draft.zip || undefined
+      };
 
+      fetch('http://localhost:3000/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          role: 'superadmin'
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const err = await res.text();
+            throw new Error(err || 'Unable to create law firm account.');
+          }
+          return res.json();
+        })
+        .then((user) => {
+          StorageService.create('lawFirms', { ...firmData, adminId: user.id });
 
+          const { password: _pw, ...safeUser } = user;
+          const frontendUser = {
+            ...safeUser,
+            role: 'firmAdmin',
+          };
 
-      const { password: _pw, ...safeUser } = user;
-      localStorage.setItem('currentUser', JSON.stringify(safeUser));
+          localStorage.setItem('currentUser', JSON.stringify(frontendUser));
+          localStorage.setItem('userRole', frontendUser.role);
 
-      sessionStorage.removeItem(DRAFT_KEY);
+          sessionStorage.removeItem(DRAFT_KEY);
 
-      _showToast('Firm account created!');
+          _showToast('Firm account created!');
 
-      setTimeout(() => {
-        window.location.href = 'firm-consultation-dashboard.html';
-      }, 800);
+          setTimeout(() => {
+            window.location.href = 'firm-consultation-dashboard.html';
+          }, 800);
+        })
+        .catch((error) => {
+          console.error(error);
+          setAlert(error.message || 'Unable to create firm account right now.');
+        });
     });
   }
 

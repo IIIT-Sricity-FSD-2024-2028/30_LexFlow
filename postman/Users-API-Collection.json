@@ -1,0 +1,108 @@
+{
+  "info": {
+    "name": "LexFlow Users API",
+    "_postman_id": "a1b2c3d4-lexflow-users",
+    "description": "Quick Postman collection for testing Users endpoints (prototype RBAC via `role` header).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create User",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "role", "value": "admin" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Test Client\",\n  \"email\": \"test.client@lexflow.test\",\n  \"role\": \"client\",\n  \"password\": \"TestPass1!\",\n  \"phone\": \"+919000000000\",\n  \"addressLine1\": \"12 Example St\",\n  \"city\": \"Bengaluru\",\n  \"state\": \"Karnataka\",\n  \"pinCode\": \"560001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["users"]
+        }
+      }
+    },
+    {
+      "name": "List Users (all)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "role", "value": "admin" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["users"]
+        }
+      }
+    },
+    {
+      "name": "List Users (filter by role)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "role", "value": "admin" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/users?role=client",
+          "host": ["{{baseUrl}}"],
+          "path": ["users"],
+          "query": [ { "key": "role", "value": "client" } ]
+        }
+      }
+    },
+    {
+      "name": "Get User by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "role", "value": "client" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/users/user-2",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "user-2"]
+        }
+      }
+    },
+    {
+      "name": "Superadmin — List Users",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "role", "value": "superadmin" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["users"]
+        }
+      }
+    },
+    {
+      "name": "Superadmin — Create User",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "role", "value": "superadmin" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Super Created User\",\n  \"email\": \"super.user@lexflow.test\",\n  \"role\": \"client\",\n  \"password\": \"SuperPass1!\",\n  \"phone\": \"+919111111111\",\n  \"addressLine1\": \"99 Super Ave\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"pinCode\": \"400001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["users"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" }
+  ]
+}
