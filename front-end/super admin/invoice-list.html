@@ -9,7 +9,7 @@
     <script src="../scripts/superadmin-auth.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            await StorageService.seed('../data/initialData.json');
+            
             SuperAdminAuth.requireSuperAdmin();
         });
         function logoutSuperAdmin() {
@@ -31,7 +31,7 @@
             </div>
             <div id="user-tools">
                 WELCOME, <strong>SUPERADMIN</strong>. 
-                <a href="../pages/landing_page.html">VIEW SITE</a> / 
+                <a href="../pages/../index.html">VIEW SITE</a> / 
                 <a href="super-admin-login.html" onclick="logoutSuperAdmin(); return false;">LOG OUT</a>
             </div>
         </div>

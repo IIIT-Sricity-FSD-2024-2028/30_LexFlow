@@ -6,12 +6,13 @@
     <title>Site administration</title>
     <link rel="stylesheet" href="super-admin-global.css">
     <script src="../scripts/storageService.js"></script>
+    <script src="../scripts/api.js"></script>
     <script src="../scripts/auth.js"></script>
     <script src="../scripts/superadmin-auth.js"></script>
     <script>
         // Auth check on page load
         document.addEventListener('DOMContentLoaded', async () => {
-            await StorageService.seed('../data/initialData.json');
+            
             const user = SuperAdminAuth.requireSuperAdmin();
             if (user) {
               document.getElementById('admin-user-name').textContent = user.fullName;
@@ -42,7 +43,7 @@
             </div>
             <div id="user-tools">
                 WELCOME, <strong><span id="admin-user-name">SUPERADMIN</span></strong>. 
-                <a href="../pages/landing_page.html">VIEW SITE</a> / 
+                <a href="../pages/../index.html">VIEW SITE</a> / 
                 <a href="super-admin-login.html" onclick="logoutSuperAdmin(); return false;">LOG OUT</a>
             </div>
         </div>

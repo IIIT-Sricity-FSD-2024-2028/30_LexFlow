@@ -21,7 +21,6 @@ const caseTopTitle = document.getElementById("caseTopTitle"),
   opposingParty = document.getElementById("opposingParty"),
   pendingCountBadge = document.getElementById("pendingCountBadge"),
   pendingTasksContainer = document.getElementById("pendingTasksContainer"),
-  timelineContainer = document.getElementById("timelineContainer"),
   documentsTbody = document.getElementById("documentsTbody");
 async function initCaseDetails() {
   try {
@@ -52,20 +51,54 @@ async function initCaseDetails() {
       ? (await casesStorage.getTasks({ caseId: resolvedCaseId })) || []
       : [];
     console.log("[DEBUG] Tasks received count:", currentTasks.length);
-    const users = (await casesStorage.getUsers()) || [];
+    const user = casesStorage.getCurrentUser();
+    const firmId = user?.firmId || null;
+    const role = (user?.role || 'firmadmin').toLowerCase();
+
+    // Fetch users (lawyers) specifically for this firm
+    let users = [];
+    if (firmId && window.LexFlowAPI) {
+      users = await window.LexFlowAPI.users.getLawyers(firmId, role);
+    } else {
+      users = (await casesStorage.getUsers()) || [];
+    }
+    
+    // Maintain legacy allData.users for modals
+    allData.users = users;
 
     if (!currentCase.timeline) currentCase.timeline = [];
     if (!currentCase.documents) currentCase.documents = [];
-    if (!currentCase.client) {
-      currentCase.client = {
-        contact: "Data Pending",
-        type: "Individual",
-        opposingParty: "None/Unknown",
-      };
+    if (!currentCase.client || !currentCase.client.contact || currentCase.client.contact === "Data Pending") {
+      if (currentCase.client_id && window.LexFlowAPI) {
+        try {
+          const clientUser = await window.LexFlowAPI.users.getById(currentCase.client_id, role);
+          if (clientUser) {
+            currentCase.client = {
+              contact: clientUser.fullName || clientUser.name || "N/A",
+              type: clientUser.role ? clientUser.role.charAt(0).toUpperCase() + clientUser.role.slice(1) : "Client",
+              opposingParty: currentCase.client?.opposingParty || "Pending",
+              email: clientUser.email || "N/A",
+              phone: clientUser.phoneNumber || "N/A"
+            };
+          }
+        } catch (err) {
+          console.error("Failed to fetch client details:", err);
+        }
+      }
+      
+      if (!currentCase.client) {
+        currentCase.client = {
+          contact: "Data Pending",
+          type: "Individual",
+          opposingParty: "None/Unknown",
+          email: "N/A",
+          phone: "N/A"
+        };
+      }
     }
     
-    if (!currentCase.team) {
-      const lawyer = users.find(u => u.id === currentCase.lawyer_id) || { fullName: "Assigned Lawyer" };
+    if (!currentCase.team || currentCase.team.length === 0) {
+      const lawyer = users.find(u => String(u.id) === String(currentCase.lawyer_id)) || { fullName: "Assigned Lawyer" };
       currentCase.team = [
         {
           id: currentCase.lawyer_id || "ADM001",
@@ -80,7 +113,6 @@ async function initCaseDetails() {
       renderTeam(),
       renderClientInfo(),
       renderPendingTasks(),
-      renderTimeline(),
       renderDocuments());
   } catch (e) {
     console.error("Error loading case details:", e);
@@ -148,18 +180,42 @@ function renderPhases() {
   }
 }
 function renderTeam() {
+  if (!currentCase.team || currentCase.team.length === 0) {
+    teamContainer.innerHTML = '<p style="color:#6b7280; font-size:12px; padding:8px;">No team members assigned.</p>';
+    return;
+  }
+  
   teamContainer.innerHTML = currentCase.team
-    .map(
-      (e) =>
-        `\n        <div style="display: flex; gap: 12px; align-items: center;">\n            <div style="width: 32px; height: 32px; border-radius: 50%; background: #eef2ff; color: #3b5bdb; display: flex; align-items:center; justify-content:center; font-size: 11px; font-weight:700;">${(e.name || "AL").substring(0, 2).toUpperCase()}</div>\n            <div style="display:flex; flex-direction:column;">\n                <span style="font-size:13px; font-weight:700; color:#1a1a2e;">${e.name}</span>\n                <span style="font-size:11px; color:#6b7280;">${e.role}</span>\n            </div>\n        </div>\n    `,
-    )
+    .map((e) => {
+      const initials = (e.name || "AL").split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      const isLead = e.role.toLowerCase().includes('lead');
+      const bg = isLead ? '#eef2ff' : '#f3f4f6';
+      const color = isLead ? '#3b5bdb' : '#4b5563';
+      
+      return `
+        <div style="display: flex; gap: 14px; align-items: center; padding: 4px 0;">
+            <div style="width: 38px; height: 38px; border-radius: 10px; background: ${bg}; color: ${color}; display: flex; align-items:center; justify-content:center; font-size: 13px; font-weight:700; border: 1px solid rgba(0,0,0,0.05);">${initials}</div>
+            <div style="display:flex; flex-direction:column; gap: 2px;">
+                <span style="font-size:14px; font-weight:700; color:#1a1a2e;">${e.name}</span>
+                <span style="font-size:11px; font-weight:600; color:#6b7280; text-transform: uppercase; letter-spacing: 0.3px;">${e.role}</span>
+            </div>
+        </div>
+      `;
+    })
     .join("");
 }
 function renderClientInfo() {
   clientContact.textContent = currentCase.client.contact;
-  const e = document.getElementById("clientType");
-  (e && (e.textContent = currentCase.client.type),
-    (opposingParty.textContent = currentCase.client.opposingParty));
+  const typeEl = document.getElementById("clientType");
+  if (typeEl) typeEl.textContent = currentCase.client.type;
+  
+  const emailEl = document.getElementById("clientEmail");
+  if (emailEl) emailEl.textContent = currentCase.client.email || "N/A";
+  
+  const phoneEl = document.getElementById("clientPhone");
+  if (phoneEl) phoneEl.textContent = currentCase.client.phone || "N/A";
+  
+  opposingParty.textContent = currentCase.client.opposingParty;
 }
 function renderPendingBanner() {
   const e = currentTasks.filter((e) => "Pending" === e.status),
@@ -205,17 +261,7 @@ function renderPendingTasks() {
       : (pendingTasksContainer.innerHTML =
           '<div style="font-size:12px; color:#9ca3af; padding:12px; text-align:center;">No pending tasks.</div>'));
 }
-function renderTimeline() {
-  currentCase.timeline && 0 !== currentCase.timeline.length
-    ? (timelineContainer.innerHTML = currentCase.timeline
-        .map(
-          (e, t) =>
-            `\n        <div class="timeline-item ${e.grey ? "grey" : ""}" style="margin-bottom: 32px;">\n            <div style="display:flex; justify-content:space-between; align-items:flex-start;">\n                <div>\n                   <div class="t-title" style="font-size:14px; font-weight:700; color:#1a1a2e; display:flex; align-items:center; gap:8px;">\n                      ${e.title}\n                      <button onclick="editTimelineEvent(${t})" style="background:none;border:none;color:#9ca3af;cursor:pointer;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>\n                      <button onclick="deleteTimelineEvent(${t})" style="background:none;border:none;color:#ef4444;cursor:pointer;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>\n                   </div>\n                   <div style="font-size:12px; color:#6b7280; margin-top:4px; max-width:80%; line-height:1.5;">${e.note || "Status updated automatically."}</div>\n                </div>\n                <div style="text-align:right;">\n                    <span style="font-size:10px; font-weight:700; color:#cbd5e1; text-transform:uppercase;">${e.date}</span>\n                    ${e.upcoming ? '<div style="margin-top:6px;"><span class="badge-upcoming">UPCOMING</span></div>' : ""}\n                </div>\n            </div>\n        </div>\n    `,
-        )
-        .join(""))
-    : (timelineContainer.innerHTML =
-        '<p style="color:#6b7280; font-size:13px; margin:24px;">No timeline events recorded.</p>');
-}
+
 function renderDocuments() {
   (currentCase.documents || (currentCase.documents = []),
     0 !== currentCase.documents.length
@@ -232,17 +278,35 @@ function renderDocuments() {
       : (documentsTbody.innerHTML =
           '<tr><td colspan="4" style="text-align:center; padding: 24px; color:#9ca3af;">No documents available.</td></tr>'));
 }
-function saveData() {
-  const e = allData.cases.findIndex((e) => e.cnr === currentCase.cnr);
-  (-1 !== e && (allData.cases[e] = currentCase),
-    saveAllData(),
-    initCaseDetails());
+async function saveData() {
+  if (!currentCase || !currentCase.id) return;
+  try {
+    // Strip read-only properties that the backend DTO rejects
+    const { id, created_at, ...updateDto } = currentCase;
+
+    await casesStorage.updateCase(id, updateDto);
+    console.log("[DEBUG] Case updated successfully");
+    await initCaseDetails(); // Refresh UI
+  } catch (err) {
+    console.error("Failed to save case data:", err);
+    alert("Failed to save changes to backend: " + err.message);
+  }
 }
 function renderEditTeamList() {
-  document.getElementById("editTeamList").innerHTML = currentCase.team
+  const listEl = document.getElementById("editTeamList");
+  if (!listEl) return;
+  
+  listEl.innerHTML = (currentCase.team || [])
     .map(
-      (e, t) =>
-        `\n        <div style="display:flex; justify-content:space-between; align-items:center; background:#f9fafb; padding:8px 12px; border-radius:6px;">\n            <div style="font-size:13px; font-weight:600;">${e.name} <span style="font-weight:400; color:#6b7280;">(${e.role})</span></div>\n            <button onclick="removeTeamMember(${t})" style="color:#ef4444; border:none; background:none; cursor:pointer; font-weight:bold;">&times;</button>\n        </div>\n    `,
+      (e, t) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#f9fafb; padding:10px 14px; border-radius:8px; border: 1px solid #f3f4f6;">
+            <div style="display:flex; flex-direction:column;">
+                <div style="font-size:13px; font-weight:700; color: #111827;">${e.name}</div>
+                <div style="font-size:11px; color:#6b7280; font-weight: 500;">${e.role}</div>
+            </div>
+            <button onclick="removeTeamMember(${t})" style="color:#9ca3af; border:none; background:none; cursor:pointer; font-size: 18px; padding: 4px; transition: color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#9ca3af'">&times;</button>
+        </div>
+    `,
     )
     .join("");
 }
@@ -266,13 +330,13 @@ function renderEditTeamList() {
       document.body.removeChild(n));
   }),
   (window.openEditCaseModal = function () {
-    ((document.getElementById("editCaseTitle").value = currentCase.title),
-      (document.getElementById("editCaseStatus").value = currentCase.status),
+    ((document.getElementById("editCaseTitle").value = currentCase.case_type || ''),
+      (document.getElementById("editCaseStatus").value = currentCase.status || 'Active'),
       (document.getElementById("editCaseProgress").value =
-        currentCase.progress),
+        currentCase.progress || 0),
       openModal("editCaseModal"));
   }),
-  (window.saveCaseDetailsModal = function () {
+  (window.saveCaseDetailsModal = async function () {
     const e = document.getElementById("editCaseTitle"),
       t = document.getElementById("editCaseProgress"),
       n = document.getElementById("editCaseModal");
@@ -296,7 +360,7 @@ function renderEditTeamList() {
     ((currentCase.case_type = e.value.trim()),
       (currentCase.status = document.getElementById("editCaseStatus").value),
       (currentCase.progress = parseInt(t.value, 10)),
-      saveData(),
+      await saveData(),
       closeModal("editCaseModal"));
   }),
   (window.addDocumentPrompt = function () {
@@ -309,7 +373,7 @@ function renderEditTeamList() {
         'Drag & Drop Files Here or <span style="color:#3b5bdb; text-decoration:underline;">Click to Upload</span>'),
       openModal("documentModal"));
   }),
-  (window.saveDocumentModal = function () {
+  (window.saveDocumentModal = async function () {
     const e = document.getElementById("docTypeSelect").value;
     let t = "New_Document_" + e + "." + e.toLowerCase();
     const n = document.getElementById("selectedFileName").innerText;
@@ -325,89 +389,29 @@ function renderEditTeamList() {
         }),
         status: "Reviewing",
       }),
-      saveData(),
+      await saveData(),
       closeModal("documentModal"));
   }),
-  (window.deleteDocument = function (e) {
+  (window.deleteDocument = async function (e) {
     if (!currentCase || !Array.isArray(currentCase.documents) || e < 0 || e >= currentCase.documents.length) return;
     confirm("Are you sure you want to delete this document?") &&
-      (currentCase.documents.splice(e, 1), saveAllData(), renderDocuments());
+      (currentCase.documents.splice(e, 1), await saveData());
   }),
-  (window.addTimelineEvent = function () {
-    ((document.getElementById("timelineModalTitle").textContent =
-      "Add Timeline Event"),
-      (document.getElementById("timelineEditIndex").value = "-1"),
-      (document.getElementById("timelineTitle").value = ""),
-      (document.getElementById("timelineDate").value = ""),
-      (document.getElementById("timelineNotes").value = ""),
-      (document.getElementById("timelineUpcoming").checked = !1),
-      openModal("timelineModal"));
-  }),
-  (window.editTimelineEvent = function (e) {
-    const t = currentCase.timeline[e];
-    ((document.getElementById("timelineModalTitle").textContent =
-      "Edit Timeline Event"),
-      (document.getElementById("timelineEditIndex").value = e),
-      (document.getElementById("timelineTitle").value = t.title));
-    let n = new Date(t.date);
-    (isNaN(n.getTime())
-      ? (document.getElementById("timelineDate").value = "")
-      : (document.getElementById("timelineDate").value = n
-          .toISOString()
-          .split("T")[0]),
-      (document.getElementById("timelineNotes").value = t.note || ""),
-      (document.getElementById("timelineUpcoming").checked = !!t.upcoming),
-      openModal("timelineModal"));
-  }),
-  (window.deleteTimelineEvent = function (e) {
-    confirm("Delete this event?") &&
-      (currentCase.timeline.splice(e, 1), saveData(), renderTimeline());
-  }),
-  (window.saveTimelineModal = function () {
-    const e = document.getElementById("timelineTitle"),
-      t = document.getElementById("timelineDate"),
-      n = document.getElementById("timelineModal");
-    LexValidation.clearAllErrors(n);
-    const a = [
-      {
-        input: e,
-        validator: (e) => LexValidation.validateRequired(e, "Event title"),
-      },
-      { input: t, validator: (e) => LexValidation.validateDate(e, "Date") },
-    ];
-    if (!LexValidation.validateForm(a))
-      return (
-        n.querySelector(".modal-content").classList.add("form-shake"),
-        void setTimeout(
-          () =>
-            n.querySelector(".modal-content").classList.remove("form-shake"),
-          450,
-        )
-      );
-    const o = parseInt(document.getElementById("timelineEditIndex").value),
-      i = document.getElementById("timelineNotes").value,
-      l = document.getElementById("timelineUpcoming").checked;
-    let s = new Date(t.value).toLocaleDateString(void 0, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-    const d = { title: e.value.trim(), date: s, note: i, upcoming: l };
-    (currentCase.timeline || (currentCase.timeline = []),
-      o >= 0 ? (currentCase.timeline[o] = d) : currentCase.timeline.unshift(d),
-      saveData(),
-      closeModal("timelineModal"));
-  }),
+
   (window.openEditClientModal = function () {
     ((document.getElementById("editClientContact").value =
       currentCase.client.contact),
+      (document.getElementById("editClientEmail").value =
+        currentCase.client.email || ""),
+      (document.getElementById("editClientPhone").value =
+        currentCase.client.phone || ""),
       (document.getElementById("editClientType").value =
         currentCase.client.type),
       (document.getElementById("editOpposingParty").value =
         currentCase.client.opposingParty),
       openModal("editClientModal"));
   }),
-  (window.saveClientDetails = function () {
+  (window.saveClientDetails = async function () {
     const e = document.getElementById("editClientContact"),
       t = document.getElementById("editClientModal");
     LexValidation.clearAllErrors(t);
@@ -428,35 +432,53 @@ function renderEditTeamList() {
       );
     ((currentCase.client = {
       contact: e.value.trim(),
+      email: document.getElementById("editClientEmail").value.trim(),
+      phone: document.getElementById("editClientPhone").value.trim(),
       type: document.getElementById("editClientType").value,
       opposingParty: document.getElementById("editOpposingParty").value.trim(),
     }),
-      saveData(),
+      await saveData(),
       closeModal("editClientModal"));
   }),
   (window.openEditTeamModal = function () {
     renderEditTeamList();
     ((document.getElementById("addTeamMemberSelect").innerHTML = allData.users
-      .filter((e) => "firmAdmin" === e.role || "lawyer" === e.role)
-      .map((e) => `<option value="${e.id}">${e.name}</option>`)
+      .filter((e) => {
+        const r = (e.role || '').toLowerCase();
+        return r === "lawyer" || r === "intern";
+      })
+      .map((e) => `<option value="${e.id}">${e.fullName || e.name}</option>`)
       .join("")),
       openModal("editTeamModal"));
   }),
-  (window.addTeamMember = function () {
+  (window.addTeamMember = async function () {
     const e = document.getElementById("addTeamMemberSelect"),
-      t = document.getElementById("addTeamMemberRole").value || "Legal Counsel",
+      roleInput = document.getElementById("addTeamMemberRole"),
+      t = roleInput.value.trim() || "Legal Counsel",
       n = allData.users.find((t) => t.id === e.value);
-    n &&
-      (currentCase.team.push({ id: n.id, name: n.name, role: t }),
-      saveData(),
-      renderEditTeamList());
+    
+    if (n) {
+      if (!currentCase.team) currentCase.team = [];
+      currentCase.team.push({ 
+        id: n.id, 
+        name: n.fullName || n.name, 
+        role: t 
+      });
+      roleInput.value = ""; // Clear input
+      await saveData();
+      renderEditTeamList();
+    }
   }),
-  (window.removeTeamMember = function (e) {
-    (currentCase.team.splice(e, 1), saveData(), renderEditTeamList());
+  (window.removeTeamMember = async function (e) {
+    (currentCase.team.splice(e, 1), await saveData(), renderEditTeamList());
   }),
   (window.openAddTaskModal = function () {
     ((document.getElementById("newTaskAssignee").innerHTML = allData.users
-      .map((e) => `<option value="${e.name}">${e.name}</option>`)
+      .filter(u => {
+        const r = (u.role || '').toLowerCase();
+        return r === 'lawyer' || r === 'intern';
+      })
+      .map((e) => `<option value="${e.fullName || e.name}">${e.fullName || e.name}</option>`)
       .join("")),
       openModal("addTaskModal"));
   }),

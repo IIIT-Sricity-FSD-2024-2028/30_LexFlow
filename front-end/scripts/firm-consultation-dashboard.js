@@ -323,7 +323,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cons = _consultations.find(c => c.id === consId);
     if (!cons) return;
 
-    if (!confirm(`Convert consultation ${consId} for ${cons.clientName} into a formal case?`)) return;
+    const caseName = prompt(`Enter the Case Name/Type:`, cons.type ? cons.type.charAt(0).toUpperCase() + cons.type.slice(1) : 'General Case');
+    if (caseName === null) return; // Cancelled
 
     const btn = document.getElementById(`btn-convert-${consId}`);
     if (btn) { btn.disabled = true; btn.textContent = 'Converting…'; }
@@ -335,7 +336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         lawyer_id: cons.lawyerId,
         client_id: cons.clientId,
         cnr: `${Math.floor(100000 + Math.random() * 900000)}`,
-        case_type: cons.type || 'Consultation',
+        case_type: caseName || cons.type || 'Consultation',
         brief_description: cons.caseDescription || 'Converted from consultation',
         status: 'Active',
         filed_date: new Date().toISOString().split('T')[0]
@@ -407,10 +408,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         ['SCHEDULED', 'CONFIRMED', 'IN PROGRESS'].includes(c.status)
       );
 
-      // Lawyers from localStorage (no lawyer API endpoint yet)
-      const lawyers = typeof LexFlowStorage !== 'undefined'
-        ? LexFlowStorage.getLawyers()
-        : [];
+      // Fetch real lawyers from backend instead of localStorage
+      const rawLawyers = await LexFlowAPI.users.getLawyers(firmId, userRole);
+      
+      // Map backend users to frontend expectations
+      const lawyers = rawLawyers.map(l => ({
+        id: l.id,
+        name: l.fullName,
+        email: l.email,
+        specialties: ['General Law'], // Default for now
+        activeCases: 0,
+        consultationsToday: 0,
+        capacity: 10, // Default 10%
+        avatarColor: 'blue'
+      }));
 
       renderIncomingRequests(pending, lawyers);
       renderActiveConsultations(active);

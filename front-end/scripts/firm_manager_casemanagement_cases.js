@@ -10,14 +10,26 @@ const casesStorage = window.LexFlowCasesStorage;
 
 async function initCases() {
   try {
+    const user = casesStorage.getCurrentUser();
+    const firmId = user?.firmId || null;
+    const role = (user?.role || 'firmadmin').toLowerCase();
+
     allCases = (await casesStorage.getCases()) || [];
     allTasks = (await casesStorage.getTasks()) || [];
-    allLawyers = ((await casesStorage.getUsers()) || []).filter(
-      (u) => {
-        const r = (u.role || '').toLowerCase();
-        return r === "firmadmin" || r === "lawyer" || u.systemRole === "lawyer";
-      }
-    );
+    
+    // Fetch only lawyers belonging to this firm
+    if (firmId && window.LexFlowAPI) {
+      allLawyers = await window.LexFlowAPI.users.getLawyers(firmId, role);
+    } else {
+      // Fallback for superadmin or missing firmId
+      allLawyers = ((await casesStorage.getUsers()) || []).filter(
+        (u) => {
+          const r = (u.role || '').toLowerCase();
+          return r === "firmadmin" || r === "lawyer";
+        }
+      );
+    }
+
     filteredCases = [...allCases];
     const pendingTasks = allTasks.filter((t) => t.status === "Pending");
     document.getElementById("pendingTasksCount").textContent = pendingTasks.length;

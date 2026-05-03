@@ -22,9 +22,15 @@ async function initTasks() {
   try {
     const role = currentUser.role.toLowerCase();
     
-    // 1. Fetch Cases & Users (from casesStorage which is already API-backed)
+    // 1. Fetch Cases & Users (from backend with firm filtering)
     allCases = ((casesStorage && (await casesStorage.getCases())) || []);
-    const users = ((casesStorage && (await casesStorage.getUsers())) || []);
+    
+    let users = [];
+    if (currentUser.firmId && window.LexFlowAPI) {
+      users = await window.LexFlowAPI.users.getLawyers(currentUser.firmId, role);
+    } else {
+      users = ((casesStorage && (await casesStorage.getUsers())) || []);
+    }
     window.allUsers = users;
 
     // 2. Fetch Tasks from API
@@ -138,9 +144,42 @@ function resolveCaseFromInput(inputValue) {
   return allCases.find((c) =>
     String(c.id || "").toLowerCase() === v ||
     String(c.cnr || "").toLowerCase() === v ||
-    String(c.title || "").toLowerCase() === v
+    String(c.case_type || "").toLowerCase() === v
   ) || null;
 }
+
+function updateAssigneeDropdown(caseInputVal, selectedUser = null) {
+  const caseRef = resolveCaseFromInput(caseInputVal);
+  const assigneeSelect = document.getElementById("taskAssigneeInput");
+  if (!assigneeSelect) return;
+
+  // Use case team if available, otherwise fallback to all lawyers/interns
+  let usersToShow = window.allUsers || [];
+  if (caseRef && caseRef.team && caseRef.team.length > 0) {
+    usersToShow = caseRef.team.map(m => ({
+      name: m.name,
+      fullName: m.name, // The team array stores names directly
+      id: m.id
+    }));
+  }
+
+  assigneeSelect.innerHTML = usersToShow
+    .map(
+      (u) =>
+        `<option value="${u.fullName || u.name}" ${
+          selectedUser && (u.fullName || u.name) === selectedUser ? "selected" : ""
+        }>${u.fullName || u.name}</option>`
+    )
+    .join("");
+}
+
+// Add listener for case input changes
+document.addEventListener('DOMContentLoaded', () => {
+  const caseInput = document.getElementById("taskCaseInput");
+  if (caseInput) {
+    caseInput.addEventListener("input", (e) => updateAssigneeDropdown(e.target.value));
+  }
+});
 
 (searchInput.addEventListener("input", applyFilters),
   prioFilter.addEventListener("change", applyFilters),
@@ -161,11 +200,9 @@ function resolveCaseFromInput(inputValue) {
       (document.getElementById("taskCaseInput").value = ""),
       (document.getElementById("taskDateInput").value = ""),
       (document.getElementById("taskDescInput").value = ""));
-    ((document.getElementById("taskAssigneeInput").innerHTML = window.allUsers
-      .map((t) => `<option value="${t.name}">${t.name}</option>`)
-      .join("")),
-      setActivePriority("LOW"),
-      openModal("taskModal"));
+    updateAssigneeDropdown("");
+    setActivePriority("LOW");
+    openModal("taskModal");
   }),
   (window.openEditTaskModal = function (t) {
     const e = allTasks.find((e) => e.id === t);
@@ -174,16 +211,9 @@ function resolveCaseFromInput(inputValue) {
       (document.getElementById("saveTaskBtn").textContent = "Update Task"),
       (document.getElementById("taskEditId").value = e.id),
       (document.getElementById("taskNameInput").value = e.name),
-      (document.getElementById("taskCaseInput").value = e.caseTitle || ""));
-    if (
-      ((document.getElementById("taskAssigneeInput").innerHTML = window.allUsers
-        .map(
-          (t) =>
-            `<option value="${t.name}" ${t.name === e.assignedUser ? "selected" : ""}>${t.name}</option>`,
-        )
-        .join("")),
-      e.dueDate && e.dueDate.includes(","))
-    ) {
+      document.getElementById("taskCaseInput").value = e.caseTitle || "");
+    updateAssigneeDropdown(e.caseTitle || "", e.assignedUser);
+    if (e.dueDate && e.dueDate.includes(",")) {
       const t = new Date(e.dueDate);
       isNaN(t.getTime()) ||
         (document.getElementById("taskDateInput").value = t

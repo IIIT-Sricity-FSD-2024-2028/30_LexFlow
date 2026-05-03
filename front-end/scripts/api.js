@@ -162,6 +162,10 @@ const LexFlowAPI = (() => {
     getById(id, role) {
       return request('GET', `/users/${id}`, { role });
     },
+    getLawyers(firmId, role) {
+      const query = firmId ? `?firmId=${firmId}` : '';
+      return request('GET', `/users/lawyers${query}`, { role });
+    },
   };
 
 
@@ -242,8 +246,15 @@ const LexFlowAPI = (() => {
     },
   };
 
+  // ── Auth namespace ──────────────────────────────────────────────────────────
+  const auth = {
+    login(email, password, role) {
+      return request('POST', '/users/login', { body: { email, password, role } });
+    },
+  };
+
   // Public interface
-  return { consultations, users, cases, tasks, lawFirms, getCurrentUser, getRole, BASE_URL };
+  return { auth, consultations, users, cases, tasks, lawFirms, getCurrentUser, getRole, BASE_URL };
 
 })();
 

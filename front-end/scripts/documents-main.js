@@ -188,6 +188,7 @@
       data = data.filter(c =>
         c.client.toLowerCase().includes(q) ||
         c.id.toLowerCase().includes(q) ||
+        (c.cnr && c.cnr.toLowerCase().includes(q)) ||
         c.caseType.toLowerCase().includes(q) ||
         c.lawyer.toLowerCase().includes(q) ||
         c.court.toLowerCase().includes(q)
@@ -350,6 +351,7 @@
 
       casesData = (allCases || []).map(c => ({
         id: String(c.id),
+        cnr: String(c.cnr || ''),
         client: uMap[c.client_id] || 'Unknown Client',
         type: 'INDIVIDUAL',
         status: mapStatus(c.status),
