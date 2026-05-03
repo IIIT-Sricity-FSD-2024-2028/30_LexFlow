@@ -9,14 +9,16 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "App"
+        ]
       }
     },
     "/users/login": {
       "post": {
-        "operationId": "UsersController_login",
-        "summary": "Login user",
         "description": "Authenticate using email and password.",
+        "operationId": "UsersController_login",
         "parameters": [
           {
             "name": "role",
@@ -24,6 +26,7 @@
             "description": "User role (required for all endpoints)",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -31,8 +34,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           }
         ],
@@ -61,6 +63,7 @@
             "description": "Invalid email or password"
           }
         },
+        "summary": "Login user",
         "tags": [
           "users"
         ]
@@ -68,9 +71,8 @@
     },
     "/users": {
       "post": {
-        "operationId": "UsersController_create",
-        "summary": "Create a new user",
         "description": "Creates a new user with the specified role (client, lawyer, intern, firm, firmadmin, superadmin). Only firmadmins/superadmins can create users.",
+        "operationId": "UsersController_create",
         "parameters": [
           {
             "name": "role",
@@ -78,6 +80,7 @@
             "description": "User role (required for all endpoints)",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -85,8 +88,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           }
         ],
@@ -118,14 +120,14 @@
             "description": "Forbidden - only firmadmin role can create users"
           }
         },
+        "summary": "Create a new user",
         "tags": [
           "users"
         ]
       },
       "get": {
-        "operationId": "UsersController_findAll",
-        "summary": "Get all users",
         "description": "Retrieve all users or filter by role. Only firmadmins and superadmins can view all users.",
+        "operationId": "UsersController_findAll",
         "parameters": [
           {
             "name": "role",
@@ -133,6 +135,7 @@
             "description": "User role (required for all endpoints)",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -140,8 +143,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -180,6 +182,7 @@
             "description": "Forbidden - only firmadmin role can view all users"
           }
         },
+        "summary": "Get all users",
         "tags": [
           "users"
         ]
@@ -187,9 +190,8 @@
     },
     "/users/firms/all": {
       "get": {
-        "operationId": "UsersController_getAllFirms",
-        "summary": "Get all registered law firms",
         "description": "Retrieve a list of all business entities (Firms).",
+        "operationId": "UsersController_getAllFirms",
         "parameters": [
           {
             "name": "role",
@@ -197,6 +199,7 @@
             "description": "User role (required for all endpoints)",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -204,8 +207,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           }
         ],
@@ -214,6 +216,7 @@
             "description": "List of firms"
           }
         },
+        "summary": "Get all registered law firms",
         "tags": [
           "users"
         ]
@@ -221,9 +224,8 @@
     },
     "/users/{id}": {
       "get": {
-        "operationId": "UsersController_findOne",
-        "summary": "Get user by ID (all roles)",
         "description": "Retrieve a specific user by their ID. Available to all roles.",
+        "operationId": "UsersController_findOne",
         "parameters": [
           {
             "name": "role",
@@ -231,6 +233,7 @@
             "description": "User role (required for all endpoints)",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -238,8 +241,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -269,6 +271,7 @@
             "description": "User not found"
           }
         },
+        "summary": "Get user by ID (all roles)",
         "tags": [
           "users"
         ]
@@ -276,9 +279,8 @@
     },
     "/users/firm-onboarding/start": {
       "post": {
-        "operationId": "UsersController_startFirmOnboarding",
-        "summary": "Start firm onboarding",
         "description": "Initialize firm onboarding session",
+        "operationId": "UsersController_startFirmOnboarding",
         "parameters": [
           {
             "name": "role",
@@ -286,6 +288,7 @@
             "description": "User role (required for all endpoints)",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -293,8 +296,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           }
         ],
@@ -314,6 +316,7 @@
             }
           }
         },
+        "summary": "Start firm onboarding",
         "tags": [
           "users"
         ]
@@ -321,9 +324,8 @@
     },
     "/users/firm-onboarding/step1/{sessionId}": {
       "post": {
-        "operationId": "UsersController_submitStep1",
-        "summary": "Firm onboarding step 1",
         "description": "Submit firm basic information (name, address, contact)",
+        "operationId": "UsersController_submitStep1",
         "parameters": [
           {
             "name": "role",
@@ -331,6 +333,7 @@
             "description": "User role (required for all endpoints)",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -338,8 +341,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -380,6 +382,7 @@
             }
           }
         },
+        "summary": "Firm onboarding step 1",
         "tags": [
           "users"
         ]
@@ -387,9 +390,8 @@
     },
     "/users/firm-onboarding/step2/{sessionId}": {
       "post": {
-        "operationId": "UsersController_submitStep2",
-        "summary": "Firm onboarding step 2",
         "description": "Submit firm contact details (email, phone, website)",
+        "operationId": "UsersController_submitStep2",
         "parameters": [
           {
             "name": "role",
@@ -397,6 +399,7 @@
             "description": "User role (required for all endpoints)",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -404,8 +407,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -446,6 +448,7 @@
             }
           }
         },
+        "summary": "Firm onboarding step 2",
         "tags": [
           "users"
         ]
@@ -453,9 +456,8 @@
     },
     "/users/firm-onboarding/step3/{sessionId}": {
       "post": {
-        "operationId": "UsersController_submitStep3",
-        "summary": "Firm onboarding step 3 (final)",
         "description": "Complete onboarding by setting up the firm admin account",
+        "operationId": "UsersController_submitStep3",
         "parameters": [
           {
             "name": "role",
@@ -463,6 +465,7 @@
             "description": "User role (required for all endpoints)",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -470,8 +473,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -508,6 +510,7 @@
             "description": "Invalid input or incomplete onboarding"
           }
         },
+        "summary": "Firm onboarding step 3 (final)",
         "tags": [
           "users"
         ]
@@ -515,9 +518,8 @@
     },
     "/consultations/workflow-bookings": {
       "get": {
-        "operationId": "ConsultationsController_getWorkflowBookings",
-        "summary": "Get clients who booked via the search/discovery workflow",
         "description": "Returns a list of all consultations that were created through the client-facing law firm search and booking flow. Only firmadmin and superadmin can access this.",
+        "operationId": "ConsultationsController_getWorkflowBookings",
         "parameters": [
           {
             "name": "role",
@@ -525,6 +527,7 @@
             "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -532,8 +535,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           }
         ],
@@ -545,6 +547,7 @@
             "description": "Forbidden – insufficient role"
           }
         },
+        "summary": "Get clients who booked via the search/discovery workflow",
         "tags": [
           "consultations"
         ]
@@ -552,9 +555,8 @@
     },
     "/consultations/my": {
       "get": {
-        "operationId": "ConsultationsController_getMyConsultations",
-        "summary": "Get the calling client's consultations",
         "description": "Returns all consultations for the client identified by the x-client-id header. Only the client role may call this endpoint.",
+        "operationId": "ConsultationsController_getMyConsultations",
         "parameters": [
           {
             "name": "role",
@@ -562,6 +564,7 @@
             "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -569,8 +572,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -604,6 +606,7 @@
             "description": "Forbidden – non-client role"
           }
         },
+        "summary": "Get the calling client's consultations",
         "tags": [
           "consultations"
         ]
@@ -611,9 +614,8 @@
     },
     "/consultations": {
       "get": {
-        "operationId": "ConsultationsController_findAll",
-        "summary": "Get all consultations (firmadmin / lawyer / superadmin)",
         "description": "Returns all consultations. Supports optional query filters: clientId, firmId, status, lawyerId.",
+        "operationId": "ConsultationsController_findAll",
         "parameters": [
           {
             "name": "role",
@@ -621,6 +623,7 @@
             "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -628,8 +631,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -695,14 +697,14 @@
             "description": "Forbidden – insufficient role"
           }
         },
+        "summary": "Get all consultations (firmadmin / lawyer / superadmin)",
         "tags": [
           "consultations"
         ]
       },
       "post": {
-        "operationId": "ConsultationsController_create",
-        "summary": "Book a new consultation (client only)",
         "description": "Creates a new consultation request. The initial status is always PENDING, awaiting firm admin review and lawyer assignment. Only clients (and superadmin) may call this.",
+        "operationId": "ConsultationsController_create",
         "parameters": [
           {
             "name": "role",
@@ -710,6 +712,7 @@
             "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -717,8 +720,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           }
         ],
@@ -750,6 +752,7 @@
             "description": "Forbidden – non-client role"
           }
         },
+        "summary": "Book a new consultation (client only)",
         "tags": [
           "consultations"
         ]
@@ -757,9 +760,8 @@
     },
     "/consultations/{id}": {
       "get": {
-        "operationId": "ConsultationsController_findOne",
-        "summary": "Get a consultation by ID (all roles)",
         "description": "Retrieve a single consultation record by its unique ID.",
+        "operationId": "ConsultationsController_findOne",
         "parameters": [
           {
             "name": "role",
@@ -767,6 +769,7 @@
             "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -774,8 +777,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -807,14 +809,14 @@
             "description": "Consultation not found"
           }
         },
+        "summary": "Get a consultation by ID (all roles)",
         "tags": [
           "consultations"
         ]
       },
       "patch": {
-        "operationId": "ConsultationsController_update",
-        "summary": "Update a consultation (firmadmin / lawyer)",
         "description": "Update status, assign a lawyer, reschedule, or add notes. Completed and Cancelled consultations cannot be modified.",
+        "operationId": "ConsultationsController_update",
         "parameters": [
           {
             "name": "role",
@@ -822,6 +824,7 @@
             "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -829,8 +832,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -875,14 +877,14 @@
             "description": "Consultation not found"
           }
         },
+        "summary": "Update a consultation (firmadmin / lawyer)",
         "tags": [
           "consultations"
         ]
       },
       "delete": {
-        "operationId": "ConsultationsController_remove",
-        "summary": "Delete a consultation record (firmadmin / superadmin)",
         "description": "Permanently removes a consultation from the system. Use with caution – this action is irreversible.",
+        "operationId": "ConsultationsController_remove",
         "parameters": [
           {
             "name": "role",
@@ -890,6 +892,7 @@
             "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -897,8 +900,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -923,6 +925,7 @@
             "description": "Consultation not found"
           }
         },
+        "summary": "Delete a consultation record (firmadmin / superadmin)",
         "tags": [
           "consultations"
         ]
@@ -930,9 +933,8 @@
     },
     "/consultations/{id}/cancel": {
       "patch": {
-        "operationId": "ConsultationsController_cancel",
-        "summary": "Cancel a consultation (client / firmadmin)",
         "description": "Marks the consultation as CANCELLED. Cannot cancel an already-completed consultation.",
+        "operationId": "ConsultationsController_cancel",
         "parameters": [
           {
             "name": "role",
@@ -940,6 +942,7 @@
             "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
             "required": true,
             "schema": {
+              "type": "string",
               "enum": [
                 "client",
                 "lawyer",
@@ -947,8 +950,7 @@
                 "firm",
                 "firmadmin",
                 "superadmin"
-              ],
-              "type": "string"
+              ]
             }
           },
           {
@@ -983,6 +985,7 @@
             "description": "Consultation not found"
           }
         },
+        "summary": "Cancel a consultation (client / firmadmin)",
         "tags": [
           "consultations"
         ]
@@ -991,7 +994,6 @@
     "/documents": {
       "post": {
         "operationId": "DocumentsController_create",
-        "summary": "Create a new document",
         "parameters": [
           {
             "name": "x-user-email",
@@ -1030,13 +1032,13 @@
             "description": "Forbidden."
           }
         },
+        "summary": "Create a new document",
         "tags": [
           "documents"
         ]
       },
       "get": {
         "operationId": "DocumentsController_findAll",
-        "summary": "Get all documents, optionally filter by caseId",
         "parameters": [
           {
             "name": "caseId",
@@ -1061,6 +1063,7 @@
             "description": "Return all matching documents."
           }
         },
+        "summary": "Get all documents, optionally filter by caseId",
         "tags": [
           "documents"
         ]
@@ -1069,7 +1072,6 @@
     "/documents/{id}": {
       "get": {
         "operationId": "DocumentsController_findOne",
-        "summary": "Get a document by id",
         "parameters": [
           {
             "name": "id",
@@ -1097,13 +1099,13 @@
             "description": "Document not found."
           }
         },
+        "summary": "Get a document by id",
         "tags": [
           "documents"
         ]
       },
       "patch": {
         "operationId": "DocumentsController_update",
-        "summary": "Update a document",
         "parameters": [
           {
             "name": "id",
@@ -1144,13 +1146,13 @@
             "description": "Document not found."
           }
         },
+        "summary": "Update a document",
         "tags": [
           "documents"
         ]
       },
       "delete": {
         "operationId": "DocumentsController_remove",
-        "summary": "Delete a document",
         "parameters": [
           {
             "name": "id",
@@ -1181,6 +1183,7 @@
             "description": "Document not found."
           }
         },
+        "summary": "Delete a document",
         "tags": [
           "documents"
         ]
@@ -1188,9 +1191,8 @@
     },
     "/billing/clients": {
       "get": {
-        "operationId": "BillingController_getClients",
-        "summary": "Client dropdown for Create Invoice",
         "description": "Returns all registered clients.\n\n> **TODO:** Once ConsultationsModule is ready, this will be filtered to only clients who have a consultation with the calling law firm.",
+        "operationId": "BillingController_getClients",
         "parameters": [
           {
             "name": "x-user-id",
@@ -1216,6 +1218,7 @@
             "description": "List of clients"
           }
         },
+        "summary": "Client dropdown for Create Invoice",
         "tags": [
           "Billing"
         ]
@@ -1224,7 +1227,6 @@
     "/billing/invoices": {
       "post": {
         "operationId": "BillingController_createInvoice",
-        "summary": "Create a new invoice",
         "parameters": [
           {
             "name": "x-user-id",
@@ -1263,14 +1265,14 @@
             "description": "Client ID not found or not a client"
           }
         },
+        "summary": "Create a new invoice",
         "tags": [
           "Billing"
         ]
       },
       "get": {
-        "operationId": "BillingController_findAllInvoices",
-        "summary": "Get invoices (role-scoped)",
         "description": "CLIENT → only their own invoices (pass `x-user-id`).\nLAWYER → invoices where they are the advocate (pass `x-user-name`).\nFIRMADMIN / SUPERADMIN → all invoices.",
+        "operationId": "BillingController_findAllInvoices",
         "parameters": [
           {
             "name": "x-user-id",
@@ -1320,6 +1322,7 @@
             "description": ""
           }
         },
+        "summary": "Get invoices (role-scoped)",
         "tags": [
           "Billing"
         ]
@@ -1328,7 +1331,6 @@
     "/billing/invoices/summary": {
       "get": {
         "operationId": "BillingController_getSummary",
-        "summary": "Billing summary stats (role-scoped)",
         "parameters": [
           {
             "name": "x-user-id",
@@ -1378,6 +1380,7 @@
             "description": ""
           }
         },
+        "summary": "Billing summary stats (role-scoped)",
         "tags": [
           "Billing"
         ]
@@ -1386,7 +1389,6 @@
     "/billing/invoices/{id}": {
       "get": {
         "operationId": "BillingController_findOneInvoice",
-        "summary": "Get single invoice by ID",
         "parameters": [
           {
             "name": "x-user-id",
@@ -1421,13 +1423,13 @@
             "description": "Invoice not found"
           }
         },
+        "summary": "Get single invoice by ID",
         "tags": [
           "Billing"
         ]
       },
       "patch": {
         "operationId": "BillingController_updateInvoice",
-        "summary": "Update an invoice (partial)",
         "parameters": [
           {
             "name": "x-user-id",
@@ -1472,13 +1474,13 @@
             "description": ""
           }
         },
+        "summary": "Update an invoice (partial)",
         "tags": [
           "Billing"
         ]
       },
       "delete": {
         "operationId": "BillingController_removeInvoice",
-        "summary": "Delete an invoice",
         "parameters": [
           {
             "name": "x-user-id",
@@ -1513,6 +1515,7 @@
             "description": ""
           }
         },
+        "summary": "Delete an invoice",
         "tags": [
           "Billing"
         ]
@@ -1521,7 +1524,6 @@
     "/billing/payments": {
       "get": {
         "operationId": "BillingController_findAllPayments",
-        "summary": "Get payments (role-scoped)",
         "parameters": [
           {
             "name": "x-user-id",
@@ -1563,6 +1565,7 @@
             "description": ""
           }
         },
+        "summary": "Get payments (role-scoped)",
         "tags": [
           "Billing"
         ]
@@ -1571,7 +1574,6 @@
     "/billing/payments/invoice/{invoiceId}": {
       "get": {
         "operationId": "BillingController_findPaymentsByInvoice",
-        "summary": "Get payments for a specific invoice",
         "parameters": [
           {
             "name": "x-user-id",
@@ -1606,6 +1608,7 @@
             "description": ""
           }
         },
+        "summary": "Get payments for a specific invoice",
         "tags": [
           "Billing"
         ]
@@ -1614,7 +1617,6 @@
     "/billing/payments/{invoiceId}": {
       "post": {
         "operationId": "BillingController_recordPayment",
-        "summary": "Record a payment — CLIENT only",
         "parameters": [
           {
             "name": "x-user-id",
@@ -1659,6 +1661,7 @@
             "description": ""
           }
         },
+        "summary": "Record a payment — CLIENT only",
         "tags": [
           "Billing"
         ]
@@ -1667,7 +1670,7 @@
   },
   "info": {
     "title": "LexFlow API",
-    "description": "REST API for the LexFlow Legal Platform.\n\n**RBAC:** Pass `role` in the request header to identify the caller.\nAccepted values: `client` | `lawyer` | `intern` | `firmadmin` | `superadmin`\n\n**Identity:** Pass `x-user-id` for role-scoped data filtering (CLIENT/LAWYER views).",
+    "description": "REST API for the LexFlow Legal Platform.\n\n**RBAC:** Pass `role` in the request header to identify the caller.\nAccepted values: `client` | `lawyer` | `intern` | `firmadmin` | `superadmin`",
     "version": "1.0",
     "contact": {}
   },
@@ -1675,11 +1678,6 @@
   "servers": [],
   "components": {
     "securitySchemes": {
-      "role": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "role"
-      },
       "role-auth": {
         "type": "apiKey",
         "in": "header",
