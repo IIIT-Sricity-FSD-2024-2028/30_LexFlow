@@ -18,7 +18,7 @@ function loadJsonFromStorage(key) {
 }
 
 function saveJsonToStorage(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
+  // No-op
 }
 
 async function ensureCaseStorage() {

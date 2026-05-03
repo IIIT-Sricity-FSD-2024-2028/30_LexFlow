@@ -29,7 +29,13 @@ function loadJsonFromStorage(t) {
 }
 
 function saveJsonToStorage(t, e) {
-  localStorage.setItem(t, JSON.stringify(e));
+  // Only allow essential auth keys
+  const allowed = ['currentUser', 'userRole', 'loginRole'];
+  if (allowed.includes(t)) {
+    localStorage.setItem(t, JSON.stringify(e));
+  } else {
+    // console.log(`Skipping localStorage write for: ${t}`);
+  }
 }
 
 async function ensureTaskStorage() {
@@ -71,8 +77,9 @@ async function initTasks() {
   try {
     const t = await ensureTaskStorage();
     allCases = ((casesStorage && (await casesStorage.getCases())) || []);
+    const users = ((casesStorage && (await casesStorage.getUsers())) || []);
     ((allTasks = t.tasks || []),
-      (window.allUsers = t.users || []),
+      (window.allUsers = users),
       (filteredTasks = [...allTasks]),
       renderPage(1));
   } catch (t) {
