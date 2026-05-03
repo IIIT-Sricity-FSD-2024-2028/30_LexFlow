@@ -8,33 +8,54 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-// Re-exported from SharedDataService so dto/index.ts barrel keeps working
-export { UserRole } from '../../common/shared-data.service';
-import { UserRole } from '../../common/shared-data.service';
+export enum UserRole {
+  CLIENT = 'client',
+  LAWYER = 'lawyer',
+  INTERN = 'intern',
+  FIRMADMIN = 'firmadmin',
+  SUPERADMIN = 'superadmin',
+}
 
 export class CreateUserDto {
-  @ApiProperty({ description: 'Full name of the user', example: 'John Doe' })
+  @ApiProperty({
+    description: 'Full name of the user',
+    example: 'John Doe',
+  })
   @IsNotEmpty()
   @IsString()
   fullName!: string;
 
-  @ApiProperty({ description: 'Email address', example: 'john.doe@example.com' })
+  @ApiProperty({
+    description: 'Email address of the user',
+    example: 'john.doe@example.com',
+  })
   @IsNotEmpty()
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ description: 'User role', enum: UserRole, example: UserRole.CLIENT })
+  @ApiProperty({
+    description: 'User role (client, lawyer, intern, firmadmin, superadmin)',
+    enum: UserRole,
+    example: UserRole.CLIENT,
+  })
   @IsNotEmpty()
   @IsEnum(UserRole)
   role!: UserRole;
 
-  @ApiProperty({ description: 'Password (min 8 chars)', example: 'S3cureP@ss' })
+  @ApiProperty({
+    description: 'Password for account (create only)',
+    example: 'S3cureP@ssw0rd',
+  })
   @IsNotEmpty()
   @IsString()
   @MinLength(8)
   password!: string;
 
-  @ApiProperty({ description: 'Phone number', required: false })
+  @ApiProperty({
+    description: 'Phone number',
+    example: '+91-9876543210',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   phone?: string;

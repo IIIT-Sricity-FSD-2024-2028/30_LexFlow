@@ -1,0 +1,424 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_getStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/users/login": {
+      "post": {
+        "description": "Authenticate using email and password.",
+        "operationId": "UsersController_login",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid email or password"
+          }
+        },
+        "summary": "Login user",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users": {
+      "post": {
+        "description": "Creates a new user with the specified role (client, lawyer, intern, firmadmin, superadmin). Only firmadmins/superadmins can create users.",
+        "operationId": "UsersController_create",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "403": {
+            "description": "Forbidden - only firmadmin role can create users"
+          }
+        },
+        "summary": "Create a new user",
+        "tags": [
+          "users"
+        ]
+      },
+      "get": {
+        "description": "Retrieve all users or filter by role. Only firmadmins and superadmins can view all users.",
+        "operationId": "UsersController_findAll",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Filter users by role",
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - only firmadmin role can view all users"
+          }
+        },
+        "summary": "Get all users",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "description": "Retrieve a specific user by their ID. Available to all roles.",
+        "operationId": "UsersController_findOne",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - role header is required"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "summary": "Get user by ID (all roles)",
+        "tags": [
+          "users"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "LexFlow API",
+    "description": "Legal ERP Backend",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "role": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "role"
+      }
+    },
+    "schemas": {
+      "LoginUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User email",
+            "example": "alice@client.test"
+          },
+          "password": {
+            "type": "string",
+            "description": "User password",
+            "example": "clientpass"
+          },
+          "role": {
+            "type": "string",
+            "description": "Expected role for this sign-in attempt",
+            "enum": [
+              "client",
+              "lawyer",
+              "intern",
+              "firmadmin",
+              "superadmin"
+            ],
+            "example": "client"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "UserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "fullName": {
+            "type": "string",
+            "description": "Full name of the user",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address",
+            "example": "john.doe@example.com"
+          },
+          "role": {
+            "type": "string",
+            "description": "User role",
+            "enum": [
+              "client",
+              "lawyer",
+              "intern",
+              "firmadmin",
+              "superadmin"
+            ],
+            "example": "client"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Account creation timestamp",
+            "example": "2026-04-30T10:30:00Z"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number"
+          },
+          "addressLine1": {
+            "type": "string",
+            "description": "Address line 1"
+          },
+          "addressLine2": {
+            "type": "string",
+            "description": "Address line 2"
+          },
+          "city": {
+            "type": "string",
+            "description": "City"
+          },
+          "state": {
+            "type": "string",
+            "description": "State"
+          },
+          "pinCode": {
+            "type": "string",
+            "description": "Pin / ZIP code"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "email",
+          "role",
+          "createdAt"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "description": "Full name of the user",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address of the user",
+            "example": "john.doe@example.com"
+          },
+          "role": {
+            "type": "string",
+            "description": "User role (client, lawyer, intern, firmadmin, superadmin)",
+            "enum": [
+              "client",
+              "lawyer",
+              "intern",
+              "firmadmin",
+              "superadmin"
+            ],
+            "example": "client"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password for account (create only)",
+            "example": "S3cureP@ssw0rd"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number",
+            "example": "+91-9876543210"
+          },
+          "addressLine1": {
+            "type": "string",
+            "description": "Address line 1"
+          },
+          "addressLine2": {
+            "type": "string",
+            "description": "Address line 2"
+          },
+          "city": {
+            "type": "string",
+            "description": "City"
+          },
+          "state": {
+            "type": "string",
+            "description": "State"
+          },
+          "pinCode": {
+            "type": "string",
+            "description": "Pin / ZIP code"
+          }
+        },
+        "required": [
+          "fullName",
+          "email",
+          "role",
+          "password"
+        ]
+      }
+    }
+  }
+}

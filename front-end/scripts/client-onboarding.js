@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     injectValidationStyles();
     attachBlurValidators();
 
-    profileForm.addEventListener('submit', (e) => {
+    profileForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       setAlert(null);
@@ -47,25 +47,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      const formData = {
-        fullName:   _val('full-name'),
-        email:      _val('email').toLowerCase(),
-        phone:      normalizeIndianPhone(_val('phone')),
-        clientType: _val('client-type'),
-        street:     _val('street'),
-        city:       _val('city'),
-        state:      _val('state'),
-        zip:        _val('zip'),
-        password:   _val('password')
+      const payload = {
+        fullName:     _val('full-name'),
+        email:        _val('email').toLowerCase(),
+        role:         'client',
+        password:     _val('password'),
+        phone:        normalizeIndianPhone(_val('phone')) || undefined,
+        addressLine1: _val('street') || undefined,
+        addressLine2: undefined,
+        city:         _val('city') || undefined,
+        state:        _val('state') || undefined,
+        pinCode:      _val('zip') || undefined
       };
 
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
-      _showToast('Profile saved! Moving to case details…');
+      // Save draft locally as well so case step can reuse it
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
 
-      const nextStep = profileForm.getAttribute('action') || 'Client Onboarding step2.html';
-      setTimeout(() => {
-        window.location.href = nextStep;
-      }, 600);
+      try {
+        const res = await fetch('http://localhost:3000/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'role': 'admin' // prototype RBAC: use admin header so server accepts creation
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const err = await res.text();
+          setAlert('Failed to create account: ' + (err || res.statusText));
+          return;
+        }
+
+        const created = await res.json();
+        _showToast('Profile created! Moving to case details…');
+
+        const nextStep = profileForm.getAttribute('action') || 'Client Onboarding step2.html';
+        setTimeout(() => { window.location.href = nextStep; }, 600);
+      } catch (err) {
+        setAlert('Network error while creating account. Please try again.');
+        console.error(err);
+      }
     });
   }
 

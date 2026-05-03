@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Intern / Clerk Onboarding - LexFlow</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2rem; }
+    form { max-width: 480px; }
+    label { display:block; margin: .5rem 0; }
+    input, select { width:100%; padding: .5rem; box-sizing: border-box }
+    button { padding:.6rem 1rem; margin-top: .8rem }
+    .msg { margin-top:.6rem }
+  </style>
+</head>
+<body>
+  <h1>Intern / Clerk Onboarding</h1>
+  <p>Fill the form to start onboarding. (This page posts to the backend `POST /users`.)</p>
+
+  <form id="internOnboard">
+    <label>Full name
+      <input name="fullName" type="text" required />
+    </label>
+
+    <label>Email
+      <input name="email" type="email" required />
+    </label>
+
+    <label>Phone
+      <input name="phone" type="tel" />
+    </label>
+
+    <label>Firm ID (optional)
+      <input name="firmId" type="text" />
+    </label>
+
+    <button type="submit">Create account</button>
+    <div id="msg" class="msg" aria-live="polite"></div>
+  </form>
+
+  <script>
+    // Submits intern creation to backend. NOTE: current RBAC requires an 'admin' role header
+    // to create users. For testing you can keep roleHeader = 'admin'. In production,
+    // onboarding flows usually create user records server-side or require admin approval.
+
+    const form = document.getElementById('internOnboard');
+    const msg = document.getElementById('msg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+
+      const data = {
+        fullName: form.fullName.value.trim(),
+        email: form.email.value.trim(),
+        role: 'intern',
+      };
+
+      // optional fields may be sent as extra metadata in future
+      if (form.phone.value.trim()) data.phone = form.phone.value.trim();
+      if (form.firmId.value.trim()) data.firmId = form.firmId.value.trim();
+
+      try {
+        const res = await fetch('http://localhost:3000/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // NOTE: backend RBAC currently expects 'role' header. Using 'admin' here
+            // allows the request to succeed for testing. Replace with proper auth in prod.
+            'role': 'admin'
+          },
+          body: JSON.stringify(data),
+        });
+
+        const text = await res.text();
+        let payload = null;
+        try { payload = text ? JSON.parse(text) : null; } catch (err) { payload = text; }
+
+        if (!res.ok) {
+          msg.style.color = 'red';
+          msg.textContent = payload?.message || res.statusText || 'Create failed';
+          return;
+        }
+
+        msg.style.color = 'green';
+        msg.textContent = `Created user ${payload.id} (${payload.role})`;
+        form.reset();
+      } catch (err) {
+        msg.style.color = 'red';
+        msg.textContent = err.message || 'Network error';
+      }
+    });
+  </script>
+</body>
+</html>

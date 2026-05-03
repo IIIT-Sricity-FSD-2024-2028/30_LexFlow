@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     const signUpLink = document.querySelector('.signup-note a');
-    const userRole = localStorage.getItem('userRole');
+    const userRole = localStorage.getItem('loginRole') || localStorage.getItem('userRole');
 
     if (signUpLink) {
         if (userRole === 'client') {
@@ -26,6 +26,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const email = emailInput.value.trim();
             const password = passwordInput.value.trim();
+            const selectedRole = localStorage.getItem('loginRole') || localStorage.getItem('userRole');
+            const roleMap = {
+                firmAdmin: 'firmadmin',
+                firmadmin: 'firmadmin',
+                superAdmin: 'superadmin',
+                superadmin: 'superadmin',
+            };
+            const expectedRole = roleMap[selectedRole] || selectedRole || undefined;
 
             if (!email || !password) {
                 _showToast('Please enter both email and password.', 'error');
@@ -35,32 +43,60 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Show loading state
             loginBtn.classList.add('btn-loading');
 
-            // Simulate small delay for better UX
-            setTimeout(() => {
-                const result = AuthService.login(email, password);
+            try {
+                const res = await fetch('http://localhost:3000/users/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password, role: expectedRole })
+                });
 
-                if (result.success) {
-                    _showToast('Welcome back, ' + (result.user.fullName || result.user.name || 'User') + '!');
-                    // Sync userRole to actual role so sidebar renders correctly
-                    localStorage.setItem('userRole', result.user.role);
-
-                    setTimeout(() => {
-                        const roleRedirects = {
-                            client: 'client-consultation-dashboard.html',
-                            firmAdmin: 'firm-consultation-dashboard.html',
-                            lawyer: 'firm-consultation-dashboard.html',
-                            intern: 'firm-consultation-dashboard.html',
-                            superAdmin: '../super admin/index.html'
-                        };
-
-                        const redirectPath = roleRedirects[result.user.role] || 'SignIn.html';
-                        window.location.href = redirectPath;
-                    }, 800);
-                } else {
+                if (!res.ok) {
+                    const err = await res.text();
                     loginBtn.classList.remove('btn-loading');
-                    _showToast(result.error, 'error');
+                    if (err && err.toLowerCase().includes('role')) {
+                        _showToast('Please sign in with an account for the selected role.', 'error');
+                    } else {
+                        _showToast(err || 'Invalid email or password.', 'error');
+                    }
+                    return;
                 }
-            }, 500);
+
+                const user = await res.json();
+                const frontendRoleMap = {
+                    firmadmin: 'firmAdmin',
+                    superadmin: 'superAdmin',
+                };
+                const roleKey = (frontendRoleMap[user.role] || user.role || '').toString().toLowerCase();
+                const normalizedUser = {
+                    ...user,
+                    role: frontendRoleMap[user.role] || user.role,
+                };
+
+                localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
+                localStorage.setItem('userRole', normalizedUser.role);
+                localStorage.removeItem('loginRole');
+
+                _showToast('Welcome back, ' + (user.fullName || user.name || 'User') + '!');
+
+                setTimeout(() => {
+                    const roleRedirects = {
+                        client: 'client-consultation-dashboard.html',
+                        firmadmin: 'firm-consultation-dashboard.html',
+                        lawyer: 'firm-consultation-dashboard.html',
+                        intern: 'firm-consultation-dashboard.html',
+                        superadmin: '../super admin/index.html',
+                    };
+
+                    const redirectPath = roleRedirects[roleKey] || 'SignIn.html';
+                    window.location.href = redirectPath;
+                }, 800);
+            } catch (error) {
+                loginBtn.classList.remove('btn-loading');
+                _showToast('Unable to sign in right now. Please check backend server.', 'error');
+                console.error(error);
+            }
         });
     }
 
