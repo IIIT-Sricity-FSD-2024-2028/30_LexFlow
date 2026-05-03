@@ -30,6 +30,11 @@ async function initCaseDetails() {
     
     if (idFromUrl) {
       currentCase = await casesStorage.getCaseById(idFromUrl);
+      // Fallback: if id field is missing, search from full list
+      if (currentCase && currentCase.id === undefined) {
+        const allCases = await casesStorage.getCases();
+        currentCase = allCases.find(c => String(c.id) === String(idFromUrl)) || currentCase;
+      }
     } else if (cnrFromUrl) {
       currentCase = await casesStorage.getCaseByCnr(cnrFromUrl);
     }
@@ -39,8 +44,14 @@ async function initCaseDetails() {
       return; 
     }
 
-    // Fetch tasks/users if needed (currently empty stubs in cases-storage)
-    currentTasks = (await casesStorage.getTasks()) || [];
+    // Fetch tasks specifically for this case
+    const resolvedCaseId = currentCase.id !== undefined ? String(currentCase.id) : null;
+    console.log("[DEBUG] currentCase object:", JSON.stringify(currentCase));
+    console.log("[DEBUG] Resolved caseId for task fetch:", resolvedCaseId);
+    currentTasks = resolvedCaseId
+      ? (await casesStorage.getTasks({ caseId: resolvedCaseId })) || []
+      : [];
+    console.log("[DEBUG] Tasks received count:", currentTasks.length);
     const users = (await casesStorage.getUsers()) || [];
 
     if (!currentCase.timeline) currentCase.timeline = [];
@@ -182,12 +193,14 @@ function renderPendingTasks() {
           )
           .join("")),
         window.markTaskAsDone ||
-          (window.markTaskAsDone = (e) => {
-            const t = allData.tasks.find((t) => t.id === e);
-            t &&
-              ((t.status = "Completed"),
-              saveAllData(),
-              initCaseDetails());
+          (window.markTaskAsDone = async (id) => {
+            try {
+              const role = (currentUserData.role || 'firmAdmin').toLowerCase();
+              await LexFlowAPI.tasks.update(id, { status: "Completed" }, role);
+              await initCaseDetails(); // Refresh UI
+            } catch (err) {
+              console.error("Failed to complete task:", err);
+            }
           }))
       : (pendingTasksContainer.innerHTML =
           '<div style="font-size:12px; color:#9ca3af; padding:12px; text-align:center;">No pending tasks.</div>'));
@@ -447,7 +460,7 @@ function renderEditTeamList() {
       .join("")),
       openModal("addTaskModal"));
   }),
-  (window.saveNewTask = function () {
+  (window.saveNewTask = async function () {
     const e = document.getElementById("newTaskName"),
       t = document.getElementById("newTaskDueDate"),
       n = document.getElementById("addTaskModal");
@@ -468,27 +481,27 @@ function renderEditTeamList() {
           450,
         )
       );
-    const o = document.getElementById("newTaskAssignee").value,
-      i = document.getElementById("newTaskPriority").value,
-      l = {
-        id: "T-" + (1e3 + allData.tasks.length),
+    const payload = {
         name: e.value.trim(),
-        caseTitle: currentCase.title,
+        caseTitle: currentCase.case_type || 'N/A',
         assignedUser: o,
         priority: i,
-        dueDate: new Date(t.value).toLocaleDateString(void 0, {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
+        dueDate: t.value,
         status: "Pending",
-        caseId: currentCase.id,
+        caseId: String(currentCase.id),
         caseCnr: currentCase.cnr,
-      };
-    (allData.tasks.push(l),
-      saveAllData(),
-      currentTasks.push(l),
-      saveData(),
-      closeModal("addTaskModal"));
+        firmId: currentUserData.firmId || 'firm-1',
+        description: ""
+    };
+
+    try {
+        const role = (currentUserData.role || 'firmAdmin').toLowerCase();
+        await LexFlowAPI.tasks.create(payload, role);
+        closeModal("addTaskModal");
+        await initCaseDetails(); // Refresh everything
+    } catch (err) {
+        console.error("Failed to create task:", err);
+        alert("Failed to create task. Is the server running?");
+    }
   }),
   window.addEventListener("DOMContentLoaded", initCaseDetails));

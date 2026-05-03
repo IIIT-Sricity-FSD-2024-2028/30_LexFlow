@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         lawfirm_id: firmId,
         lawyer_id: cons.lawyerId,
         client_id: cons.clientId,
-        cnr: `LEX-${Math.floor(100000 + Math.random() * 900000)}-${new Date().getFullYear()}`,
+        cnr: `${Math.floor(100000 + Math.random() * 900000)}`,
         case_type: cons.type || 'Consultation',
         brief_description: cons.caseDescription || 'Converted from consultation',
         status: 'Active',

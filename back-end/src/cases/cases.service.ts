@@ -17,7 +17,7 @@ export class CasesService {
     this.cases = [
       {
         id: this.idCounter++,
-        cnr: 'PH010012342024',
+        cnr: '100001',
         case_type: 'Criminal',
         brief_description: 'State vs John Doe - Narcotics case',
         status: 'Active',
@@ -29,7 +29,7 @@ export class CasesService {
       },
       {
         id: this.idCounter++,
-        cnr: 'DL020056782024',
+        cnr: '100002',
         case_type: 'Civil',
         brief_description: 'Property dispute - Sharma vs Gupta',
         status: 'Active',
@@ -41,7 +41,7 @@ export class CasesService {
       },
       {
         id: this.idCounter++,
-        cnr: 'MH030099992024',
+        cnr: '100003',
         case_type: 'Corporate',
         brief_description: 'Contract breach - TechCorp vs SoftSystems',
         status: 'Pending',
@@ -85,14 +85,16 @@ export class CasesService {
     return filteredCases;
   }
 
-  findOne(id: number): Case {
-    const found = this.cases.find(c => c.id === id);
+  findOne(id: any): Case {
+    const numericId = Number(id);
+    const found = this.cases.find(c => Number(c.id) === numericId);
     if (!found) throw new NotFoundException(`Case with ID ${id} not found`);
     return found;
   }
 
-  update(id: number, updateCaseDto: UpdateCaseDto): Case {
-    const caseIndex = this.cases.findIndex(c => c.id === id);
+  update(id: any, updateCaseDto: UpdateCaseDto): Case {
+    const numericId = Number(id);
+    const caseIndex = this.cases.findIndex(c => Number(c.id) === numericId);
     if (caseIndex === -1) throw new NotFoundException(`Case with ID ${id} not found`);
 
     this.cases[caseIndex] = {
@@ -102,8 +104,9 @@ export class CasesService {
     return this.cases[caseIndex];
   }
 
-  remove(id: number): void {
-    const caseIndex = this.cases.findIndex(c => c.id === id);
+  remove(id: any): void {
+    const numericId = Number(id);
+    const caseIndex = this.cases.findIndex(c => Number(c.id) === numericId);
     if (caseIndex === -1) throw new NotFoundException(`Case with ID ${id} not found`);
     this.cases.splice(caseIndex, 1);
   }

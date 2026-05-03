@@ -88,7 +88,9 @@ const LexFlowAPI = (() => {
      */
     getAll(filters = {}, role) {
       const qs = new URLSearchParams();
-      Object.entries(filters).forEach(([k, v]) => { if (v) qs.set(k, v); });
+      Object.entries(filters).forEach(([k, v]) => { 
+        if (v !== undefined && v !== null) qs.set(k, v); 
+      });
       const query = qs.toString() ? `?${qs.toString()}` : '';
       return request('GET', `/consultations${query}`, { role });
     },
@@ -148,7 +150,9 @@ const LexFlowAPI = (() => {
   const users = {
     getAll(filters = {}, role) {
       const qs = new URLSearchParams();
-      Object.entries(filters).forEach(([k, v]) => { if (v) qs.set(k, v); });
+      Object.entries(filters).forEach(([k, v]) => { 
+        if (v !== undefined && v !== null) qs.set(k, v); 
+      });
       const query = qs.toString() ? `?${qs.toString()}` : '';
       return request('GET', `/users${query}`, { role });
     },
@@ -164,7 +168,9 @@ const LexFlowAPI = (() => {
   const cases = {
     getAll(filters = {}, role) {
       const qs = new URLSearchParams();
-      Object.entries(filters).forEach(([k, v]) => { if (v) qs.set(k, v); });
+      Object.entries(filters).forEach(([k, v]) => { 
+        if (v !== undefined && v !== null) qs.set(k, v); 
+      });
       const query = qs.toString() ? `?${qs.toString()}` : '';
       return request('GET', `/cases${query}`, { role });
     },
@@ -186,7 +192,9 @@ const LexFlowAPI = (() => {
   const tasks = {
     getAll(filters = {}, role) {
       const qs = new URLSearchParams();
-      Object.entries(filters).forEach(([k, v]) => { if (v) qs.set(k, v); });
+      Object.entries(filters).forEach(([k, v]) => { 
+        if (v !== undefined && v !== null) qs.set(k, v); 
+      });
       const query = qs.toString() ? `?${qs.toString()}` : '';
       return request('GET', `/tasks${query}`, { role });
     },
