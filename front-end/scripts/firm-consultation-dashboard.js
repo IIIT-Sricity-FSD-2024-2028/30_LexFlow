@@ -6,11 +6,12 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Auth guard ─────────────────────────────────────────────────────────────
-  const currentUser = AuthService.requireAuth(['firmAdmin', 'firmadmin']);
+  const currentUser = AuthService.requireAuth(['firmAdmin', 'firmadmin', 'lawyer', 'intern']);
   if (!currentUser) return;
 
-
-  const userRole = currentUser.role || 'firmadmin';
+  // Normalize role to lowercase so it matches backend UserRole enum values
+  // (signin.js maps 'firmadmin' → 'firmAdmin' for localStorage, but the backend expects lowercase)
+  const userRole = (currentUser.role || 'firmadmin').toLowerCase();
 
   // ── DOM refs ───────────────────────────────────────────────────────────────
   const requestsGrid    = document.querySelector('.requests-grid');
