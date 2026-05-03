@@ -6,6 +6,9 @@
 (function () {
   "use strict";
 
+  console.log('LexFlow: documents-main.js v2.0 (In-Memory) initialized');
+
+
   let casesData = [];
 
   const state = {
@@ -333,25 +336,41 @@
     return "Active";
   }
 
-  fetch("../data/docs.json")
-    .then(r => r.json())
-    .then(data => {
-      const uMap = {};
-      (data.users || []).forEach(u => { uMap[u.id] = u.name; });
-      casesData = (data.cases || []).map(c => ({
-        id: c.id,
-        client: uMap[c.clientId] || 'Unknown Client',
-        type: 'INDIVIDUAL',
-        status: mapStatus(c.status),
-        caseType: c.title,
-        lawyer: uMap[c.lawyerId] || 'Unknown Lawyer',
-        court: c.court,
-      }));
-      go();
-    })
-    .catch(e => {
-      console.error("Failed to load cases", e);
-      grid.innerHTML = `<p class="no-results">Failed to load cases data.</p>`;
-    });
+  // In-memory data storage (Replaces removed docs.json)
+  const MEMORY_DB = {
+    users: [
+      { id: 'user-0', name: 'Super Admin', email: 'superadmin@lexflow.test', role: 'superAdmin' },
+      { id: 'user-1', name: 'Firm Admin', email: 'firmadmin@lexflow.test', role: 'firmAdmin', firmId: 'firm-1' },
+      { id: 'user-2', name: 'Client Alice', email: 'alice@client.test', role: 'client', phone: '+91-9000000001' },
+      { id: 'user-3', name: 'Lawyer Bob', email: 'bob@lawyer.test', role: 'lawyer', firmId: 'firm-1' },
+      { id: 'user-4', name: 'Intern Charlie', email: 'charlie@intern.test', role: 'intern', firmId: 'firm-1' },
+    ],
+    cases: [
+      { id: '1', title: 'State vs John Doe', cnr: 'PH010012342024', status: 'Active', clientId: 'user-2', lawyerId: 'user-3', firmId: 'firm-1', court: 'District Court' },
+      { id: '2', title: 'Sharma vs Gupta', cnr: 'DL020056782024', status: 'Active', clientId: 'user-2', lawyerId: 'user-3', firmId: 'firm-1', court: 'High Court' },
+      { id: '3', title: 'TechCorp vs SoftSystems', cnr: 'MH030099992024', status: 'Pending', clientId: 'user-2', lawyerId: 'user-3', firmId: 'firm-1', court: 'Supreme Court' },
+    ]
+  };
+
+  function loadCases() {
+    console.log('[DocumentsMain] Loading cases from MEMORY_DB...');
+    const uMap = {};
+    (MEMORY_DB.users || []).forEach(u => { uMap[u.id] = u.name; });
+    casesData = (MEMORY_DB.cases || []).map(c => ({
+      id: c.id,
+      client: uMap[c.clientId] || 'Unknown Client',
+      type: 'INDIVIDUAL',
+      status: mapStatus(c.status),
+      caseType: c.title,
+      lawyer: uMap[c.lawyerId] || 'Unknown Lawyer',
+      court: c.court,
+    }));
+    console.log(`[DocumentsMain] Loaded ${casesData.length} cases.`);
+    go();
+  }
+
+
+  loadCases();
+
 
 })();
