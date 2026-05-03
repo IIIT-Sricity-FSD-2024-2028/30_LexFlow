@@ -298,7 +298,7 @@
     {
       "id": "DOC-203",
       "name": "Propery Agreement.pdf",
-      "filePath": "../data/docs/Propery Agreement.pdf",
+      "filePath": "http://localhost:3000/data/docs/Propery Agreement.pdf",
       "caseId": "CASE-45",
       "type": "CONTRACT",
       "fileType": "PDF",
@@ -311,7 +311,7 @@
     {
       "id": "DOC-204",
       "name": "Evidence_photo.jpg",
-      "filePath": "../data/docs/Evidence_photo.jpg",
+      "filePath": "http://localhost:3000/data/docs/Evidence_photo.jpg",
       "caseId": "CASE-45",
       "type": "CASE EVIDENCE",
       "fileType": "IMG",
@@ -324,7 +324,7 @@
     {
       "id": "DOC-205",
       "name": "Court notice.pdf",
-      "filePath": "../data/docs/Court notice.pdf",
+      "filePath": "http://localhost:3000/data/docs/Court notice.pdf",
       "caseId": "CASE-45",
       "type": "COURT ORDER",
       "fileType": "PDF",
@@ -337,7 +337,7 @@
     {
       "id": "DOC-206",
       "name": "Client ID.jpg",
-      "filePath": "../data/docs/Client ID.jpg",
+      "filePath": "http://localhost:3000/data/docs/Client ID.jpg",
       "caseId": "CASE-45",
       "type": "CLIENT PROOF",
       "fileType": "IMG",
@@ -350,7 +350,7 @@
     {
       "id": "DOC-207",
       "name": "Affidavit signed.pdf",
-      "filePath": "../data/docs/Affidavit signed.pdf",
+      "filePath": "http://localhost:3000/data/docs/Affidavit signed.pdf",
       "caseId": "CASE-46",
       "type": "AFFIDAVIT",
       "fileType": "PDF",
@@ -363,7 +363,7 @@
     {
       "id": "DOC-208",
       "name": "Survery report.pdf",
-      "filePath": "../data/docs/Survery report.pdf",
+      "filePath": "http://localhost:3000/data/docs/Survery report.pdf",
       "caseId": "CASE-46",
       "type": "REPORT",
       "fileType": "PDF",
@@ -376,7 +376,7 @@
     {
       "id": "DOC-209",
       "name": "Witness_Statement.pdf",
-      "filePath": "../data/docs/Witness_Statement.pdf",
+      "filePath": "http://localhost:3000/data/docs/Witness_Statement.pdf",
       "caseId": "CASE-47",
       "type": "CASE EVIDENCE",
       "fileType": "PDF",
@@ -389,7 +389,7 @@
     {
       "id": "DOC-210",
       "name": "Land registry.pdf",
-      "filePath": "../data/docs/Land registry.pdf",
+      "filePath": "http://localhost:3000/data/docs/Land registry.pdf",
       "caseId": "CASE-47",
       "type": "CONTRACT",
       "fileType": "PDF",

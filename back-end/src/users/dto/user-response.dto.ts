@@ -50,4 +50,7 @@ export class UserResponseDto {
 
   @ApiProperty({ description: 'Pin / ZIP code', required: false })
   pinCode?: string;
+
+  @ApiProperty({ description: 'Case access map', required: false })
+  caseAccess?: Record<string, string[]>;
 }

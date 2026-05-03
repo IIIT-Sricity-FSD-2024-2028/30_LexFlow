@@ -85,7 +85,7 @@ export class UsersController {
   /**
    * Get all users, optionally filtered by role
    * GET /users
-    * Query: role? (client, lawyer, intern, firmadmin, superadmin)
+   * Query: role? (client, lawyer, intern, firmadmin, superadmin)
    */
   @Get()
   @Roles(UserRole.FIRMADMIN, UserRole.SUPERADMIN)
@@ -121,7 +121,8 @@ export class UsersController {
   @Get(':id')
   @ApiOperation({
     summary: 'Get user by ID (all roles)',
-    description: 'Retrieve a specific user by their ID. Available to all roles.',
+    description:
+      'Retrieve a specific user by their ID. Available to all roles.',
   })
   @ApiResponse({
     status: 200,

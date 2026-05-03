@@ -237,6 +237,204 @@
           "users"
         ]
       }
+    },
+    "/documents": {
+      "post": {
+        "operationId": "DocumentsController_create",
+        "parameters": [
+          {
+            "name": "x-user-email",
+            "required": false,
+            "in": "header",
+            "description": "Uploader email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The document has been successfully created."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "summary": "Create a new document",
+        "tags": [
+          "documents"
+        ]
+      },
+      "get": {
+        "operationId": "DocumentsController_findAll",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all matching documents."
+          }
+        },
+        "summary": "Get all documents, optionally filter by caseId",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/documents/{id}": {
+      "get": {
+        "operationId": "DocumentsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the document."
+          },
+          "404": {
+            "description": "Document not found."
+          }
+        },
+        "summary": "Get a document by id",
+        "tags": [
+          "documents"
+        ]
+      },
+      "patch": {
+        "operationId": "DocumentsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The document has been successfully updated."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Document not found."
+          }
+        },
+        "summary": "Update a document",
+        "tags": [
+          "documents"
+        ]
+      },
+      "delete": {
+        "operationId": "DocumentsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The document has been successfully deleted."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Document not found."
+          }
+        },
+        "summary": "Delete a document",
+        "tags": [
+          "documents"
+        ]
+      }
     }
   },
   "info": {
@@ -346,6 +544,10 @@
           "pinCode": {
             "type": "string",
             "description": "Pin / ZIP code"
+          },
+          "caseAccess": {
+            "type": "object",
+            "description": "Case access map"
           }
         },
         "required": [
@@ -418,6 +620,76 @@
           "role",
           "password"
         ]
+      },
+      "CreateDocumentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the document",
+            "example": "Contract.pdf"
+          },
+          "caseId": {
+            "type": "string",
+            "description": "Case ID the document belongs to",
+            "example": "CASE-45"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of document",
+            "example": "CONTRACT"
+          },
+          "fileType": {
+            "type": "string",
+            "description": "File type extension",
+            "example": "PDF"
+          },
+          "access": {
+            "type": "string",
+            "description": "Access level",
+            "enum": [
+              "PRIVATE",
+              "SHARED"
+            ],
+            "example": "PRIVATE"
+          },
+          "version": {
+            "type": "number",
+            "description": "Version number",
+            "example": 1
+          }
+        },
+        "required": [
+          "name",
+          "caseId",
+          "type",
+          "fileType",
+          "access"
+        ]
+      },
+      "UpdateDocumentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the document",
+            "example": "Updated_Contract.pdf"
+          },
+          "access": {
+            "type": "string",
+            "description": "Access level",
+            "enum": [
+              "PRIVATE",
+              "SHARED"
+            ],
+            "example": "SHARED"
+          },
+          "version": {
+            "type": "number",
+            "description": "Version number",
+            "example": 2
+          }
+        }
       }
     }
   }
