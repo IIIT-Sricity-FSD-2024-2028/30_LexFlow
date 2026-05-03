@@ -333,7 +333,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       const db = {
         users,
         cases: MEMORY_DB.cases,
-        documents: [], 
+        documents: [],
         firms: MEMORY_DB.firms,
       };
 
@@ -376,12 +376,12 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       toast(`User profile incomplete: missing role.`, "error");
       return;
     }
-    const ROLE = CURRENT_USER.role;
-      
+    const ROLE = (CURRENT_USER.role || '').toLowerCase();
+
 
     const CURRENT_FIRM = CURRENT_USER.firmId
-  ? (db.firms.find(f => f.id === CURRENT_USER.firmId) || { id: CURRENT_USER.firmId, name: CURRENT_USER.firmName || CURRENT_USER.firmId })
-  : null;  
+      ? (db.firms.find(f => f.id === CURRENT_USER.firmId) || { id: CURRENT_USER.firmId, name: CURRENT_USER.firmName || CURRENT_USER.firmId })
+      : null;
     const FIRM_NAME = CURRENT_FIRM ? CURRENT_FIRM.name : "Independent";
 
     // FIX: Update breadcrumb and case header immediately with the correct CURRENT_CASE_ID
@@ -431,15 +431,22 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     // ── Document access resolution ───────────────────────────────────────
     // Check for explicit case access (either an array of IDs or an object mapping IDs to permissions)
     const caseAccess = CURRENT_USER.caseAccess || [];
-    const hasExplicitAccess = Array.isArray(caseAccess) 
+    const hasExplicitAccess = Array.isArray(caseAccess)
       ? caseAccess.includes(CURRENT_CASE_ID)
       : !!(caseAccess[CURRENT_CASE_ID]);
 
+    // WITH this:
     const isFullAccess =
-      ROLE === "superAdmin" || 
-      (ROLE === "firmAdmin" && CURRENT_FIRM && CURRENT_CASE.firmId === CURRENT_FIRM.id);
+      ROLE === "superadmin" ||
+      (ROLE === "firmadmin" && CURRENT_FIRM && CURRENT_CASE.firmId === CURRENT_FIRM.id);
 
-    if (!isFullAccess && !hasExplicitAccess) {
+    // Clients and lawyers are implicit parties — no explicit grant needed
+    const isPartyToCase =
+      (ROLE === "client" && CURRENT_CASE.clientId === CURRENT_USER.id) ||
+      (ROLE === "lawyer" && CURRENT_CASE.lawyerId === CURRENT_USER.id) ||
+      (ROLE === "intern" && CURRENT_CASE.firmId === CURRENT_USER.firmId);
+
+    if (!isFullAccess && !isPartyToCase && !hasExplicitAccess) {
       renderAccessDenied(
         `You do not have access to Case ${CURRENT_CASE_ID}. Contact your firm administrator to request access.`,
         "NO_DOC_ACCESS"
@@ -448,10 +455,10 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       return;
     }
 
-    const allowedIds = isFullAccess
-      ? null  // null = no filter
-      : new Set(Array.isArray(caseAccess) ? [] : (caseAccess[CURRENT_CASE_ID] || []));
 
+const allowedIds = (isFullAccess || isPartyToCase)
+  ? null  // full visibility for parties and admins
+  : new Set(Array.isArray(caseAccess) ? [] : (caseAccess[CURRENT_CASE_ID] || []));
 
     let docsData = [];
     try {
@@ -480,9 +487,9 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     const PERMS = {
       canView: true,
       canDownload: true,
-      canUpload: ["client", "lawyer", "lawfirm_admin"].includes(ROLE),
-      canUpdate: ["lawyer", "lawfirm_admin", "intern"].includes(ROLE),
-      canDelete: ["lawyer", "lawfirm_admin"].includes(ROLE),
+      canUpload: ["client", "lawyer", "firmadmin", "lawfirm_admin"].includes(ROLE),
+      canUpdate: ["lawyer", "firmadmin", "lawfirm_admin", "intern"].includes(ROLE),
+      canDelete: ["lawyer", "firmadmin", "lawfirm_admin"].includes(ROLE),
     };
 
     function logActivity(action, doc) {
