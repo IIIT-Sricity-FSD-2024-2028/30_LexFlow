@@ -4,17 +4,53 @@ let allCases = [],
   filteredTasks = [],
   currentTab = "all";
 
-const casesStorage = window.LexFlowCasesStorage;
+const casesAPI = window.LexFlowAPI ? window.LexFlowAPI.cases : null;
+const tasksAPI = window.LexFlowAPI ? window.LexFlowAPI.tasks : null;
+
+const currentUserData = (() => {
+  try {
+    return JSON.parse(localStorage.getItem('currentUser') || '{}');
+  } catch { return {}; }
+})();
+
+const currentUser = {
+  role: (currentUserData.role || 'lawyer').toLowerCase(),
+  firmId: currentUserData.firmId || null,
+  name: currentUserData.fullName || currentUserData.name || 'Lawyer'
+};
 
 // ─── Init ──────────────────────────────────────────────────────────────────────
 async function initCases() {
   try {
-    allCases = (await casesStorage.getCases()) || [];
-    allTasks = (await casesStorage.getTasks()) || [];
+    const filters = {};
+    if (currentUser.firmId) filters.firmId = currentUser.firmId;
+
+    // 1. Fetch Cases from API
+    if (casesAPI) {
+      allCases = await casesAPI.getAll(filters, currentUser.role);
+    } else {
+      console.warn('Cases API not found');
+      allCases = [];
+    }
+
+    // 2. Fetch Tasks from API
+    if (tasksAPI) {
+      // For the lawyer view, we can either show all firm tasks or just theirs. 
+      // The "Pending Tasks" tab usually shows their workload.
+      const taskFilters = { assignedUser: currentUser.name };
+      if (currentUser.firmId) taskFilters.firmId = currentUser.firmId;
+      allTasks = await tasksAPI.getAll(taskFilters, currentUser.role);
+    } else {
+      allTasks = [];
+    }
+
     filteredCases = [...allCases];
+    filteredTasks = [...allTasks];
+    
     const pendingTasks = allTasks.filter(t => t.status === "Pending");
     const countEl = document.getElementById("pendingTasksCount");
     if (countEl) countEl.textContent = pendingTasks.length;
+
     renderPage(1);
   } catch (e) {
     console.error("Error loading cases:", e);
@@ -91,12 +127,19 @@ function applyFilters() {
   renderPage(1);
 }
 
+function fmtTaskDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
 // ─── Render Case Card ─────────────────────────────────────────────────────────
 function renderCaseCard(c) {
-  const title = c.case_type || "N/A";
+  const title = c.case_type || "Legal Case";
   const cnr = c.cnr || "N/A";
-  const status = c.status || "N/A";
-  const desc = c.brief_description || "";
+  const status = c.status || "Ongoing";
+  const desc = c.brief_description || "No description provided.";
   const filed = c.filed_date ? new Date(c.filed_date).toLocaleDateString() : "TBD";
   return `
     <div class="case-card page-item" data-title="${title.toLowerCase()}" data-cnr="${cnr.toLowerCase()}" onclick="window.location.href='lawyer_casemanagement_case-details.html?id=${c.id}'" style="display:flex; justify-content:space-between; align-items:center; gap: 24px;">
@@ -109,7 +152,7 @@ function renderCaseCard(c) {
                 <span class="badge-active">${status}</span>
                 <span style="font-size:11px; color:#6b7280; font-family:monospace;">CNR: ${cnr}</span>
             </div>
-            <div class="case-title" style="margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${title} Case</div>
+            <div class="case-title" style="margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${title}</div>
             <div class="case-meta" style="margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
                 <span>${desc}</span>
             </div>
@@ -136,17 +179,17 @@ function renderTaskCard(t) {
           </div>
           <div style="display:flex; flex-direction:column; gap: 6px;">
             <div class="meta-row" style="display:flex; align-items:center; gap: 8px;">
-                <span style="background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;">${t.status || "N/A"}</span>
+                <span style="background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;">${t.status || "Pending"}</span>
                 <span style="background: ${priority === "HIGH" ? "#fee2e2" : "#dcfce3"}; color: ${priority === "HIGH" ? "#dc2626" : "#166534"}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">${t.priority || "Normal"}</span>
             </div>
             <div class="case-title" style="margin:0;">${t.name || "Unnamed Task"}</div>
-            <div class="case-meta" style="margin:0;"><span>${t.caseTitle || ""}</span></div>
+            <div class="case-meta" style="margin:0;"><span>${t.caseTitle || "General"}</span></div>
           </div>
       </div>
       <div class="case-info-right" style="display:flex; gap: 32px; align-items:center;">
           <div style="text-align: right;">
               <div style="font-size:10px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:0.5px; margin-bottom: 4px;">DUE DATE</div>
-              <div style="font-size:14px; font-weight:600; color:#1a1a2e;">${t.dueDate || "N/A"}</div>
+              <div style="font-size:14px; font-weight:600; color:#1a1a2e;">${fmtTaskDate(t.dueDate)}</div>
           </div>
       </div>
     </div>`;
