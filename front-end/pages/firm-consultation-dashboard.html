@@ -219,7 +219,30 @@
         // Initialize storage on load
         document.addEventListener('DOMContentLoaded', initStorage);
     </script>
+    <script src="../scripts/api.js"></script>
     <script src="../scripts/firm-consultation-dashboard.js"></script>
-    
+    <style>
+      /* ── API Loading & Error UI Utilities ── */
+      .api-loading-block { display:flex; flex-direction:column; align-items:center; justify-content:center;
+        padding:48px 20px; background:#f9fafb; border-radius:12px; grid-column:1/-1; }
+      .api-loading-block p { color:#6b7280; font-size:13px; margin-top:10px; }
+      .api-loading-spinner { width:36px; height:36px; border:3px solid #e5e7eb;
+        border-top-color:#4f46e5; border-radius:50%; animation:spin .7s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .api-error-banner { display:flex; align-items:center; gap:8px; background:#fef2f2;
+        color:#b91c1c; border:1px solid #fecaca; border-radius:8px; padding:12px 16px;
+        font-size:13px; font-weight:500; }
+      .no-data-notice { display:flex; flex-direction:column; align-items:center; justify-content:center;
+        padding:60px 20px; background:#f9fafb; border-radius:12px; border:2px dashed #e5e7eb; text-align:center; }
+      .no-data-notice p { color:#6b7280; font-weight:500; margin-top:12px; }
+      /* Toast */
+      .lexflow-toast { position:fixed; bottom:24px; right:24px; z-index:9999;
+        padding:12px 20px; border-radius:10px; font-size:14px; font-weight:500;
+        color:#fff; opacity:0; transform:translateY(10px); transition:all .3s ease;
+        box-shadow:0 4px 16px rgba(0,0,0,.15); }
+      .lexflow-toast.toast-visible { opacity:1; transform:translateY(0); }
+      .lexflow-toast.toast-success { background:#10b981; }
+      .lexflow-toast.toast-error   { background:#ef4444; }
+    </style>
 </body>
 </html>

@@ -19,9 +19,10 @@ async function bootstrap() {
       'http://localhost:3001',
       'http://127.0.0.1:3001',
       'http://localhost:60504',
+      'http://localhost:8080',
     ],
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'role', 'x-user-email'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'role', 'x-user-email', 'x-client-id'],
   });
 
   // Serve static files from the data/docs directory

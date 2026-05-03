@@ -516,6 +516,481 @@
         ]
       }
     },
+    "/consultations/workflow-bookings": {
+      "get": {
+        "description": "Returns a list of all consultations that were created through the client-facing law firm search and booking flow. Only firmadmin and superadmin can access this.",
+        "operationId": "ConsultationsController_getWorkflowBookings",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of workflow booking records"
+          },
+          "403": {
+            "description": "Forbidden – insufficient role"
+          }
+        },
+        "summary": "Get clients who booked via the search/discovery workflow",
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/consultations/my": {
+      "get": {
+        "description": "Returns all consultations for the client identified by the x-client-id header. Only the client role may call this endpoint.",
+        "operationId": "ConsultationsController_getMyConsultations",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "x-client-id",
+            "required": true,
+            "in": "header",
+            "description": "The ID of the authenticated client (e.g. \"user-2\")",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of consultations for this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConsultationResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing x-client-id header"
+          },
+          "403": {
+            "description": "Forbidden – non-client role"
+          }
+        },
+        "summary": "Get the calling client's consultations",
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/consultations": {
+      "get": {
+        "description": "Returns all consultations. Supports optional query filters: clientId, firmId, status, lawyerId.",
+        "operationId": "ConsultationsController_findAll",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "clientId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by client ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "firmId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by firm ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by consultation status",
+            "schema": {
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "SCHEDULED",
+                "IN PROGRESS",
+                "COMPLETED",
+                "CANCELLED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "lawyerId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by assigned lawyer ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of consultations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConsultationResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden – insufficient role"
+          }
+        },
+        "summary": "Get all consultations (firmadmin / lawyer / superadmin)",
+        "tags": [
+          "consultations"
+        ]
+      },
+      "post": {
+        "description": "Creates a new consultation request. The initial status is always PENDING, awaiting firm admin review and lawyer assignment. Only clients (and superadmin) may call this.",
+        "operationId": "ConsultationsController_create",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConsultationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Consultation created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error – invalid or missing fields"
+          },
+          "403": {
+            "description": "Forbidden – non-client role"
+          }
+        },
+        "summary": "Book a new consultation (client only)",
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/consultations/{id}": {
+      "get": {
+        "description": "Retrieve a single consultation record by its unique ID.",
+        "operationId": "ConsultationsController_findOne",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Consultation ID",
+            "schema": {
+              "example": "CONS-882",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consultation details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "role header missing or invalid"
+          },
+          "404": {
+            "description": "Consultation not found"
+          }
+        },
+        "summary": "Get a consultation by ID (all roles)",
+        "tags": [
+          "consultations"
+        ]
+      },
+      "patch": {
+        "description": "Update status, assign a lawyer, reschedule, or add notes. Completed and Cancelled consultations cannot be modified.",
+        "operationId": "ConsultationsController_update",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Consultation ID",
+            "schema": {
+              "example": "CONS-910",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConsultationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated consultation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Forbidden – cannot modify terminal-state consultations, or insufficient role"
+          },
+          "404": {
+            "description": "Consultation not found"
+          }
+        },
+        "summary": "Update a consultation (firmadmin / lawyer)",
+        "tags": [
+          "consultations"
+        ]
+      },
+      "delete": {
+        "description": "Permanently removes a consultation from the system. Use with caution – this action is irreversible.",
+        "operationId": "ConsultationsController_remove",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Consultation ID to delete",
+            "schema": {
+              "example": "CONS-156",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consultation deleted successfully"
+          },
+          "403": {
+            "description": "Forbidden – insufficient role"
+          },
+          "404": {
+            "description": "Consultation not found"
+          }
+        },
+        "summary": "Delete a consultation record (firmadmin / superadmin)",
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/consultations/{id}/cancel": {
+      "patch": {
+        "description": "Marks the consultation as CANCELLED. Cannot cancel an already-completed consultation.",
+        "operationId": "ConsultationsController_cancel",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Consultation ID to cancel",
+            "schema": {
+              "example": "CONS-882",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consultation cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Already cancelled"
+          },
+          "403": {
+            "description": "Cannot cancel completed consultation, or insufficient role"
+          },
+          "404": {
+            "description": "Consultation not found"
+          }
+        },
+        "summary": "Cancel a consultation (client / firmadmin)",
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
     "/cases": {
       "post": {
         "operationId": "CasesController_create",
@@ -1127,6 +1602,251 @@
           "message",
           "createdAt"
         ]
+      },
+      "ConsultationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "CONS-1746123456789"
+          },
+          "clientId": {
+            "type": "string",
+            "example": "user-2"
+          },
+          "clientName": {
+            "type": "string",
+            "example": "Client Alice"
+          },
+          "firmId": {
+            "type": "string",
+            "example": "firm-1"
+          },
+          "firmName": {
+            "type": "string",
+            "example": "Voss & Associates"
+          },
+          "lawyerId": {
+            "type": "string",
+            "example": "user-3"
+          },
+          "lawyerName": {
+            "type": "string",
+            "example": "Lawyer Bob"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "chat",
+              "video",
+              "inperson"
+            ],
+            "example": "video"
+          },
+          "date": {
+            "type": "string",
+            "example": "May 10, 2026"
+          },
+          "time": {
+            "type": "string",
+            "example": "10:30 AM - 11:00 AM"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "SCHEDULED",
+              "IN PROGRESS",
+              "COMPLETED",
+              "CANCELLED"
+            ],
+            "example": "PENDING"
+          },
+          "caseDescription": {
+            "type": "string",
+            "example": "I need advice regarding a property dispute."
+          },
+          "consultationFee": {
+            "type": "string",
+            "example": "$250"
+          },
+          "avatarClass": {
+            "type": "string",
+            "example": "blue"
+          },
+          "bookedViaWorkflow": {
+            "type": "boolean",
+            "example": false
+          },
+          "notes": {
+            "type": "string",
+            "example": "Please bring relevant documents."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-05-03T10:00:00Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-05-03T10:00:00Z"
+          }
+        },
+        "required": [
+          "id",
+          "clientId",
+          "clientName",
+          "firmId",
+          "firmName",
+          "type",
+          "date",
+          "time",
+          "status",
+          "bookedViaWorkflow",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateConsultationDto": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "description": "Unique identifier of the client booking the consultation",
+            "example": "user-2"
+          },
+          "clientName": {
+            "type": "string",
+            "description": "Full name of the client",
+            "example": "Client Alice"
+          },
+          "firmId": {
+            "type": "string",
+            "description": "Identifier of the law firm being consulted",
+            "example": "firm-1"
+          },
+          "firmName": {
+            "type": "string",
+            "description": "Name of the law firm",
+            "example": "Voss & Associates"
+          },
+          "type": {
+            "type": "string",
+            "description": "Consultation type",
+            "enum": [
+              "chat",
+              "video",
+              "inperson"
+            ],
+            "example": "video"
+          },
+          "date": {
+            "type": "string",
+            "description": "Consultation date (e.g., \"May 10, 2026\")",
+            "example": "May 10, 2026"
+          },
+          "time": {
+            "type": "string",
+            "description": "Consultation time slot (e.g., \"10:30 AM - 11:00 AM\")",
+            "example": "10:30 AM - 11:00 AM"
+          },
+          "caseDescription": {
+            "type": "string",
+            "description": "Brief description of the legal case or issue",
+            "example": "I need advice regarding a property dispute with my neighbor."
+          },
+          "lawyerId": {
+            "type": "string",
+            "description": "Lawyer ID assigned to this consultation (set by firm admin)",
+            "example": "user-3"
+          },
+          "lawyerName": {
+            "type": "string",
+            "description": "Name of the assigned lawyer",
+            "example": "Lawyer Bob"
+          },
+          "consultationFee": {
+            "type": "string",
+            "description": "Consultation fee string (e.g., \"$250\")",
+            "example": "$250"
+          },
+          "avatarClass": {
+            "type": "string",
+            "description": "Avatar color class for UI display",
+            "example": "blue"
+          },
+          "bookedViaWorkflow": {
+            "type": "boolean",
+            "description": "Whether this consultation was booked via the client search/discovery workflow",
+            "example": true
+          }
+        },
+        "required": [
+          "clientId",
+          "clientName",
+          "firmId",
+          "firmName",
+          "type",
+          "date",
+          "time"
+        ]
+      },
+      "UpdateConsultationDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "New consultation status",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "SCHEDULED",
+              "IN PROGRESS",
+              "COMPLETED",
+              "CANCELLED"
+            ],
+            "example": "CONFIRMED"
+          },
+          "lawyerId": {
+            "type": "string",
+            "description": "ID of the lawyer being assigned",
+            "example": "user-3"
+          },
+          "lawyerName": {
+            "type": "string",
+            "description": "Name of the assigned lawyer",
+            "example": "Lawyer Bob"
+          },
+          "date": {
+            "type": "string",
+            "description": "Updated consultation date",
+            "example": "May 15, 2026"
+          },
+          "time": {
+            "type": "string",
+            "description": "Updated consultation time slot",
+            "example": "02:00 PM - 03:00 PM"
+          },
+          "type": {
+            "type": "string",
+            "description": "Updated consultation type",
+            "enum": [
+              "chat",
+              "video",
+              "inperson"
+            ]
+          },
+          "caseDescription": {
+            "type": "string",
+            "description": "Updated case description"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes from the firm or lawyer"
+          }
+        }
       },
       "CreateCaseDto": {
         "type": "object",
