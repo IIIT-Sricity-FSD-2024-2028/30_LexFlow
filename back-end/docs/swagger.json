@@ -277,6 +277,27 @@
         ]
       }
     },
+<<<<<<< HEAD
+    "/documents": {
+      "post": {
+        "operationId": "DocumentsController_create",
+        "parameters": [
+          {
+            "name": "x-user-email",
+            "required": false,
+            "in": "header",
+            "description": "Uploader email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+=======
     "/users/firm-onboarding/start": {
       "post": {
         "description": "Initialize firm onboarding session",
@@ -349,6 +370,7 @@
             "required": true,
             "in": "path",
             "schema": {
+>>>>>>> 789cb78d1ebdbd0b309888c76a2cac3d7bd6fccb
               "type": "string"
             }
           }
@@ -356,6 +378,11 @@
         "requestBody": {
           "required": true,
           "content": {
+<<<<<<< HEAD
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentDto"
+=======
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/FirmOnboardingDto"
@@ -491,12 +518,175 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/FirmOnboardingDto"
+>>>>>>> 789cb78d1ebdbd0b309888c76a2cac3d7bd6fccb
               }
             }
           }
         },
         "responses": {
           "201": {
+<<<<<<< HEAD
+            "description": "The document has been successfully created."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "summary": "Create a new document",
+        "tags": [
+          "documents"
+        ]
+      },
+      "get": {
+        "operationId": "DocumentsController_findAll",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all matching documents."
+          }
+        },
+        "summary": "Get all documents, optionally filter by caseId",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/documents/{id}": {
+      "get": {
+        "operationId": "DocumentsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the document."
+          },
+          "404": {
+            "description": "Document not found."
+          }
+        },
+        "summary": "Get a document by id",
+        "tags": [
+          "documents"
+        ]
+      },
+      "patch": {
+        "operationId": "DocumentsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The document has been successfully updated."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Document not found."
+          }
+        },
+        "summary": "Update a document",
+        "tags": [
+          "documents"
+        ]
+      },
+      "delete": {
+        "operationId": "DocumentsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The document has been successfully deleted."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Document not found."
+          }
+        },
+        "summary": "Delete a document",
+        "tags": [
+          "documents"
+=======
             "description": "Firm and admin account created successfully",
             "content": {
               "application/json": {
@@ -513,6 +703,7 @@
         "summary": "Firm onboarding step 3 (final)",
         "tags": [
           "users"
+>>>>>>> 789cb78d1ebdbd0b309888c76a2cac3d7bd6fccb
         ]
       }
     }
@@ -609,8 +800,32 @@
           },
           "firmId": {
             "type": "string",
+<<<<<<< HEAD
+            "description": "Address line 1"
+          },
+          "addressLine2": {
+            "type": "string",
+            "description": "Address line 2"
+          },
+          "city": {
+            "type": "string",
+            "description": "City"
+          },
+          "state": {
+            "type": "string",
+            "description": "State"
+          },
+          "pinCode": {
+            "type": "string",
+            "description": "Pin / ZIP code"
+          },
+          "caseAccess": {
+            "type": "object",
+            "description": "Case access map"
+=======
             "description": "Associated firm ID (for FIRMADMIN, LAWYER, INTERN roles)",
             "example": "firm-1"
+>>>>>>> 789cb78d1ebdbd0b309888c76a2cac3d7bd6fccb
           }
         },
         "required": [
@@ -665,6 +880,77 @@
           "password"
         ]
       },
+<<<<<<< HEAD
+      "CreateDocumentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the document",
+            "example": "Contract.pdf"
+          },
+          "caseId": {
+            "type": "string",
+            "description": "Case ID the document belongs to",
+            "example": "CASE-45"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of document",
+            "example": "CONTRACT"
+          },
+          "fileType": {
+            "type": "string",
+            "description": "File type extension",
+            "example": "PDF"
+          },
+          "access": {
+            "type": "string",
+            "description": "Access level",
+            "enum": [
+              "PRIVATE",
+              "SHARED"
+            ],
+            "example": "PRIVATE"
+          },
+          "version": {
+            "type": "number",
+            "description": "Version number",
+            "example": 1
+          }
+        },
+        "required": [
+          "name",
+          "caseId",
+          "type",
+          "fileType",
+          "access"
+        ]
+      },
+      "UpdateDocumentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the document",
+            "example": "Updated_Contract.pdf"
+          },
+          "access": {
+            "type": "string",
+            "description": "Access level",
+            "enum": [
+              "PRIVATE",
+              "SHARED"
+            ],
+            "example": "SHARED"
+          },
+          "version": {
+            "type": "number",
+            "description": "Version number",
+            "example": 2
+          }
+        }
+=======
       "FirmOnboardingDto": {
         "type": "object",
         "properties": {
@@ -788,6 +1074,7 @@
           "message",
           "createdAt"
         ]
+>>>>>>> 789cb78d1ebdbd0b309888c76a2cac3d7bd6fccb
       }
     }
   }

@@ -65,7 +65,9 @@ export class ConsultationsServiceExample {
         // Return consultations where user is lawyer
         return this.getLawyerConsultations(userId);
       default:
-        throw new Error(`Role ${user.role} cannot participate in consultations`);
+        throw new Error(
+          `Role ${user.role} cannot participate in consultations`,
+        );
     }
   }
 
@@ -192,10 +194,7 @@ export class AuthorizationServiceExample {
    * Check if user can access lawyer analytics
    * Only lawyers should access their own stats
    */
-  canAccessLawyerAnalytics(
-    userId: string,
-    targetLawyerId: string,
-  ): boolean {
+  canAccessLawyerAnalytics(userId: string, targetLawyerId: string): boolean {
     const user = this.usersService.findOne(userId);
     const targetUser = this.usersService.findOne(targetLawyerId);
 
@@ -227,9 +226,7 @@ export class AuthorizationServiceExample {
     }
 
     // Lawyers and admins can create documents
-    return (
-      user.role === UserRole.LAWYER || user.role === UserRole.FIRMADMIN
-    );
+    return user.role === UserRole.LAWYER || user.role === UserRole.FIRMADMIN;
   }
 }
 
