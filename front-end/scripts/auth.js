@@ -47,9 +47,14 @@ const AuthService = (() => {
         return null;
       }
 
-      if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-        window.location.href = getSignInPath();
-        return null;
+      if (allowedRoles && allowedRoles.length > 0) {
+        const userRoleLower = (user.role || '').toLowerCase();
+        const allowedLower = allowedRoles.map(r => r.toLowerCase());
+        
+        if (!allowedLower.includes(userRoleLower)) {
+          window.location.href = getSignInPath();
+          return null;
+        }
       }
 
       return user;

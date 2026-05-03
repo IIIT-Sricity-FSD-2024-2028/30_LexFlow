@@ -28,6 +28,17 @@ interface Firm {
   logo?: string;
   primaryEmail?: string;
   website?: string;
+  subtitle?: string;
+  description?: string;
+  rating?: number;
+  reviews?: number;
+  price?: number;
+  availability?: 'Available' | 'Busy';
+  experience?: string;
+  bio?: string;
+  practiceArea?: string;
+  location?: string;
+  avatar?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,6 +71,14 @@ export class UsersService {
       { id: 'user-2', fullName: 'Client Alice', email: 'alice@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', phone: '+91-9000000001', accountStatus: 'active', availability: 'available' },
       { id: 'user-3', fullName: 'Lawyer Bob', email: 'bob@lawyer.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
       { id: 'user-4', fullName: 'Intern Charlie', email: 'charlie@intern.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
+      // New Admins (Ensuring 1:1 relation with firms)
+      { id: 'user-5', fullName: 'Ananya Khanna', email: 'ananya@khanna.law', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-2', accountStatus: 'active', availability: 'available' },
+      { id: 'user-6', fullName: 'Siddharth Reddy', email: 'siddharth@techlegal.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-3', accountStatus: 'active', availability: 'available' },
+      { id: 'user-7', fullName: 'Meenakshi Iyer', email: 'meenakshi@coastal.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-4', accountStatus: 'active', availability: 'available' },
+      { id: 'user-8', fullName: 'Vikram Singh', email: 'vikram@cyber.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
+      // New Lawyers
+      { id: 'user-9', fullName: 'Lawyer David', email: 'david@techlegal.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-3', accountStatus: 'active', availability: 'available' },
+      { id: 'user-10', fullName: 'Lawyer Elena', email: 'elena@coastal.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-4', accountStatus: 'active', availability: 'available' },
     ];
 
     const seedFirms: Firm[] = [
@@ -74,15 +93,126 @@ export class UsersService {
         pinCode: '110001',
         primaryEmail: 'hello@sharma.law',
         website: 'https://www.sharma.law',
+        subtitle: 'Civil & Corporate Litigation Specialists',
+        description: 'A premier law firm in Delhi specializing in high-stakes corporate disputes and constitutional law matters.',
+        rating: 4.8,
+        reviews: 124,
+        price: 5000,
+        availability: 'Available',
+        experience: '25+ Years',
+        bio: 'Founded in 1998, Sharma & Associates has grown to be one of the most respected litigation firms in India.',
+        practiceArea: 'corporate',
+        location: 'delhi',
+        avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=SA&backgroundColor=3b5bdb',
         createdAt: now,
         updatedAt: now,
       },
+      {
+        id: 'firm-2',
+        name: 'Khanna & Co',
+        email: 'info@khanna.law',
+        phone: '9988776655',
+        street: 'Nariman Point',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pinCode: '400021',
+        primaryEmail: 'mumbai@khanna.law',
+        website: 'https://www.khanna.law',
+        subtitle: 'Intellectual Property & Technology Law',
+        description: 'Specializing in patent filings, trademark disputes, and technology transfer agreements for startups and tech giants.',
+        rating: 4.6,
+        reviews: 89,
+        price: 4500,
+        availability: 'Available',
+        experience: '15+ Years',
+        bio: 'Khanna & Co is at the forefront of digital law in India, helping companies navigate complex IP landscapes.',
+        practiceArea: 'intellectual property',
+        location: 'mumbai',
+        avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=KC&backgroundColor=10b981',
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'firm-3',
+        name: 'Tech Legal Bangalore',
+        email: 'blr@techlegal.test',
+        phone: '8877665544',
+        street: 'MG Road',
+        city: 'Bangalore',
+        state: 'Karnataka',
+        pinCode: '560001',
+        primaryEmail: 'info@techlegal.test',
+        website: 'https://techlegal.test',
+        subtitle: 'IT Law & Startup Advisory',
+        description: 'Comprehensive legal solutions for the IT industry, including SaaS agreements and data privacy compliance.',
+        rating: 4.7,
+        reviews: 56,
+        price: 4000,
+        availability: 'Available',
+        experience: '12+ Years',
+        bio: 'Leading Bangalore firm focused on technology law and startup growth.',
+        practiceArea: 'technology',
+        location: 'bangalore',
+        avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=TLB&backgroundColor=6366f1',
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'firm-4',
+        name: 'Coastal Legal Chennai',
+        email: 'chennai@coastal.test',
+        phone: '7766554433',
+        street: 'Marina Beach Road',
+        city: 'Chennai',
+        state: 'Tamil Nadu',
+        pinCode: '600001',
+        primaryEmail: 'legal@coastal.test',
+        website: 'https://coastallegal.test',
+        subtitle: 'Criminal & Maritime Law',
+        description: 'Defending high-profile criminal cases and representing maritime logistics companies in international waters.',
+        rating: 4.5,
+        reviews: 42,
+        price: 3500,
+        availability: 'Available',
+        experience: '20+ Years',
+        bio: 'Established firm with deep roots in Chennai legal history.',
+        practiceArea: 'criminal',
+        location: 'chennai',
+        avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=CLC&backgroundColor=f59e0b',
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'firm-5',
+        name: 'Cyber Law Experts Hyderabad',
+        email: 'hyd@cyber.test',
+        phone: '6655443322',
+        street: 'Hitech City',
+        city: 'Hyderabad',
+        state: 'Telangana',
+        pinCode: '500081',
+        primaryEmail: 'experts@cyber.test',
+        website: 'https://cyberlaw.test',
+        subtitle: 'Cyber Security & Forensic Law',
+        description: 'Specializing in cybercrime defense, data breach response, and electronic evidence management.',
+        rating: 4.9,
+        reviews: 31,
+        price: 6000,
+        availability: 'Available',
+        experience: '8+ Years',
+        bio: 'Modern firm at the cutting edge of digital forensic investigations.',
+        practiceArea: 'cyber',
+        location: 'hyderabad',
+        avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=CLE&backgroundColor=0ea5e9',
+        createdAt: now,
+        updatedAt: now,
+      }
     ];
 
     this.users = seed.slice();
     this.firms = seedFirms.slice();
-    this.idCounter = 5;
-    this.firmIdCounter = 2;
+    this.idCounter = 11;
+    this.firmIdCounter = 6;
   }
 
   create(createUserDto: CreateUserDto): UserResponseDto {
@@ -177,8 +307,17 @@ export class UsersService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    if (loginUserDto.role && user.role !== loginUserDto.role) {
-      throw new UnauthorizedException('Invalid email, password, or role');
+    if (loginUserDto.role) {
+      const isFirmPortal = loginUserDto.role === UserRole.FIRMADMIN || loginUserDto.role === UserRole.INTERN;
+      const userIsFirmMember = [UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.INTERN].includes(user.role);
+
+      if (isFirmPortal) {
+        if (!userIsFirmMember) {
+          throw new UnauthorizedException('Access denied: You are not a member of this firm');
+        }
+      } else if (user.role !== loginUserDto.role) {
+        throw new UnauthorizedException('Invalid email, password, or role');
+      }
     }
 
     return this.mapToResponse(user);

@@ -2,14 +2,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     const currentUser = AuthService.requireAuth(['client']);
     if (!currentUser) return;
 
-    // 0. Initialize storage if needed
-    if (!localStorage.getItem('lexflow_law_firms') || !localStorage.getItem('lexflow_consultations')) {
-        console.log('[Find Firm] Initializing storage...');
-        await initStorage();
+    let allFirmsCache = [];
+
+    // 1. Initial Render & Data Fetch
+    async function init() {
+        try {
+            console.log('[Find Firm] Fetching firms from backend...');
+            const firms = await LexFlowAPI.users.getAllFirms('client');
+            allFirmsCache = firms;
+            renderFirms(allFirmsCache);
+        } catch (err) {
+            console.error('[Find Firm] Failed to fetch firms:', err);
+            // Fallback: render empty if API fails
+            renderFirms([]);
+        }
     }
     
-    // 1. Initial Render
-    renderFirms();
+    init();
 
     // 2. Elements
     const keywordSearch = document.getElementById('keyword-search');
@@ -23,13 +32,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loc = locationSelect.value.toLowerCase();
         const practice = practiceSelect.value.toLowerCase();
         
-        const allFirms = LexFlowStorage.getFirms();
-        const filtered = allFirms.filter(f => {
-            const matchKeyword = f.name.toLowerCase().includes(keyword) || 
-                                f.description.toLowerCase().includes(keyword) ||
-                                f.subtitle.toLowerCase().includes(keyword);
-            const matchLoc = !loc || f.location === loc;
-            const matchPractice = !practice || f.practiceArea === practice;
+        const filtered = allFirmsCache.filter(f => {
+            const matchKeyword = (f.name || '').toLowerCase().includes(keyword) || 
+                                (f.description || '').toLowerCase().includes(keyword) ||
+                                (f.subtitle || '').toLowerCase().includes(keyword);
+            const matchLoc = !loc || (f.location || '').toLowerCase() === loc;
+            const matchPractice = !practice || (f.practiceArea || '').toLowerCase() === practice;
             
             return matchKeyword && matchLoc && matchPractice;
         });
@@ -40,11 +48,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (triggerSearchBtn) triggerSearchBtn.addEventListener('click', handleSearch);
 
     // 4. Rendering Functions
-    function renderFirms(firms = LexFlowStorage.getFirms()) {
+    function renderFirms(firms = allFirmsCache) {
         const grid = document.querySelector('.firms-grid');
         if (!grid) return;
         
         grid.innerHTML = '';
+        if (firms.length === 0) {
+            grid.innerHTML = '<div class="no-results" style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b;">No law firms found matching your criteria.</div>';
+            return;
+        }
+
         firms.forEach(firm => {
             const card = document.createElement('div');
             card.className = 'firm-card';
@@ -52,31 +65,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             card.innerHTML = `
                 <div class="firm-card-header">
                     <div class="firm-avatar">
-                        <img src="${firm.avatar}" alt="${firm.name}" style="width:100%; border-radius:50%;">
+                        <img src="${firm.avatar || 'https://api.dicebear.com/7.x/initials/svg?seed=' + firm.name}" alt="${firm.name}" style="width:100%; border-radius:50%;">
                     </div>
                     <div class="firm-info">
                         <h3>${firm.name}</h3>
-                        <span class="firm-subtitle">${firm.subtitle}</span>
+                        <span class="firm-subtitle">${firm.subtitle || 'Legal Firm'}</span>
                     </div>
-                    <span class="badge badge-${firm.availability.toLowerCase()}">${firm.availability}</span>
+                    <span class="badge badge-${(firm.availability || 'Available').toLowerCase()}">${firm.availability || 'Available'}</span>
                 </div>
                 <div class="firm-card-body">
-                    <p class="firm-description">${firm.description}</p>
+                    <p class="firm-description">${firm.description || 'No description available.'}</p>
                 </div>
                 <div class="firm-card-stats">
                     <div class="stat-item">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">
                             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                         </svg>
-                        <span class="stat-rating">${firm.rating}</span>
-                        <span class="stat-reviews">(${firm.reviews} reviews)</span>
+                        <span class="stat-rating">${firm.rating || '0.0'}</span>
+                        <span class="stat-reviews">(${firm.reviews || 0} reviews)</span>
                     </div>
                     <div class="stat-item">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="12" y1="1" x2="12" y2="23"></line>
                             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                         </svg>
-                        <span class="stat-price">$${firm.price}/hr</span>
+                        <span class="stat-price">$${firm.price || 0}/hr</span>
                     </div>
                 </div>
                 <div class="firm-card-actions">
@@ -112,7 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const profileOverlay = document.getElementById('profile-overlay');
 
     function openBooking(firmId) {
-        const firm = LexFlowStorage.getFirmById(firmId);
+        const firm = allFirmsCache.find(f => f.id === firmId);
         if (firm) {
             // Store the selected firm ID for later use in booking form
             sessionStorage.setItem('booking_firm_id', firmId);
@@ -124,7 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function openProfile(firmId) {
-        const firm = LexFlowStorage.getFirmById(firmId);
+        const firm = allFirmsCache.find(f => f.id === firmId);
         if (!firm) return;
 
         // Fill dynamic fields in overlay
@@ -136,17 +149,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (nameEl) nameEl.textContent = `Adv. ${firm.name}`;
         
         const titleEl = panel.querySelector('.profile-title');
-        if (titleEl) titleEl.textContent = `Senior Partner at ${firm.name}`;
+        if (titleEl) titleEl.textContent = firm.subtitle || `Senior Partner at ${firm.name}`;
 
         // Stats
         const stats = panel.querySelectorAll('.profile-stat-value');
         if (stats[0]) stats[0].textContent = firm.experience || '10+ Years';
-        if (stats[1]) stats[1].textContent = `$${firm.price}/hr`;
-        if (stats[2]) stats[2].innerHTML = `${firm.rating}/5 <span class="profile-stat-sub">(${firm.reviews} reviews)</span>`;
+        if (stats[1]) stats[1].textContent = `$${firm.price || 0}/hr`;
+        if (stats[2]) stats[2].innerHTML = `${firm.rating || '0.0'}/5 <span class="profile-stat-sub">(${firm.reviews || 0} reviews)</span>`;
 
         // Bio
         const bio = panel.querySelector('.profile-bio');
-        if (bio) bio.textContent = firm.bio || firm.description;
+        if (bio) bio.textContent = firm.bio || firm.description || 'No bio available.';
 
         profileOverlay.classList.add('active');
         document.body.style.overflow = 'hidden';
@@ -240,7 +253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 : '';
 
             const firmId = sessionStorage.getItem('booking_firm_id');
-            const firm   = firmId ? LexFlowStorage.getFirmById(firmId) : null;
+            const firm   = firmId ? allFirmsCache.find(f => f.id === firmId) : null;
 
             const avatarColors = ['blue','green','orange','purple','pink','indigo','teal'];
             const avatarClass  = avatarColors[Math.floor(Math.random() * avatarColors.length)];
@@ -295,8 +308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             pill.classList.add('active-pill');
             // Mock filtering based on pill
             const keyword = pill.textContent.split(' ')[0].toLowerCase();
-            const allFirms = LexFlowStorage.getFirms();
-            const filtered = allFirms.filter(f => f.description.toLowerCase().includes(keyword) || f.practiceArea.includes(keyword));
+            const filtered = allFirmsCache.filter(f => (f.description || '').toLowerCase().includes(keyword) || (f.practiceArea || '').includes(keyword));
             renderFirms(filtered);
         });
     });

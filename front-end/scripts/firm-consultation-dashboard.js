@@ -6,7 +6,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Auth guard ─────────────────────────────────────────────────────────────
-  const currentUser = AuthService.requireAuth(['firmAdmin', 'firmadmin']);
+  const currentUser = AuthService.requireAuth(['firmadmin', 'lawyer', 'intern']);
   if (!currentUser) return;
 
 

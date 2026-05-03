@@ -140,11 +140,25 @@ window.LexFlowCasesStorage = (function () {
     return apiFetch(`/cases/${id}`, { method: 'DELETE' });
   }
 
-  // ─── Tasks & Users (Stubs for future API migration) ──────────────────────────
-
+  // ── Tasks & Users (Stubs for future API migration) ──────────────────────────
+  
   async function getTasks() {
-    // TODO: Migrate to NestJS /tasks
-    return [];
+    try {
+      const user = getCurrentUser();
+      const role = getRoleHeader();
+      const filters = {};
+      if (user && user.firmId) filters.firmId = user.firmId;
+      
+      return await LexFlowAPI.tasks.getAll(filters, role);
+    } catch (err) {
+      console.error('[LexFlowCasesStorage] getTasks failed:', err);
+      return [];
+    }
+  }
+
+  async function saveTasks(tasks) {
+    // This is now handled via individual create/update/delete calls
+    // But we keep the stub to avoid breaking old pages
   }
 
   async function getUsers(role) {

@@ -3,59 +3,41 @@ let allTasks = [],
   allCases = [];
 
 const casesStorage = window.LexFlowCasesStorage;
+const tasksAPI = window.LexFlowAPI ? window.LexFlowAPI.tasks : null;
 
-const currentUser = (() => {
+const currentUserData = (() => {
   try {
-    const u = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    return {
-      name: u.fullName || u.name || 'Firm Admin',
-      avatar: (u.fullName || u.name || 'FA').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase(),
-      role: u.role || 'firmAdmin',
-    };
-  } catch { return { name: 'Firm Admin', avatar: 'FA', role: 'firmAdmin' }; }
+    return JSON.parse(localStorage.getItem('currentUser') || '{}');
+  } catch { return {}; }
 })();
 
-
-function saveJsonToStorage(t, e) {
-  // Only allow essential auth keys
-  const allowed = ['currentUser', 'userRole', 'loginRole'];
-  if (allowed.includes(t)) {
-    localStorage.setItem(t, JSON.stringify(e));
-  } else {
-    // console.log(`Skipping localStorage write for: ${t}`);
-  }
-}
-
-  // In-memory data storage (Replaces removed JSON and restricted localStorage)
-  const MEMORY_DB = {
-    tasks: [
-      { id: "T-001", name: "Review Evidence", caseTitle: "State vs John Doe", assignedUser: "Lawyer Bob", priority: "HIGH", dueDate: "May 15, 2026", status: "Pending", description: "Analyze the forensic reports for Case #1." },
-      { id: "T-002", name: "Draft Agreement", caseTitle: "TechCorp vs SoftSystems", assignedUser: "Lawyer Bob", priority: "MEDIUM", dueDate: "Jun 10, 2026", status: "Pending", description: "Prepare the initial draft for the settlement agreement." },
-      { id: "T-003", name: "Client Briefing", caseTitle: "General Task", assignedUser: "Firm Admin", priority: "LOW", dueDate: "May 05, 2026", status: "Completed", description: "Introductory session for the new case onboarding." },
-    ]
-  };
-
-  async function ensureTaskStorage() {
-    console.log('[TaskStorage] Using in-memory storage.');
-    return {
-      tasks: MEMORY_DB.tasks,
-      users: (casesStorage && (await casesStorage.getUsers())) || []
-    };
-  }
-
-  function saveTasksToAllStores() {
-    console.log('[TaskStorage] In-memory tasks updated.');
-  }
+const currentUser = {
+  name: currentUserData.fullName || currentUserData.name || 'Firm Admin',
+  avatar: (currentUserData.fullName || currentUserData.name || 'FA').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase(),
+  role: currentUserData.role || 'firmAdmin',
+  firmId: currentUserData.firmId || 'firm-1',
+};
 
 async function initTasks() {
   try {
-    const t = await ensureTaskStorage();
+    const role = currentUser.role.toLowerCase();
+    
+    // 1. Fetch Cases & Users (from casesStorage which is already API-backed)
     allCases = ((casesStorage && (await casesStorage.getCases())) || []);
     const users = ((casesStorage && (await casesStorage.getUsers())) || []);
-    ((allTasks = t.tasks || []),
-      (window.allUsers = users),
-      (filteredTasks = [...allTasks]),
-      renderPage(1));
+    window.allUsers = users;
+
+    // 2. Fetch Tasks from API
+    if (tasksAPI) {
+        const filters = { firmId: currentUser.firmId };
+        allTasks = await tasksAPI.getAll(filters, role);
+    } else {
+        console.warn('Tasks API not found, falling back to empty list');
+        allTasks = [];
+    }
+
+    filteredTasks = [...allTasks];
+    renderPage(1);
   } catch (t) {
     console.error("Error loading tasks:", t);
   }
@@ -86,10 +68,17 @@ function getStatusIcon(t) {
     ? '\n            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">\n                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" fill="#D1FAE5" stroke="#10B981" stroke-width="2" stroke-linejoin="round"/>\n                <path d="M14 2V8H20" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>\n                <circle cx="17" cy="17" r="5" fill="#10B981"/>\n                <path d="M15 17L16.5 18.5L19 15.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>\n            </svg>'
     : '\n            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">\n                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>\n                <path d="M14 2V8H20" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>\n                <circle cx="17" cy="17" r="5" fill="#F59E0B"/>\n                <path d="M15.5 15.5L18.5 18.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>\n                <path d="M18.5 15.5L15.5 18.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>\n            </svg>';
 }
+function fmtTaskDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
 function renderTaskRow(t) {
   const e = t.priority ? t.priority.toLowerCase() : "low",
     n = "Completed" === t.status ? "completed" : "";
-  return `\n    <tr class="page-item">\n        <td style="padding-left: 20px; max-width: 250px;">\n            <div class="task-name-col">\n                <span class="task-title" style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.name}</span>\n                <span class="task-subtitle" style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.caseTitle || "General Task"}</span>\n            </div>\n        </td>\n        <td>\n            <span class="task-id">${t.id}</span>\n        </td>\n        <td>\n            <div class="task-user" style="white-space: nowrap;">\n                <div class="task-avatar" style="background: ${"Completed" === t.status ? "#f3f4f6" : "#dbeafe"}">${getInitials(t.assignedUser)}</div>\n                <span>${t.assignedUser}</span>\n            </div>\n        </td>\n        <td>\n            <span class="task-priority ${e}">${t.priority}</span>\n        </td>\n        <td>\n            <span class="task-date" style="white-space: nowrap;">${t.dueDate}</span>\n        </td>\n        <td>\n            <div class="task-status ${n}" style="white-space: nowrap;">\n                <div class="task-status-icon">\n                    ${getStatusIcon(t.status)}\n                </div>\n                ${t.status}\n            </div>\n        </td>\n        <td style="padding-right: 20px; text-align: right;">\n            <div class="task-actions" style="justify-content: flex-end; white-space: nowrap;">\n                <button title="View" onclick="openViewTaskModal('${t.id}')">\n                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>\n                </button>\n                <button title="Edit" onclick="openEditTaskModal('${t.id}')">\n                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>\n                </button>\n                <button title="Delete" onclick="deleteTask('${t.id}')">\n                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>\n                </button>\n            </div>\n        </td>\n    </tr>\n  `;
+  return `\n    <tr class="page-item">\n        <td style="padding-left: 20px; max-width: 250px;">\n            <div class="task-name-col">\n                <span class="task-title" style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.name}</span>\n                <span class="task-subtitle" style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.caseTitle || "General Task"}</span>\n            </div>\n        </td>\n        <td>\n            <span class="task-id">${t.id}</span>\n        </td>\n        <td>\n            <div class="task-user" style="white-space: nowrap;">\n                <div class="task-avatar" style="background: ${"Completed" === t.status ? "#f3f4f6" : "#dbeafe"}">${getInitials(t.assignedUser)}</div>\n                <span>${t.assignedUser}</span>\n            </div>\n        </td>\n        <td>\n            <span class="task-priority ${e}">${t.priority}</span>\n        </td>\n        <td>\n            <span class="task-date" style="white-space: nowrap;">${fmtTaskDate(t.dueDate)}</span>\n        </td>\n        <td>\n            <div class="task-status ${n}" style="white-space: nowrap;">\n                <div class="task-status-icon">\n                    ${getStatusIcon(t.status)}\n                </div>\n                ${t.status}\n            </div>\n        </td>\n        <td style="padding-right: 20px; text-align: right;">\n            <div class="task-actions" style="justify-content: flex-end; white-space: nowrap;">\n                <button title="View" onclick="openViewTaskModal('${t.id}')">\n                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>\n                </button>\n                <button title="Edit" onclick="openEditTaskModal('${t.id}')">\n                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>\n                </button>\n                <button title="Delete" onclick="deleteTask('${t.id}')">\n                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>\n                </button>\n            </div>\n        </td>\n    </tr>\n  `;
 }
 function renderPage(t) {
   const e = Math.ceil(filteredTasks.length / TASKS_PER_PAGE) || 1;
@@ -241,7 +230,7 @@ function resolveCaseFromInput(inputValue) {
     const t = document.getElementById("viewTaskId").textContent;
     (closeModal("viewTaskModal"), openEditTaskModal(t));
   }),
-  (window.saveTaskModal = function () {
+  (window.saveTaskModal = async function () {
     const t = document.getElementById("taskNameInput"),
       e = document.getElementById("taskDateInput"),
       n = document.getElementById("taskModal");
@@ -267,56 +256,58 @@ function resolveCaseFromInput(inputValue) {
       i = document.getElementById("taskAssigneeInput").value,
       l = document.getElementById("taskDescInput").value,
       d = (['LOW','MEDIUM','HIGH'].includes(document.getElementById("taskPriorityInput").value)
-        ? document.getElementById("taskPriorityInput").value : 'LOW'),
-      r = new Date(e.value).toLocaleDateString(void 0, {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    if (s) {
-      const e = allTasks.find((t) => t.id === s);
-      const caseRef = resolveCaseFromInput(o);
-      e &&
-        ((e.name = t.value.trim()),
-        (e.caseTitle = o),
-        (e.assignedUser = i),
-        (e.dueDate = r),
-        (e.description = l),
-        (e.priority = d),
-        (e.caseId = caseRef ? caseRef.id : (e.caseId || "")),
-        (e.caseCnr = caseRef ? caseRef.cnr : (e.caseCnr || "")));
-    } else {
-      const e = "T-" + (1e3 + Math.floor(9e3 * Math.random()));
-      const caseRef = resolveCaseFromInput(o);
-      allTasks.unshift({
-        id: e,
-        name: t.value.trim(),
-        caseTitle: o,
-        assignedUser: i,
-        priority: d,
-        dueDate: r,
-        status: "Pending",
-        description: l,
-        caseId: caseRef ? caseRef.id : "",
-        caseCnr: caseRef ? caseRef.cnr : "",
-      });
+        ? document.getElementById("taskPriorityInput").value : 'LOW');
+    
+    const role = currentUser.role.toLowerCase();
+    const caseRef = resolveCaseFromInput(o);
+    
+    const payload = {
+      name: t.value.trim(),
+      caseTitle: o,
+      assignedUser: i,
+      priority: d,
+      dueDate: e.value, // Send ISO date string
+      description: l,
+      caseId: caseRef ? String(caseRef.id) : "",
+      caseCnr: caseRef ? caseRef.cnr : "",
+      firmId: currentUser.firmId,
+    };
+
+    try {
+      if (s) {
+        await tasksAPI.update(s, payload, role);
+      } else {
+        await tasksAPI.create(payload, role);
+      }
+      closeModal("taskModal");
+      await initTasks(); // Refresh list
+    } catch (err) {
+      console.error("Failed to save task:", err);
+      alert("Failed to save task. Is the server running?");
     }
-    (saveTasks(), applyFilters(), closeModal("taskModal"));
   }),
-  (window.markTaskAsCompleted = function (t) {
+  (window.markTaskAsCompleted = async function (t) {
     const e = t || document.getElementById("viewTaskId").textContent,
-      n = allTasks.find((t) => t.id === e);
-    n &&
-      ((n.status = "Completed"),
-      saveTasks(),
-      applyFilters(),
-      t ? openViewTaskModal(e) : closeModal("viewTaskModal"));
+      role = currentUser.role.toLowerCase();
+    
+    try {
+      await tasksAPI.update(e, { status: "Completed" }, role);
+      if (t) await openViewTaskModal(e); else closeModal("viewTaskModal");
+      await initTasks();
+    } catch (err) {
+      console.error("Failed to complete task:", err);
+    }
   }),
-  (window.deleteTask = function (t) {
-    confirm("Are you sure you want to delete task " + t + "?") &&
-      ((allTasks = allTasks.filter((e) => e.id !== t)),
-      saveTasks(),
-      applyFilters());
+  (window.deleteTask = async function (t) {
+    if (confirm("Are you sure you want to delete task " + t + "?")) {
+      try {
+        const role = currentUser.role.toLowerCase();
+        await tasksAPI.remove(t, role);
+        await initTasks();
+      } catch (err) {
+        console.error("Failed to delete task:", err);
+      }
+    }
   }));
 const prioToggles = document.querySelectorAll(".prio-toggle");
 function setActivePriority(t) {
