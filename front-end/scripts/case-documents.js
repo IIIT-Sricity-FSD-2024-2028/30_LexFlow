@@ -11,6 +11,31 @@ function safeParse(value, fallback) {
   }
 }
 
+// Persist errors across Live Server reloads so we can always read them
+function persistError(msg) {
+  try { sessionStorage.setItem('lexflow_last_error', msg); } catch (_) {}
+}
+function clearPersistedError() {
+  try { sessionStorage.removeItem('lexflow_last_error'); } catch (_) {}
+}
+// Show any error that survived a page refresh
+(function showPersistedError() {
+  try {
+    const msg = sessionStorage.getItem('lexflow_last_error');
+    if (msg) {
+      clearPersistedError();
+      // Delay to let page render first
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#be123c;color:#fff;padding:12px 24px;border-radius:8px;font-size:0.9rem;font-weight:600;z-index:999999;box-shadow:0 4px 16px rgba(0,0,0,0.3);max-width:90vw;word-break:break-word;';
+        el.textContent = '⚠ Previous error: ' + msg;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 8000);
+      }, 800);
+    }
+  } catch (_) {}
+})();
+
 const currentUser = safeParse(localStorage.getItem('currentUser'), null);
 const userRole =
   (currentUser && currentUser.role) ||
@@ -48,26 +73,10 @@ const CURRENT_CASE_ID =
 (function () {
   "use strict";
 
-  const LS_DELETED = "lexflow_deleted_ids";
-  const LS_UPLOADS = "lexflow_uploaded_docs";
-  const LS_UPDATES = "lexflow_updated_docs";
-  const LS_ACTIVITY = "lexflow_activity_log";
-  const LS_DOCS_INDEX = "lexflow_documents";
   const USERS_JSON_PATH = "../data/docs.json";
 
-  function lsGet(key, fallback) {
-    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
-    catch { return fallback; }
-  }
-  function lsSet(key, val) {
-    try { localStorage.setItem(key, JSON.stringify(val)); }
-    catch (e) { console.warn("LS write failed", e); }
-  }
-
-  let deletedIds = new Set(lsGet(LS_DELETED, []));
-  let uploadedDocs = lsGet(LS_UPLOADS, []);
-  let updatedMap = lsGet(LS_UPDATES, {});
-  let activityLog = lsGet(LS_ACTIVITY, []);
+  // In-memory activity log — not persisted to localStorage
+  let activityLog = [];
 
   const styleEl = document.createElement("style");
   styleEl.textContent = `
@@ -300,32 +309,11 @@ const CURRENT_CASE_ID =
   `;
   document.head.appendChild(styleEl);
 
-  function waitForCasesStorage(maxWait = 5000) {
-    return new Promise((resolve, reject) => {
-      const start = Date.now();
-      const checkInterval = setInterval(() => {
-        if (window.LexFlowCasesStorage) {
-          clearInterval(checkInterval);
-          resolve(window.LexFlowCasesStorage);
-        } else if (Date.now() - start > maxWait) {
-          clearInterval(checkInterval);
-          reject(new Error("cases-storage.js did not load in time"));
-        }
-      }, 50);
-    });
-  }
 
   async function bootApp() {
     try {
-      let casesStorageUsers = [];
-      try {
-        const casesStorage = await waitForCasesStorage(2000);
-        casesStorageUsers = await casesStorage.getUsers();
-      } catch (e) {
-        const usersJson = localStorage.getItem('lexflow_users');
-        casesStorageUsers = usersJson ? JSON.parse(usersJson) : [];
-      }
-
+      // Load static metadata (users, cases, firms) from docs.json.
+      // Documents themselves come from the backend API.
       let fullDb = null;
       try {
         const resp = await fetch(USERS_JSON_PATH);
@@ -334,47 +322,33 @@ const CURRENT_CASE_ID =
         console.warn("Could not fetch docs.json:", e);
       }
 
-      const mergedUsers = [...casesStorageUsers];
-      if (fullDb && Array.isArray(fullDb.users)) {
-        const existingEmails = new Set(mergedUsers.map(u => u.email));
-        fullDb.users.forEach(u => {
-          if (!existingEmails.has(u.email)) mergedUsers.push(u);
-        });
-      }
-
+      // Merge the logged-in user from localStorage into the user list
+      // so the page works even if they're not in docs.json yet.
+      const users = (fullDb && fullDb.users) ? [...fullDb.users] : [];
       const localUser = safeParse(localStorage.getItem('currentUser'), null);
       if (localUser && localUser.email) {
-        const exists = mergedUsers.find(u => u.email === localUser.email);
-        if (!exists) mergedUsers.push(localUser);
+        const exists = users.find(u => u.email === localUser.email);
+        if (!exists) users.push(localUser);
       }
 
       const db = {
-        users: mergedUsers,
+        users,
         cases: (fullDb && fullDb.cases) || [],
-        documents: (fullDb && fullDb.documents) || [],
+        documents: [], // not used — docs come from backend API
         firms: (fullDb && fullDb.firms) || [],
       };
 
-      init(db);
+      await init(db);
     } catch (err) {
       console.error("bootApp() FAILED:", err);
-      if (typeof toast === 'function') {
-        toast(`Failed: ${err.message}`, "error");
-      } else {
-        setTimeout(() => alert("Failed to load documents:\n" + err.message), 100);
-      }
+      toast(`Failed to boot: ${err.message}`, "error");
     }
   }
 
   bootApp();
 
-  function init(db) {
-    if (!db.users || !db.cases || !db.documents || !db.firms) {
-      toast("Document data is missing required fields.", "error");
-      return;
-    }
-
-    // Resolve current user
+  async function init(db) {
+    // Resolve current user from localStorage auth only
     let CURRENT_USER = null;
     const localUser = safeParse(localStorage.getItem('currentUser'), null);
     if (localUser && localUser.email) {
@@ -442,59 +416,52 @@ const CURRENT_CASE_ID =
       }
     }
 
-    // Resolve document access
-    let userCaseDocIds = null;
+    // ── Document access resolution ───────────────────────────────────────
+    // lawfirm_admin for their own case: backend is source of truth — no ID allowlist.
+    // Everyone else: filter by their explicit caseAccess list from docs.json.
+    const isFullAccess =
+      ROLE === "lawfirm_admin" &&
+      CURRENT_FIRM &&
+      CURRENT_CASE.firmId === CURRENT_FIRM.id;
 
-    if (ROLE === "lawfirm_admin" && CURRENT_FIRM && CURRENT_CASE.firmId === CURRENT_FIRM.id) {
-      userCaseDocIds = db.documents
-        .filter(d => d.caseId === CURRENT_CASE_ID)
-        .map(d => d.id);
-    } else if (userHasExplicitCaseAccess) {
-      userCaseDocIds = CURRENT_USER.caseAccess[CURRENT_CASE_ID];
-    } else if (ROLE === "client") {
-      // FIX: clients without explicit caseAccess entry still get access denied properly
-      renderAccessDenied(
-        `You do not have document access to ${CURRENT_CASE_ID}. Contact your firm administrator to request access.`,
-        "NO_DOC_ACCESS"
-      );
-      renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
-      return;
+    if (!isFullAccess) {
+      if (!userHasExplicitCaseAccess) {
+        renderAccessDenied(
+          `You do not have document access to ${CURRENT_CASE_ID}. Contact your firm administrator to request access.`,
+          "NO_DOC_ACCESS"
+        );
+        renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
+        return;
+      }
     }
 
-    if (!userCaseDocIds || userCaseDocIds.length === 0) {
-      renderAccessDenied(
-        `You do not have document access to ${CURRENT_CASE_ID}. Contact your firm administrator to request access.`,
-        "NO_DOC_ACCESS"
-      );
-      renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
-      return;
+    const allowedIds = isFullAccess
+      ? null  // null = no filter, admin sees all
+      : new Set(CURRENT_USER.caseAccess[CURRENT_CASE_ID] || []);
+
+    let docsData = [];
+    try {
+      const resp = await fetch(`http://localhost:3000/documents?caseId=${CURRENT_CASE_ID}`, {
+        headers: {
+          'role': ROLE,
+          'x-user-email': CURRENT_USER_EMAIL,
+        }
+      });
+      if (resp.ok) {
+        const allDocs = await resp.json();
+        docsData = allowedIds === null
+          ? allDocs
+          : allDocs.filter(d => allowedIds.has(d.id) || d.uploaderEmail === CURRENT_USER_EMAIL);
+      } else {
+        console.error("Failed to fetch documents from backend", resp.status, await resp.text());
+        toast(`Failed to load documents (HTTP ${resp.status})`, "error");
+      }
+    } catch (e) {
+      console.error("Backend fetch error", e);
+      toast("Cannot reach backend — is the server running?", "error");
     }
 
-    localStorage.setItem("lexflow_active_email", CURRENT_USER_EMAIL);
-    localStorage.setItem("lexflow_active_firm", CURRENT_USER.firmId || "");
 
-    const LS_USER_UPLOADS = `lexflow_user_uploads_${CURRENT_USER.id}`;
-    let userUploadIds = new Set(lsGet(LS_USER_UPLOADS, []));
-
-    const allowedIds = new Set(userCaseDocIds);
-
-    let docsData = db.documents
-      .filter(d =>
-        d.caseId === CURRENT_CASE_ID &&
-        allowedIds.has(d.id) &&
-        !deletedIds.has(d.id)
-      )
-      .map(d => updatedMap[d.id] ? { ...d, ...updatedMap[d.id] } : { ...d });
-
-    // FIX: Also include uploaded docs for THIS case (not just CASE-45)
-    const extraUploads = uploadedDocs.filter(d =>
-      d.caseId === CURRENT_CASE_ID &&
-      !deletedIds.has(d.id) &&
-      (userUploadIds.has(d.id) || d.uploaderEmail === CURRENT_USER.email)
-    ).map(d => updatedMap[d.id] ? { ...d, ...updatedMap[d.id] } : { ...d });
-
-    const seen = new Set(docsData.map(d => d.id));
-    extraUploads.forEach(d => { if (!seen.has(d.id)) { docsData.push(d); seen.add(d.id); } });
 
     const PERMS = {
       canView: true,
@@ -521,8 +488,7 @@ const CURRENT_CASE_ID =
         access: doc.access,
       };
       activityLog.unshift(entry);
-      if (activityLog.length > 500) activityLog = activityLog.slice(0, 500);
-      lsSet(LS_ACTIVITY, activityLog);
+      if (activityLog.length > 100) activityLog = activityLog.slice(0, 100);
       refreshSidePanelActivity();
     }
 
@@ -594,48 +560,6 @@ const CURRENT_CASE_ID =
       d.textContent = str || "";
       return d.innerHTML;
     }
-    function nextDocId() {
-      const allKnownIds = [...db.documents, ...uploadedDocs]
-        .map(d => parseInt((d.id || "").replace("DOC-", ""), 10))
-        .filter(n => !isNaN(n));
-      const maxId = allKnownIds.length ? Math.max(...allKnownIds) : 210;
-      return "DOC-" + (maxId + 1);
-    }
-
-    function syncSharedDocumentsIndex() {
-      const baseDocs = db.documents
-        .filter(d => !deletedIds.has(d.id))
-        .map(d => updatedMap[d.id] ? { ...d, ...updatedMap[d.id] } : { ...d });
-
-      const uploadDocs = uploadedDocs
-        .filter(d => !deletedIds.has(d.id))
-        .map(d => updatedMap[d.id] ? { ...d, ...updatedMap[d.id] } : { ...d });
-
-      const merged = [...baseDocs];
-      const seen = new Set(merged.map(d => d.id));
-      uploadDocs.forEach((d) => {
-        if (!seen.has(d.id)) { merged.push(d); seen.add(d.id); }
-      });
-
-      const normalized = merged.map((d) => {
-        const caseMeta = db.cases.find((c) => c.id === d.caseId) || {};
-        return {
-          id: d.id,
-          caseId: d.caseId || "",
-          caseCnr: d.caseCnr || d.caseId || "",
-          caseTitle: caseMeta.title || d.caseTitle || "",
-          court: caseMeta.court || d.court || "",
-          name: d.name,
-          type: d.type,
-          date: d.date,
-          status: d.status || "Reviewing",
-          access: d.access || "PRIVATE",
-        };
-      });
-
-      lsSet(LS_DOCS_INDEX, normalized);
-    }
-
     function refreshTypeSelect() {
       const allTypes = [...new Set(docsData.map(d => d.type).filter(Boolean))].sort();
       typeSelect.innerHTML = `<option>All Types</option>` +
@@ -803,7 +727,7 @@ const CURRENT_CASE_ID =
     });
 
     let _pendingDeleteId = null;
-    delOverlay.querySelector(".delete-btn").addEventListener("click", () => {
+    delOverlay.querySelector(".delete-btn").addEventListener("click", async () => {
       const idx = docsData.findIndex(d => d.id === _pendingDeleteId);
       if (idx !== -1) {
         const doc = docsData[idx];
@@ -811,16 +735,30 @@ const CURRENT_CASE_ID =
           toast("You do not have permission to delete documents.", "error");
           delOverlay.classList.remove("active"); _pendingDeleteId = null; return;
         }
-        deletedIds.add(doc.id);
-        lsSet(LS_DELETED, [...deletedIds]);
-        uploadedDocs = uploadedDocs.filter(d => d.id !== doc.id);
-        lsSet(LS_UPLOADS, uploadedDocs);
-        if (doc.blobUrl) { try { URL.revokeObjectURL(doc.blobUrl); } catch (_) { } }
-        logActivity("deleted", doc);
-        docsData.splice(idx, 1);
-        syncSharedDocumentsIndex();
-        render();
-        toast(`🗑 ${doc.name} deleted`);
+
+        try {
+          const resp = await fetch(`http://localhost:3000/documents/${doc.id}`, {
+            method: "DELETE",
+            headers: {
+              "role": ROLE,
+              "x-user-email": CURRENT_USER_EMAIL
+            }
+          });
+          
+          if (!resp.ok) {
+            toast("Delete failed", "error");
+            delOverlay.classList.remove("active"); _pendingDeleteId = null; return;
+          }
+          
+          if (doc.blobUrl) { try { URL.revokeObjectURL(doc.blobUrl); } catch (_) { } }
+          logActivity("deleted", doc);
+          docsData.splice(idx, 1);
+          render();
+          toast(`🗑 ${doc.name} deleted`);
+        } catch (e) {
+          console.error(e);
+          toast("Delete request failed", "error");
+        }
       }
       delOverlay.classList.remove("active");
       _pendingDeleteId = null;
@@ -938,7 +876,11 @@ const CURRENT_CASE_ID =
       document.body.style.overflow = "";
       _updDoc = _updFile = null;
     }
-    updateOverlay.querySelector(".upd-save").addEventListener("click", () => {
+    const updSaveBtn = updateOverlay.querySelector(".upd-save");
+    updSaveBtn.setAttribute('type', 'button');
+    updSaveBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       if (!_updDoc) return;
       if (!PERMS.canUpdate) { toast("You do not have permission to update documents.", "error"); return; }
       const newName = updateOverlay.querySelector(".upd-name").value.trim();
@@ -954,24 +896,49 @@ const CURRENT_CASE_ID =
       }
 
       if (_updDoc.blobUrl) { try { URL.revokeObjectURL(_updDoc.blobUrl); } catch (_) { } }
-      const patch = {
-        name: newName,
-        access: newAccess,
-        date: new Date().toISOString().split("T")[0],
-        blobUrl: URL.createObjectURL(_updFile),
-        fileType: (_updFile.name.split(".").pop() || "BIN").toUpperCase().slice(0, 3),
-        version: (_updDoc.version || 1) + 1,
-      };
-      Object.assign(_updDoc, patch);
-      updatedMap[_updDoc.id] = { ...(updatedMap[_updDoc.id] || {}), ...patch };
-      lsSet(LS_UPDATES, updatedMap);
-      const ui = uploadedDocs.findIndex(d => d.id === _updDoc.id);
-      if (ui !== -1) { uploadedDocs[ui] = { ...uploadedDocs[ui], ...patch }; lsSet(LS_UPLOADS, uploadedDocs); }
-      logActivity("updated", _updDoc);
-      syncSharedDocumentsIndex();
-      closeUpdateModal();
-      render();
-      toast(`✓ ${_updDoc.name} updated to v${_updDoc.version ?? 1}`);
+      const patchFormData = new FormData();
+      patchFormData.append('name', newName);
+      patchFormData.append('access', newAccess);
+      patchFormData.append('version', (_updDoc.version || 1) + 1);
+      patchFormData.append('file', _updFile);
+
+      updSaveBtn.disabled = true;
+      const origText = updSaveBtn.textContent;
+      updSaveBtn.textContent = 'Saving...';
+
+      try {
+        const resp = await fetch(`http://localhost:3000/documents/${_updDoc.id}`, {
+          method: "PATCH",
+          headers: {
+            "role": ROLE,
+            "x-user-email": CURRENT_USER_EMAIL
+          },
+          body: patchFormData
+        });
+        
+        if (!resp.ok) {
+          let errMsg = `Update failed (HTTP ${resp.status})`;
+          try { const errBody = await resp.json(); errMsg += `: ${errBody.message || JSON.stringify(errBody)}`; } catch (_) {}
+          toast(errMsg, "error");
+          updSaveBtn.disabled = false;
+          updSaveBtn.textContent = origText;
+          return;
+        }
+        const updatedDoc = await resp.json();
+        updatedDoc.blobUrl = URL.createObjectURL(_updFile);
+        updatedDoc.fileType = (_updFile.name.split(".").pop() || "BIN").toUpperCase().slice(0, 3);
+        
+        Object.assign(_updDoc, updatedDoc);
+        logActivity("updated", _updDoc);
+        closeUpdateModal();
+        render();
+        toast(`✓ ${_updDoc.name} updated to v${_updDoc.version ?? 1}`);
+      } catch (e) {
+        console.error('Update error:', e);
+        toast(`Update failed: ${e.message}`, "error");
+        updSaveBtn.disabled = false;
+        updSaveBtn.textContent = origText;
+      }
     });
     // Sort Dropdown
     const sortOpts = [
@@ -1234,45 +1201,70 @@ const CURRENT_CASE_ID =
     }
 
     if (submitBtn) {
-      submitBtn.addEventListener("click", () => {
+      submitBtn.setAttribute('type', 'button');
+      submitBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
         if (!selectedFile) { toast("Please select a file to upload.", "error"); return; }
 
         const typeVal = allSelects[0] ? allSelects[0].value : "CONTRACT";
+        const fileExt = (selectedFile.name.split(".").pop() || "BIN").toUpperCase().slice(0, 3);
+        
+        const formData = new FormData();
+        formData.append('name', selectedFile.name);
+        formData.append('caseId', CURRENT_CASE_ID);
+        formData.append('type', typeVal.toUpperCase());
+        formData.append('fileType', fileExt);
+        formData.append('access', "PRIVATE");
+        formData.append('version', 1);
+        formData.append('file', selectedFile);
 
-        const newDocMeta = {
-          id: nextDocId(),
-          name: selectedFile.name,
-          filePath: null,
-          blobUrl: null,
-          // FIX: Use CURRENT_CASE_ID so uploads work for any case, not just CASE-45
-          caseId: CURRENT_CASE_ID,
-          type: typeVal.toUpperCase(),
-          fileType: (selectedFile.name.split(".").pop() || "BIN").toUpperCase().slice(0, 3),
-          uploader: CURRENT_USER.name,
-          uploaderEmail: CURRENT_USER.email,
-          firmId: CURRENT_USER.firmId || null,
-          date: new Date().toISOString().split("T")[0],
-          version: 1,
-          access: "PRIVATE",
-          iconColor: "green",
-        };
+        // Disable button during upload to prevent double-click
+        submitBtn.disabled = true;
+        const origText = submitBtn.textContent;
+        submitBtn.textContent = 'Uploading...';
 
-        uploadedDocs.unshift(newDocMeta);
-        lsSet(LS_UPLOADS, uploadedDocs);
-
-        userUploadIds.add(newDocMeta.id);
-        lsSet(LS_USER_UPLOADS, [...userUploadIds]);
-
-        const sessionDoc = { ...newDocMeta, blobUrl: URL.createObjectURL(selectedFile) };
-        docsData.unshift(sessionDoc);
-
-        logActivity("uploaded", sessionDoc);
-        syncSharedDocumentsIndex();
-
-        closeModal();
-        refreshTypeSelect();
-        render();
-        toast(`✓ ${selectedFile.name} uploaded successfully`);
+        try {
+          const resp = await fetch("http://localhost:3000/documents", {
+            method: "POST",
+            headers: {
+              "role": ROLE,
+              "x-user-email": CURRENT_USER_EMAIL
+            },
+            body: formData
+          });
+          
+          if (!resp.ok) {
+            let errMsg = `Upload failed (HTTP ${resp.status})`;
+            try { const errBody = await resp.json(); errMsg += `: ${errBody.message || JSON.stringify(errBody)}`; } catch (_) {}
+            toast(errMsg, "error");
+            persistError(errMsg);
+            submitBtn.disabled = false;
+            submitBtn.textContent = origText;
+            return;
+          }
+          const createdDoc = await resp.json();
+          const uploadedFileName = selectedFile.name; // capture before closeModal() nulls selectedFile
+          createdDoc.blobUrl = URL.createObjectURL(selectedFile);
+          
+          docsData.unshift(createdDoc);
+          logActivity("uploaded", createdDoc);
+          
+          closeModal();
+          submitBtn.disabled = false;
+          submitBtn.textContent = origText;
+          refreshTypeSelect();
+          render();
+          toast(`✓ ${uploadedFileName} uploaded successfully`);
+        } catch (e) {
+          const errMsg = `Upload failed: ${e.message}`;
+          console.error('Upload error:', e);
+          persistError(errMsg);
+          toast(errMsg, "error");
+          submitBtn.disabled = false;
+          submitBtn.textContent = origText;
+        }
       });
     }
 
@@ -1320,7 +1312,6 @@ const CURRENT_CASE_ID =
     // Boot
     refreshTypeSelect();
     syncViewIcons();
-    syncSharedDocumentsIndex();
     render();
     refreshSidePanelActivity();
 

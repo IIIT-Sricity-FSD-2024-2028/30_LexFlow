@@ -9,7 +9,6 @@ import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
-                           //   available to ALL modules without explicit imports
     UsersModule,
     ConsultationsModule,
     CasesModule,

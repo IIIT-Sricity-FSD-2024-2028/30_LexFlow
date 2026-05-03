@@ -1,139 +1,98 @@
-# LexFlow
+<p align="center">
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+</p>
 
-## Unified Digital Platform for Legal Consultation and Law Firm ERP
+[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
+[circleci-url]: https://circleci.com/gh/nestjs/nest
 
-### Problem Statement
+  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
+    <p align="center">
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
+<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
+<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
+<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
+<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
+  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
+    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
+  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+</p>
+  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
+  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-The legal industry in India largely relies on manual and fragmented systems for managing client consultations, case preparation, hearing schedules, document handling, and billing. Most law firms use physical diaries, paper files, emails, and informal communication tools such as WhatsApp for daily operations.
+## Description
 
-In real practice, clients usually approach a law firm rather than individual lawyers. The firm then assigns an available and suitable lawyer based on workload and expertise. This allocation process is mostly handled manually, which often leads to inefficiencies, delays, missed hearings, misplaced documents, and poor coordination among legal staff.
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
-Due to the absence of a centralized digital system, maintaining complete communication history, tracking case progress, and managing billing records becomes difficult. Important context from meetings and client interactions is often lost, especially when lawyers are changed or when interns handle initial communication.
+## Project setup
 
-Document collection is also inefficient, as clients frequently forget to submit required documents. Payment tracking is inconsistent, making it difficult for both clients and firm administrators to maintain financial transparency.
+```bash
+$ npm install
+```
 
-This project proposes a Unified Digital Platform that onboards law firms and digitizes their internal workflows. Clients interact with law firms through the platform, while firms manage lawyer allocation, case handling, communication, documentation, and billing in a secure and centralized environment.
+## Compile and run the project
 
-### System-Wide Features
+```bash
+# development
+$ npm run start
 
-#### Interaction Summary System
-- Automatic or manual meeting summaries  
-- Context preservation across staff changes  
-- Historical interaction timeline  
-- Searchable case discussions  
-- Centralized case notes repository  
+# watch mode
+$ npm run start:dev
 
-#### Document Requirement Management
-- Custom document checklist for each case  
-- Mandatory document fields  
-- Upload reminders and notifications  
-- Submission status tracking  
-- Version control for uploaded files  
+# production mode
+$ npm run start:prod
+```
 
-#### Confidentiality & Access Control
-- Limited intern access  
-- Restricted document visibility  
-- Role-based permissions  
-- Audit logs for data access  
-- Encryption for chats and files
-- Secure authentication mechanisms  
+## Run tests
 
-#### Unified Payment Management
-- Centralized payment dashboard  
-- Client-visible payment history  
-- Firm-level financial overview  
-- Invoice and receipt generation  
-- Payment status tracking  
+```bash
+# unit tests
+$ npm run test
 
----
+# e2e tests
+$ npm run test:e2e
 
-### Expected Outcomes
+# test coverage
+$ npm run test:cov
+```
 
-After implementation, the proposed platform is expected to:
+## Deployment
 
-- Reduce dependency on manual records and paper files  
-- Minimize document loss and scheduling errors  
-- Preserve communication context across all interactions  
-- Improve coordination among lawyers, interns, and admins  
-- Ensure transparent financial management  
-- Enhance client experience through digital accessibility  
-- Support long-term digital transformation of law firms  
-- Improve operational efficiency and accountability  
+When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 
----
+If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
 
-### Identified Actors
+```bash
+$ npm install -g @nestjs/mau
+$ mau deploy
+```
 
-| Actor / Role   | Description                                                                  |
-|---------------|------------------------------------------------------------------------------|
-| Client         | Individuals or organizations seeking legal services through registered firms |
-| Lawyer         | Legal professionals assigned by firms to handle consultations and cases      |
-| Clerk / Intern | Assists lawyers with documentation, scheduling, and case preparation         |
-| Firm Admin     | Manages users, lawyer allocation, billing, and firm-level operations          |
+With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
 
----
+## Resources
 
-### Planned Features for Each Actor
+Check out a few resources that may come in handy when working with NestJS:
 
-#### Client
+- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
+- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
+- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
+- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
+- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
+- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
+- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
+- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
 
-- Register and manage personal profile  
-- Select and approach registered law firms  
-- Submit consultation requests  
-- Fill structured forms with required document fields  
-- Upload mandatory and optional documents  
-- View pending document checklist  
-- Schedule online or in-person meetings  
-- Communicate securely with assigned staff  
-- Access meeting summaries and case updates  
-- View case status and hearing schedules  
-- Make online payments  
-- View complete payment history and invoices  
+## Support
 
----
+Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
 
-#### Lawyer
+## Stay in touch
 
-- View assigned consultations and cases  
-- Access complete communication history  
-- View meeting summaries and interaction logs  
-- Add post-meeting case notes and summaries  
-- Review intern-client interaction records  
-- Manage case progress and documentation  
-- Track document submission status  
-- View hearing schedules and cause list updates  
-- Communicate securely with clients and staff  
-- Track tasks and deadlines  
+- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
+- Website - [https://nestjs.com](https://nestjs.com/)
+- Twitter - [@nestframework](https://twitter.com/nestframework)
 
----
+## License
 
-#### Clerk / Intern
-
-- Assist in client onboarding  
-- Collect and verify required documents  
-- Prepare and upload draft documents  
-- Maintain interaction records  
-- Add meeting notes under supervision  
-- Update hearing schedules  
-- Manage document versions  
-- Work under restricted access permissions  
-- Follow confidentiality policies  
-- Support lawyers in case preparation  
-
----
-
-#### Firm Admin
-
-- Onboard and manage law firm profile  
-- Approve and manage user accounts  
-- Assign lawyers based on availability  
-- Monitor lawyer workload  
-- Control intern access levels  
-- Define confidentiality policies  
-- Monitor communication logs  
-- Handle lawyer changes with full context transfer  
-- View complete payment and billing records  
-- Track firm-wide financial data  
-- Configure billing structures  
-- Manage role-based permissions  
-
+Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).

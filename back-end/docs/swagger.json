@@ -28,6 +28,7 @@
                 "client",
                 "lawyer",
                 "intern",
+                "firm",
                 "firmadmin",
                 "superadmin"
               ],
@@ -69,7 +70,7 @@
       "post": {
         "operationId": "UsersController_create",
         "summary": "Create a new user",
-        "description": "Creates a new user with the specified role (client, lawyer, intern, firmadmin, superadmin). Only firmadmins/superadmins can create users.",
+        "description": "Creates a new user with the specified role (client, lawyer, intern, firm, firmadmin, superadmin). Only firmadmins/superadmins can create users.",
         "parameters": [
           {
             "name": "role",
@@ -81,6 +82,7 @@
                 "client",
                 "lawyer",
                 "intern",
+                "firm",
                 "firmadmin",
                 "superadmin"
               ],
@@ -135,6 +137,7 @@
                 "client",
                 "lawyer",
                 "intern",
+                "firm",
                 "firmadmin",
                 "superadmin"
               ],
@@ -151,6 +154,7 @@
                 "client",
                 "lawyer",
                 "intern",
+                "firm",
                 "firmadmin",
                 "superadmin"
               ],
@@ -181,6 +185,40 @@
         ]
       }
     },
+    "/users/firms/all": {
+      "get": {
+        "operationId": "UsersController_getAllFirms",
+        "summary": "Get all registered law firms",
+        "description": "Retrieve a list of all business entities (Firms).",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of firms"
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/users/{id}": {
       "get": {
         "operationId": "UsersController_findOne",
@@ -197,6 +235,7 @@
                 "client",
                 "lawyer",
                 "intern",
+                "firm",
                 "firmadmin",
                 "superadmin"
               ],
@@ -232,6 +271,918 @@
         },
         "tags": [
           "users"
+        ]
+      }
+    },
+    "/users/firm-onboarding/start": {
+      "post": {
+        "operationId": "UsersController_startFirmOnboarding",
+        "summary": "Start firm onboarding",
+        "description": "Initialize firm onboarding session",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Onboarding session started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/firm-onboarding/step1/{sessionId}": {
+      "post": {
+        "operationId": "UsersController_submitStep1",
+        "summary": "Firm onboarding step 1",
+        "description": "Submit firm basic information (name, address, contact)",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirmOnboardingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Step 1 completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "step": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/firm-onboarding/step2/{sessionId}": {
+      "post": {
+        "operationId": "UsersController_submitStep2",
+        "summary": "Firm onboarding step 2",
+        "description": "Submit firm contact details (email, phone, website)",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirmOnboardingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Step 2 completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "step": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/firm-onboarding/step3/{sessionId}": {
+      "post": {
+        "operationId": "UsersController_submitStep3",
+        "summary": "Firm onboarding step 3 (final)",
+        "description": "Complete onboarding by setting up the firm admin account",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirmOnboardingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Firm and admin account created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirmOnboardingResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or incomplete onboarding"
+          }
+        },
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/consultations/workflow-bookings": {
+      "get": {
+        "operationId": "ConsultationsController_getWorkflowBookings",
+        "summary": "Get clients who booked via the search/discovery workflow",
+        "description": "Returns a list of all consultations that were created through the client-facing law firm search and booking flow. Only firmadmin and superadmin can access this.",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of workflow booking records"
+          },
+          "403": {
+            "description": "Forbidden – insufficient role"
+          }
+        },
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/consultations/my": {
+      "get": {
+        "operationId": "ConsultationsController_getMyConsultations",
+        "summary": "Get the calling client's consultations",
+        "description": "Returns all consultations for the client identified by the x-client-id header. Only the client role may call this endpoint.",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-client-id",
+            "required": true,
+            "in": "header",
+            "description": "The ID of the authenticated client (e.g. \"user-2\")",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of consultations for this client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConsultationResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing x-client-id header"
+          },
+          "403": {
+            "description": "Forbidden – non-client role"
+          }
+        },
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/consultations": {
+      "get": {
+        "operationId": "ConsultationsController_findAll",
+        "summary": "Get all consultations (firmadmin / lawyer / superadmin)",
+        "description": "Returns all consultations. Supports optional query filters: clientId, firmId, status, lawyerId.",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "clientId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by client ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "firmId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by firm ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by consultation status",
+            "schema": {
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "SCHEDULED",
+                "IN PROGRESS",
+                "COMPLETED",
+                "CANCELLED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "lawyerId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by assigned lawyer ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of consultations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConsultationResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden – insufficient role"
+          }
+        },
+        "tags": [
+          "consultations"
+        ]
+      },
+      "post": {
+        "operationId": "ConsultationsController_create",
+        "summary": "Book a new consultation (client only)",
+        "description": "Creates a new consultation request. The initial status is always PENDING, awaiting firm admin review and lawyer assignment. Only clients (and superadmin) may call this.",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConsultationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Consultation created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error – invalid or missing fields"
+          },
+          "403": {
+            "description": "Forbidden – non-client role"
+          }
+        },
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/consultations/{id}": {
+      "get": {
+        "operationId": "ConsultationsController_findOne",
+        "summary": "Get a consultation by ID (all roles)",
+        "description": "Retrieve a single consultation record by its unique ID.",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Consultation ID",
+            "schema": {
+              "example": "CONS-882",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consultation details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "role header missing or invalid"
+          },
+          "404": {
+            "description": "Consultation not found"
+          }
+        },
+        "tags": [
+          "consultations"
+        ]
+      },
+      "patch": {
+        "operationId": "ConsultationsController_update",
+        "summary": "Update a consultation (firmadmin / lawyer)",
+        "description": "Update status, assign a lawyer, reschedule, or add notes. Completed and Cancelled consultations cannot be modified.",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Consultation ID",
+            "schema": {
+              "example": "CONS-910",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConsultationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated consultation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Forbidden – cannot modify terminal-state consultations, or insufficient role"
+          },
+          "404": {
+            "description": "Consultation not found"
+          }
+        },
+        "tags": [
+          "consultations"
+        ]
+      },
+      "delete": {
+        "operationId": "ConsultationsController_remove",
+        "summary": "Delete a consultation record (firmadmin / superadmin)",
+        "description": "Permanently removes a consultation from the system. Use with caution – this action is irreversible.",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Consultation ID to delete",
+            "schema": {
+              "example": "CONS-156",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consultation deleted successfully"
+          },
+          "403": {
+            "description": "Forbidden – insufficient role"
+          },
+          "404": {
+            "description": "Consultation not found"
+          }
+        },
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/consultations/{id}/cancel": {
+      "patch": {
+        "operationId": "ConsultationsController_cancel",
+        "summary": "Cancel a consultation (client / firmadmin)",
+        "description": "Marks the consultation as CANCELLED. Cannot cancel an already-completed consultation.",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | lawyer | firmadmin | intern | superadmin",
+            "required": true,
+            "schema": {
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Consultation ID to cancel",
+            "schema": {
+              "example": "CONS-882",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consultation cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Already cancelled"
+          },
+          "403": {
+            "description": "Cannot cancel completed consultation, or insufficient role"
+          },
+          "404": {
+            "description": "Consultation not found"
+          }
+        },
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/documents": {
+      "post": {
+        "operationId": "DocumentsController_create",
+        "summary": "Create a new document",
+        "parameters": [
+          {
+            "name": "x-user-email",
+            "required": false,
+            "in": "header",
+            "description": "Uploader email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The document has been successfully created."
+          },
+          "403": {
+            "description": "Forbidden."
+          }
+        },
+        "tags": [
+          "documents"
+        ]
+      },
+      "get": {
+        "operationId": "DocumentsController_findAll",
+        "summary": "Get all documents, optionally filter by caseId",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all matching documents."
+          }
+        },
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/documents/{id}": {
+      "get": {
+        "operationId": "DocumentsController_findOne",
+        "summary": "Get a document by id",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the document."
+          },
+          "404": {
+            "description": "Document not found."
+          }
+        },
+        "tags": [
+          "documents"
+        ]
+      },
+      "patch": {
+        "operationId": "DocumentsController_update",
+        "summary": "Update a document",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The document has been successfully updated."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Document not found."
+          }
+        },
+        "tags": [
+          "documents"
+        ]
+      },
+      "delete": {
+        "operationId": "DocumentsController_remove",
+        "summary": "Delete a document",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The document has been successfully deleted."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Document not found."
+          }
+        },
+        "tags": [
+          "documents"
         ]
       }
     },
@@ -757,6 +1708,7 @@
               "client",
               "lawyer",
               "intern",
+              "firm",
               "firmadmin",
               "superadmin"
             ],
@@ -793,6 +1745,7 @@
               "client",
               "lawyer",
               "intern",
+              "firm",
               "firmadmin",
               "superadmin"
             ],
@@ -808,25 +1761,10 @@
             "type": "string",
             "description": "Phone number"
           },
-          "addressLine1": {
+          "firmId": {
             "type": "string",
-            "description": "Address line 1"
-          },
-          "addressLine2": {
-            "type": "string",
-            "description": "Address line 2"
-          },
-          "city": {
-            "type": "string",
-            "description": "City"
-          },
-          "state": {
-            "type": "string",
-            "description": "State"
-          },
-          "pinCode": {
-            "type": "string",
-            "description": "Pin / ZIP code"
+            "description": "Associated firm ID (for FIRMADMIN, LAWYER, INTERN roles)",
+            "example": "firm-1"
           }
         },
         "required": [
@@ -857,6 +1795,7 @@
               "client",
               "lawyer",
               "intern",
+              "firm",
               "firmadmin",
               "superadmin"
             ],
@@ -871,26 +1810,6 @@
             "type": "string",
             "description": "Phone number",
             "example": "+91-9876543210"
-          },
-          "addressLine1": {
-            "type": "string",
-            "description": "Address line 1"
-          },
-          "addressLine2": {
-            "type": "string",
-            "description": "Address line 2"
-          },
-          "city": {
-            "type": "string",
-            "description": "City"
-          },
-          "state": {
-            "type": "string",
-            "description": "State"
-          },
-          "pinCode": {
-            "type": "string",
-            "description": "Pin / ZIP code"
           }
         },
         "required": [
@@ -899,6 +1818,445 @@
           "role",
           "password"
         ]
+      },
+      "FirmOnboardingDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "description": "Full name of the primary contact person",
+            "example": "Amit Sharma"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address of the primary contact",
+            "example": "amit.sharma@example.in"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number (10 digits)",
+            "example": "9876543210"
+          },
+          "street": {
+            "type": "string",
+            "description": "Street address",
+            "example": "21, Connaught Place"
+          },
+          "city": {
+            "type": "string",
+            "description": "City name",
+            "example": "New Delhi"
+          },
+          "state": {
+            "type": "string",
+            "description": "State name",
+            "example": "Delhi"
+          },
+          "pinCode": {
+            "type": "string",
+            "description": "PIN / Zip Code",
+            "example": "110001"
+          },
+          "logo": {
+            "type": "string",
+            "description": "Firm logo (base64 or file path)"
+          },
+          "primaryEmail": {
+            "type": "string",
+            "description": "Primary email for firm operations",
+            "example": "contact@firm.com"
+          },
+          "website": {
+            "type": "string",
+            "description": "Firm website URL",
+            "example": "https://www.yourfirm.com"
+          },
+          "adminName": {
+            "type": "string",
+            "description": "Admin full name",
+            "example": "Rahul Verma"
+          },
+          "adminEmail": {
+            "type": "string",
+            "description": "Admin email address",
+            "example": "rahul.verma@lawfirm.in"
+          },
+          "password": {
+            "type": "string",
+            "description": "Admin password (minimum 8 characters)",
+            "example": "SecurePass@123"
+          },
+          "confirmPassword": {
+            "type": "string",
+            "description": "Confirm password",
+            "example": "SecurePass@123"
+          }
+        }
+      },
+      "FirmOnboardingResponseDto": {
+        "type": "object",
+        "properties": {
+          "firmId": {
+            "type": "string",
+            "description": "Firm ID",
+            "example": "firm-1"
+          },
+          "name": {
+            "type": "string",
+            "description": "Firm name",
+            "example": "Sharma & Associates"
+          },
+          "primaryEmail": {
+            "type": "string",
+            "description": "Primary email",
+            "example": "contact@firm.com"
+          },
+          "adminUserId": {
+            "type": "string",
+            "description": "Admin user ID",
+            "example": "user-5"
+          },
+          "adminEmail": {
+            "type": "string",
+            "description": "Admin email",
+            "example": "rahul.verma@lawfirm.in"
+          },
+          "message": {
+            "type": "string",
+            "description": "Status message",
+            "example": "Firm and admin account created successfully"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Timestamp",
+            "example": "2026-04-30T10:30:00Z"
+          }
+        },
+        "required": [
+          "firmId",
+          "name",
+          "primaryEmail",
+          "adminUserId",
+          "adminEmail",
+          "message",
+          "createdAt"
+        ]
+      },
+      "ConsultationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "CONS-1746123456789"
+          },
+          "clientId": {
+            "type": "string",
+            "example": "user-2"
+          },
+          "clientName": {
+            "type": "string",
+            "example": "Client Alice"
+          },
+          "firmId": {
+            "type": "string",
+            "example": "firm-1"
+          },
+          "firmName": {
+            "type": "string",
+            "example": "Voss & Associates"
+          },
+          "lawyerId": {
+            "type": "string",
+            "example": "user-3"
+          },
+          "lawyerName": {
+            "type": "string",
+            "example": "Lawyer Bob"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "chat",
+              "video",
+              "inperson"
+            ],
+            "example": "video"
+          },
+          "date": {
+            "type": "string",
+            "example": "May 10, 2026"
+          },
+          "time": {
+            "type": "string",
+            "example": "10:30 AM - 11:00 AM"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "SCHEDULED",
+              "IN PROGRESS",
+              "COMPLETED",
+              "CANCELLED"
+            ],
+            "example": "PENDING"
+          },
+          "caseDescription": {
+            "type": "string",
+            "example": "I need advice regarding a property dispute."
+          },
+          "consultationFee": {
+            "type": "string",
+            "example": "$250"
+          },
+          "avatarClass": {
+            "type": "string",
+            "example": "blue"
+          },
+          "bookedViaWorkflow": {
+            "type": "boolean",
+            "example": false
+          },
+          "notes": {
+            "type": "string",
+            "example": "Please bring relevant documents."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-05-03T10:00:00Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-05-03T10:00:00Z"
+          }
+        },
+        "required": [
+          "id",
+          "clientId",
+          "clientName",
+          "firmId",
+          "firmName",
+          "type",
+          "date",
+          "time",
+          "status",
+          "bookedViaWorkflow",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateConsultationDto": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "description": "Unique identifier of the client booking the consultation",
+            "example": "user-2"
+          },
+          "clientName": {
+            "type": "string",
+            "description": "Full name of the client",
+            "example": "Client Alice"
+          },
+          "firmId": {
+            "type": "string",
+            "description": "Identifier of the law firm being consulted",
+            "example": "firm-1"
+          },
+          "firmName": {
+            "type": "string",
+            "description": "Name of the law firm",
+            "example": "Voss & Associates"
+          },
+          "type": {
+            "type": "string",
+            "description": "Consultation type",
+            "enum": [
+              "chat",
+              "video",
+              "inperson"
+            ],
+            "example": "video"
+          },
+          "date": {
+            "type": "string",
+            "description": "Consultation date (e.g., \"May 10, 2026\")",
+            "example": "May 10, 2026"
+          },
+          "time": {
+            "type": "string",
+            "description": "Consultation time slot (e.g., \"10:30 AM - 11:00 AM\")",
+            "example": "10:30 AM - 11:00 AM"
+          },
+          "caseDescription": {
+            "type": "string",
+            "description": "Brief description of the legal case or issue",
+            "example": "I need advice regarding a property dispute with my neighbor."
+          },
+          "lawyerId": {
+            "type": "string",
+            "description": "Lawyer ID assigned to this consultation (set by firm admin)",
+            "example": "user-3"
+          },
+          "lawyerName": {
+            "type": "string",
+            "description": "Name of the assigned lawyer",
+            "example": "Lawyer Bob"
+          },
+          "consultationFee": {
+            "type": "string",
+            "description": "Consultation fee string (e.g., \"$250\")",
+            "example": "$250"
+          },
+          "avatarClass": {
+            "type": "string",
+            "description": "Avatar color class for UI display",
+            "example": "blue"
+          },
+          "bookedViaWorkflow": {
+            "type": "boolean",
+            "description": "Whether this consultation was booked via the client search/discovery workflow",
+            "example": true
+          }
+        },
+        "required": [
+          "clientId",
+          "clientName",
+          "firmId",
+          "firmName",
+          "type",
+          "date",
+          "time"
+        ]
+      },
+      "UpdateConsultationDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "New consultation status",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "SCHEDULED",
+              "IN PROGRESS",
+              "COMPLETED",
+              "CANCELLED"
+            ],
+            "example": "CONFIRMED"
+          },
+          "lawyerId": {
+            "type": "string",
+            "description": "ID of the lawyer being assigned",
+            "example": "user-3"
+          },
+          "lawyerName": {
+            "type": "string",
+            "description": "Name of the assigned lawyer",
+            "example": "Lawyer Bob"
+          },
+          "date": {
+            "type": "string",
+            "description": "Updated consultation date",
+            "example": "May 15, 2026"
+          },
+          "time": {
+            "type": "string",
+            "description": "Updated consultation time slot",
+            "example": "02:00 PM - 03:00 PM"
+          },
+          "type": {
+            "type": "string",
+            "description": "Updated consultation type",
+            "enum": [
+              "chat",
+              "video",
+              "inperson"
+            ]
+          },
+          "caseDescription": {
+            "type": "string",
+            "description": "Updated case description"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes from the firm or lawyer"
+          }
+        }
+      },
+      "CreateDocumentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the document",
+            "example": "Contract.pdf"
+          },
+          "caseId": {
+            "type": "string",
+            "description": "Case ID the document belongs to",
+            "example": "CASE-45"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of document",
+            "example": "CONTRACT"
+          },
+          "fileType": {
+            "type": "string",
+            "description": "File type extension",
+            "example": "PDF"
+          },
+          "access": {
+            "type": "string",
+            "description": "Access level",
+            "enum": [
+              "PRIVATE",
+              "SHARED"
+            ],
+            "example": "PRIVATE"
+          },
+          "version": {
+            "type": "number",
+            "description": "Version number",
+            "example": 1
+          }
+        },
+        "required": [
+          "name",
+          "caseId",
+          "type",
+          "fileType",
+          "access"
+        ]
+      },
+      "UpdateDocumentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the document",
+            "example": "Updated_Contract.pdf"
+          },
+          "access": {
+            "type": "string",
+            "description": "Access level",
+            "enum": [
+              "PRIVATE",
+              "SHARED"
+            ],
+            "example": "SHARED"
+          },
+          "version": {
+            "type": "number",
+            "description": "Version number",
+            "example": 2
+          }
+        }
       },
       "CreateInvoiceDto": {
         "type": "object",
