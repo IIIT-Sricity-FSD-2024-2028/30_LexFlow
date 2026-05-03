@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
-import { SharedDataService } from '../common/shared-data.service';
+import { UsersService } from '../users/users.service';
+import { UserRole } from '../users/dto/create-user.dto';
 
-// ── Exported types (used by billing.controller.ts) ────────────────────────────
+// ── Exported types (referenced by billing.controller.ts) ─────────────────────
 export interface InvoiceRecord {
   id: string;
   clientId: string;
@@ -54,36 +55,29 @@ export class BillingService {
   private invoices: InvoiceRecord[] = [];
   private payments: PaymentRecord[] = [];
 
-  constructor(private readonly sharedData: SharedDataService) {}
+  constructor(private readonly usersService: UsersService) {}
 
   // ── Client dropdown ───────────────────────────────────────────────────────
   /**
-   * Returns clients visible to the caller:
-   *  - FIRM_MANAGER / LAWYER → only clients with the same firmId as the caller
-   *  - SUPER_ADMIN           → all clients across all firms
+   * Returns all users with role=CLIENT for the Create Invoice dropdown.
+   *
+   * TODO (future): once ConsultationsModule is ready, filter by
+   * clients who have a consultation booked with this law firm
+   * (pass callerId and cross-reference consultation records).
    */
-  getClients(callerRole: string, callerId: string): ClientEntry[] {
-    const role = (callerRole || '').toUpperCase().trim();
-    let users;
-
-    if (role === 'SUPER_ADMIN' || role === 'SUPERADMIN') {
-      users = this.sharedData.findUsersByRole('client' as any);
-    } else {
-      // Resolve caller's firmId from SharedDataService
-      const caller = this.sharedData.findUserById(callerId);
-      const firmId = caller?.firmId ?? callerId;
-      users = this.sharedData.findUsersByFirm(firmId, 'client' as any);
-    }
-
-    return users.map((u) => ({ id: u.id, fullName: u.fullName, email: u.email }));
+  getClients(): ClientEntry[] {
+    return this.usersService
+      .findAll(UserRole.CLIENT)
+      .map((u) => ({ id: u.id, fullName: u.fullName, email: u.email }));
   }
 
-  // ── Helper: resolve a client from shared store ────────────────────────────
+  // ── Resolve a client by ID ─────────────────────────────────────────────────
   private resolveClient(clientId: string): ClientEntry {
-    const user = this.sharedData.findUserById(clientId);
-    if (!user || user.role !== ('client' as any)) {
+    const all = this.usersService.findAll(UserRole.CLIENT);
+    const user = all.find((u) => u.id === clientId);
+    if (!user) {
       throw new NotFoundException(
-        `Client "${clientId}" not found or user is not a client.`,
+        `Client "${clientId}" not found. Ensure the user exists and has role=client.`,
       );
     }
     return { id: user.id, fullName: user.fullName, email: user.email };
@@ -119,7 +113,9 @@ export class BillingService {
     }
     if (r === 'LAWYER' && callerName) {
       const n = callerName.trim().toLowerCase();
-      return this.invoices.filter((inv) => inv.advocateName.toLowerCase() === n);
+      return this.invoices.filter(
+        (inv) => inv.advocateName.toLowerCase() === n,
+      );
     }
     return this.invoices;
   }
@@ -177,9 +173,9 @@ export class BillingService {
         overdueAmount = 0, paidCount = 0, overdueCount = 0;
     scoped.forEach((inv) => {
       totalBilled += inv.amount;
-      if (inv.status === 'Paid')        { totalPaid     += inv.amount; paidCount++; }
-      else if (inv.status === 'Pending'){ pendingAmount += inv.amount; }
-      else if (inv.status === 'Overdue'){ overdueAmount += inv.amount; overdueCount++; }
+      if (inv.status === 'Paid')         { totalPaid     += inv.amount; paidCount++; }
+      else if (inv.status === 'Pending') { pendingAmount += inv.amount; }
+      else if (inv.status === 'Overdue') { overdueAmount += inv.amount; overdueCount++; }
     });
     return { totalBilled, totalPaid, pendingAmount, overdueAmount, paidCount, overdueCount };
   }

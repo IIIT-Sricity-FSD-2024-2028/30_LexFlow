@@ -12,13 +12,15 @@ import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { UserRole } from '../users/dto';
+import { RecordPaymentDto } from './dto/record-payment.dto';
 
 interface ApiWrapper<T> { success: boolean; message: string; data: T; }
 const ok = <T>(message: string, data: T): ApiWrapper<T> => ({ success: true, message, data });
 
 @ApiTags('Billing')
-@ApiHeader({ name: 'role', description: 'CLIENT | LAWYER | FIRM_MANAGER | SUPER_ADMIN', required: true })
-@ApiHeader({ name: 'x-user-id', description: 'Logged-in user id (for firm scoping)', required: false })
+@ApiHeader({ name: 'role', description: 'client | lawyer | intern | firmadmin | superadmin', required: true })
+@ApiHeader({ name: 'x-user-id', description: 'Caller user-id (for CLIENT/LAWYER scoped views)', required: false })
 @UseGuards(RolesGuard)
 @Controller('billing')
 export class BillingController {
@@ -26,36 +28,40 @@ export class BillingController {
 
   // GET /billing/clients
   @Get('clients')
-  @Roles('FIRM_MANAGER', 'LAWYER', 'SUPER_ADMIN')
+  @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.SUPERADMIN)
   @ApiOperation({
-    summary: 'Get clients for Create Invoice dropdown',
+    summary: 'Client dropdown for Create Invoice',
     description:
-      'FIRM_MANAGER / LAWYER → only clients belonging to their firm.\n' +
-      'SUPER_ADMIN → all clients across all firms.',
+      'Returns all registered clients.\n\n' +
+      '> **TODO:** Once ConsultationsModule is ready, this will be filtered ' +
+      'to only clients who have a consultation with the calling law firm.',
   })
-  @ApiResponse({ status: 200, description: 'Client list' })
-  getClients(
-    @Headers('role') role: string,
-    @Headers('x-user-id') callerId: string,
-  ): ApiWrapper<ClientEntry[]> {
-    return ok('Clients retrieved successfully', this.billingService.getClients(role, callerId));
+  @ApiResponse({ status: 200, description: 'List of clients' })
+  getClients(): ApiWrapper<ClientEntry[]> {
+    return ok('Clients retrieved successfully', this.billingService.getClients());
   }
 
   // POST /billing/invoices
   @Post('invoices')
   @HttpCode(HttpStatus.CREATED)
-  @Roles('FIRM_MANAGER', 'LAWYER', 'SUPER_ADMIN')
+  @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Create a new invoice' })
   @ApiResponse({ status: 201, description: 'Invoice created' })
-  @ApiResponse({ status: 404, description: 'Client ID not found' })
+  @ApiResponse({ status: 404, description: 'Client ID not found or not a client' })
   createInvoice(@Body() dto: CreateInvoiceDto): ApiWrapper<InvoiceRecord> {
     return ok('Invoice created successfully', this.billingService.createInvoice(dto));
   }
 
   // GET /billing/invoices
   @Get('invoices')
-  @Roles('CLIENT', 'LAWYER', 'FIRM_MANAGER', 'SUPER_ADMIN')
-  @ApiOperation({ summary: 'Get invoices (role-scoped)' })
+  @Roles(UserRole.CLIENT, UserRole.LAWYER, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
+  @ApiOperation({
+    summary: 'Get invoices (role-scoped)',
+    description:
+      'CLIENT → only their own invoices (pass `x-user-id`).\n' +
+      'LAWYER → invoices where they are the advocate (pass `x-user-name`).\n' +
+      'FIRMADMIN / SUPERADMIN → all invoices.',
+  })
   findAllInvoices(
     @Headers('role') role: string,
     @Headers('x-user-id') callerId: string,
@@ -67,7 +73,7 @@ export class BillingController {
 
   // GET /billing/invoices/summary
   @Get('invoices/summary')
-  @Roles('CLIENT', 'LAWYER', 'FIRM_MANAGER', 'SUPER_ADMIN')
+  @Roles(UserRole.CLIENT, UserRole.LAWYER, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Billing summary stats (role-scoped)' })
   getSummary(
     @Headers('role') role: string,
@@ -80,7 +86,7 @@ export class BillingController {
 
   // GET /billing/invoices/:id
   @Get('invoices/:id')
-  @Roles('CLIENT', 'LAWYER', 'FIRM_MANAGER', 'SUPER_ADMIN')
+  @Roles(UserRole.CLIENT, UserRole.LAWYER, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Get single invoice by ID' })
   @ApiParam({ name: 'id', example: 'INV-A1B2C3D4' })
   @ApiResponse({ status: 404, description: 'Invoice not found' })
@@ -90,7 +96,7 @@ export class BillingController {
 
   // PATCH /billing/invoices/:id
   @Patch('invoices/:id')
-  @Roles('FIRM_MANAGER', 'LAWYER', 'SUPER_ADMIN')
+  @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Update an invoice (partial)' })
   @ApiParam({ name: 'id', example: 'INV-A1B2C3D4' })
   updateInvoice(
@@ -103,7 +109,7 @@ export class BillingController {
   // DELETE /billing/invoices/:id
   @Delete('invoices/:id')
   @HttpCode(HttpStatus.OK)
-  @Roles('FIRM_MANAGER', 'SUPER_ADMIN')
+  @Roles(UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Delete an invoice' })
   @ApiParam({ name: 'id', example: 'INV-A1B2C3D4' })
   removeInvoice(@Param('id') id: string): ApiWrapper<null> {
@@ -112,7 +118,7 @@ export class BillingController {
 
   // GET /billing/payments
   @Get('payments')
-  @Roles('CLIENT', 'LAWYER', 'FIRM_MANAGER', 'SUPER_ADMIN')
+  @Roles(UserRole.CLIENT, UserRole.LAWYER, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Get payments (role-scoped)' })
   findAllPayments(
     @Headers('role') role: string,
@@ -124,7 +130,7 @@ export class BillingController {
 
   // GET /billing/payments/invoice/:invoiceId
   @Get('payments/invoice/:invoiceId')
-  @Roles('CLIENT', 'LAWYER', 'FIRM_MANAGER', 'SUPER_ADMIN')
+  @Roles(UserRole.CLIENT, UserRole.LAWYER, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Get payments for a specific invoice' })
   @ApiParam({ name: 'invoiceId', example: 'INV-A1B2C3D4' })
   findPaymentsByInvoice(
@@ -137,14 +143,16 @@ export class BillingController {
   // POST /billing/payments/:invoiceId
   @Post('payments/:invoiceId')
   @HttpCode(HttpStatus.CREATED)
-  @Roles('CLIENT')
-  @ApiOperation({ summary: 'Record a payment (CLIENT only)' })
+  @Roles(UserRole.CLIENT)
+  @ApiOperation({ summary: 'Record a payment — CLIENT only' })
   @ApiParam({ name: 'invoiceId', example: 'INV-A1B2C3D4' })
   recordPayment(
     @Param('invoiceId') invoiceId: string,
-    @Body('paymentMethod') paymentMethod: string,
+    @Body() dto: RecordPaymentDto,
   ): ApiWrapper<PaymentRecord> {
-    return ok('Payment recorded. Invoice marked as Paid.',
-      this.billingService.recordPayment(invoiceId, paymentMethod));
+    return ok(
+      'Payment recorded. Invoice marked as Paid.',
+      this.billingService.recordPayment(invoiceId, dto.paymentMethod),
+    );
   }
 }

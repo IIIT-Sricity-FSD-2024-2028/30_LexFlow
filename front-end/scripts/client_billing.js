@@ -1,166 +1,194 @@
-const billingStorage = window.LexFlowBillingStorage;
-const normalizeInvoices = billingStorage.normalizeInvoices;
-const normalizePayments = billingStorage.normalizePayments;
-const ensureBillingStorage = billingStorage.ensureBillingStorage;
+/**
+ * client_billing.js  —  CLIENT view
+ *
+ * Replaced: all ensureBillingStorage / localStorage calls
+ * Added:    loading skeletons, inline error banner, fetch-based data
+ */
+
+const { fetchInvoices, fetchPayments, fetchSummary } = window.LexFlowBillingStorage;
 const BILLING_TODAY = new Date();
 
+// ── Formatters ────────────────────────────────────────────────────────────────
 function formatDate(value) {
-  return new Date(value).toLocaleDateString("en-IN", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
+  return new Date(value).toLocaleDateString('en-IN', {
+    month: 'short', day: '2-digit', year: 'numeric',
   });
 }
 
 function formatCurrency(value) {
-  return "₹" + value.toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+  return '₹' + Number(value).toLocaleString('en-IN', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
   });
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+// ── Loading / Error helpers ───────────────────────────────────────────────────
+function showTableSkeleton(tbodyId, cols) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  tbody.innerHTML = Array.from({ length: 4 }, () =>
+    `<tr>${Array.from({ length: cols }, () =>
+      `<td><div class="skeleton skeleton-text"></div></td>`).join('')}</tr>`
+  ).join('');
+}
+
+function showError(tbodyId, cols, message) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="${cols}" style="text-align:center; padding:32px; color:#ef4444;">
+        ⚠ ${message}
+      </td>
+    </tr>`;
+}
+
+function showEmpty(tbodyId, cols, message) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="${cols}" style="text-align:center; padding:32px; color:#6b7280;">
+        ${message}
+      </td>
+    </tr>`;
+}
+
+// ── Summary cards ─────────────────────────────────────────────────────────────
+function renderSummaryCards(summary) {
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+  set('valTotalBilled', formatCurrency(summary.totalBilled   ?? 0));
+  set('valTotalPaid',   formatCurrency(summary.totalPaid     ?? 0));
+  set('valPending',     formatCurrency(summary.pendingAmount ?? 0));
+  set('valOverdue',     formatCurrency(summary.overdueAmount ?? 0));
+}
+
+// ── Invoice table ─────────────────────────────────────────────────────────────
+function renderInvoices(invoices, currentFilter, query) {
+  const tbody = document.getElementById('invoicesList');
+  if (!tbody) return;
+
+  const q = (query || '').toLowerCase().trim();
+  const filtered = invoices.filter(inv => {
+    const matchFilter = currentFilter === 'All' || inv.status === currentFilter;
+    const matchSearch =
+      (inv.id || '').toLowerCase().includes(q) ||
+      (inv.caseName || '').toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+
+  if (filtered.length === 0) {
+    showEmpty('invoicesList', 7, 'No invoices found.');
+    return;
+  }
+
+  tbody.innerHTML = '';
+  filtered.forEach(inv => {
+    const badgeClass =
+      inv.status === 'Paid'    ? 'badge-paid'    :
+      inv.status === 'Pending' ? 'badge-pending' : 'badge-overdue';
+
+    const days   = Math.ceil((new Date(inv.dueDate) - BILLING_TODAY) / 86400000);
+    const dueClass =
+      inv.status === 'Paid'    ? 'due-green' :
+      inv.status === 'Overdue' ? 'due-red'   :
+      days <= 14               ? 'due-yellow' : 'due-green';
+
+    const payBtn = inv.status !== 'Paid'
+      ? `<button class="btn-pay-now"
+           onclick="window.location.href='client_billing_pay-now.html?id=${encodeURIComponent(inv.id)}'">
+           Pay Now
+         </button>`
+      : '';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="dt-id">${inv.id}</span></td>
+      <td><div style="font-weight:600;">${inv.caseName || '-'}</div></td>
+      <td style="color:#6b7280;">${inv.advocateName || 'Awaiting Assignment'}</td>
+      <td style="font-weight:700; color:#1a1a2e;">${formatCurrency(inv.amount)}</td>
+      <td><span class="badge-status ${badgeClass}">${inv.status}</span></td>
+      <td class="${dueClass}" style="font-weight:600;">${formatDate(inv.dueDate)}</td>
+      <td class="action-cell">${payBtn}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Payment history table (last 3) ────────────────────────────────────────────
+function renderPaymentHistory(payments) {
+  const tbody = document.getElementById('paymentHistoryList');
+  if (!tbody) return;
+
+  if (!payments.length) {
+    showEmpty('paymentHistoryList', 6, 'No payment history.');
+    return;
+  }
+
+  tbody.innerHTML = '';
+  payments.slice(0, 3).forEach(pay => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:600; color:#1a1a2e;">${pay.id}</td>
+      <td><span class="dt-id">${pay.invoiceId}</span></td>
+      <td style="font-weight:700; color:#1a1a2e;">${formatCurrency(pay.amount)}</td>
+      <td style="color:#6b7280;">${pay.paymentDate ? formatDate(pay.paymentDate) : '-'}</td>
+      <td>${pay.paymentMethod || 'Card'}</td>
+      <td><span class="badge-status badge-completed">${pay.status || 'Success'}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
   let invoices = [];
   let payments = [];
-  let currentFilter = "All";
+  let currentFilter = 'All';
 
-  const searchInput = document.getElementById("searchInvoiceInput");
-  const filterButtons = document.querySelectorAll(".filter-btn");
-  const invoicesList = document.getElementById("invoicesList");
-  const paymentHistoryList = document.getElementById("paymentHistoryList");
+  const searchInput  = document.getElementById('searchInvoiceInput');
+  const filterBtns   = document.querySelectorAll('.filter-btn');
 
-  function renderSummaryCards() {
-    let totalBilled = 0;
-    let totalPaid = 0;
-    let pendingAmount = 0;
-    let overdueAmount = 0;
+  // Show skeletons immediately
+  showTableSkeleton('invoicesList',      7);
+  showTableSkeleton('paymentHistoryList', 6);
 
-    invoices.forEach((invoice) => {
-      totalBilled += invoice.amount;
-
-      if (invoice.status === "Paid") {
-        totalPaid += invoice.amount;
-      } else if (invoice.status === "Pending") {
-        pendingAmount += invoice.amount;
-      } else if (invoice.status === "Overdue") {
-        overdueAmount += invoice.amount;
-      }
-    });
-
-    if (totalPaid === 0 && payments.length > 0) {
-      payments.forEach((payment) => {
-        totalPaid += payment.amount;
-      });
-    }
-
-    document.getElementById("valTotalBilled").textContent = formatCurrency(totalBilled);
-    document.getElementById("valTotalPaid").textContent = formatCurrency(totalPaid);
-    document.getElementById("valPending").textContent = formatCurrency(pendingAmount);
-    document.getElementById("valOverdue").textContent = formatCurrency(overdueAmount);
-  }
-
-  function renderInvoices() {
-    const query = (searchInput.value || "").toLowerCase().trim();
-    invoicesList.innerHTML = "";
-
-    const filtered = invoices.filter((invoice) => {
-      const matchesFilter = currentFilter === "All" || invoice.status === currentFilter;
-      const matchesQuery =
-        invoice.id.toLowerCase().includes(query) ||
-        (invoice.caseName || "").toLowerCase().includes(query);
-      return matchesFilter && matchesQuery;
-    });
-
-    if (filtered.length === 0) {
-      invoicesList.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#6b7280;">No invoices found.</td></tr>';
-      return;
-    }
-
-    filtered.forEach((invoice) => {
-      const row = document.createElement("tr");
-      const badgeClass =
-        invoice.status === "Paid"
-          ? "badge-paid"
-          : invoice.status === "Pending"
-            ? "badge-pending"
-            : "badge-overdue";
-      const dueClass = invoice.status === "Paid"
-        ? "due-green"
-        : invoice.status === "Overdue"
-          ? "due-red"
-          : (() => {
-              const days = Math.ceil((new Date(invoice.dueDate) - BILLING_TODAY) / 86400000);
-              if (days <= 14) {
-                return "due-yellow";
-              }
-              return "due-green";
-            })();
-
-      let actionsHtml = "";
-      if (invoice.status !== "Paid") {
-        actionsHtml += `<button class="btn-pay-now" onclick="window.location.href='client_billing_pay-now.html?id=${encodeURIComponent(invoice.id)}'">Pay Now</button>`;
-      }
-
-      row.innerHTML = `
-        <td><span class="dt-id">${invoice.id}</span></td>
-        <td><div style="font-weight:600;">${invoice.caseName || "-"}</div></td>
-        <td style="color:#6b7280;">${invoice.lawyerName || "Awaiting Assignment"}</td>
-        <td style="font-weight:700; color:#1a1a2e;">${formatCurrency(invoice.amount)}</td>
-        <td><span class="badge-status ${badgeClass}">${invoice.status}</span></td>
-        <td class="${dueClass}" style="font-weight:600;">${formatDate(invoice.dueDate)}</td>
-        <td class="action-cell">${actionsHtml}</td>
-      `;
-
-      invoicesList.appendChild(row);
-    });
-  }
-
-  function renderPaymentHistory() {
-    paymentHistoryList.innerHTML = "";
-
-    if (payments.length === 0) {
-      paymentHistoryList.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#6b7280;">No payment history.</td></tr>';
-      return;
-    }
-
-    payments.slice(0, 3).forEach((payment) => {
-      const row = document.createElement("tr");
-      const methodIcon = (payment.method || "").toLowerCase().includes("bank")
-        ? '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>'
-        : '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>';
-
-      row.innerHTML = `
-        <td style="font-weight:600; color:#1a1a2e;">${payment.id}</td>
-        <td><span class="dt-id">${payment.invoiceId}</span></td>
-        <td style="font-weight:700; color:#1a1a2e;">${formatCurrency(payment.amount)}</td>
-        <td style="color:#6b7280;">${formatDate(payment.date)}</td>
-        <td><div class="pay-method">${methodIcon} ${payment.method || "Card"}</div></td>
-        <td><span class="badge-status badge-completed">${payment.status || "Completed"}</span></td>
-      `;
-
-      paymentHistoryList.appendChild(row);
-    });
-  }
-
+  // Load summary + invoices + payments in parallel
   try {
-    const data = await ensureBillingStorage();
-    invoices = normalizeInvoices(data.invoices || []);
-    payments = normalizePayments(data.payments || []);
+    const [summary, inv, pay] = await Promise.all([
+      fetchSummary(),
+      fetchInvoices(),
+      fetchPayments(),
+    ]);
 
-    renderSummaryCards();
-    renderInvoices();
-    renderPaymentHistory();
-  } catch (error) {
-    console.error("Error loading billing data:", error);
+    invoices = inv;
+    payments = pay;
+
+    renderSummaryCards(summary);
+    renderInvoices(invoices, currentFilter, '');
+    renderPaymentHistory(payments);
+
+  } catch (err) {
+    console.error('Billing load error:', err);
+    showError('invoicesList',      7, 'Could not load invoices. Is the backend running?');
+    showError('paymentHistoryList', 6, 'Could not load payment history.');
   }
 
-  searchInput.addEventListener("input", renderInvoices);
-  filterButtons.forEach((button) => {
-    button.addEventListener("click", (event) => {
-      filterButtons.forEach((btn) => btn.classList.remove("active"));
-      event.target.classList.add("active");
-      currentFilter = event.target.getAttribute("data-filter");
-      renderInvoices();
+  // Search
+  if (searchInput) {
+    searchInput.addEventListener('input', () =>
+      renderInvoices(invoices, currentFilter, searchInput.value));
+  }
+
+  // Filter tabs
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', e => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      currentFilter = e.target.getAttribute('data-filter');
+      renderInvoices(invoices, currentFilter, searchInput ? searchInput.value : '');
     });
   });
 });

@@ -214,3 +214,5 @@ const LexValidation = (() => {
     }
   );
 })();
+
+window.LexValidation = LexValidation;
