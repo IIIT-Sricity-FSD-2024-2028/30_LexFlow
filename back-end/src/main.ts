@@ -35,7 +35,7 @@ async function bootstrap() {
       'http://10.0.5.168:5500'
     ],
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'role'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'role', 'x-client-id'],
   });
 
   const port = process.env.PORT ?? 3000;
