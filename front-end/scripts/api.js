@@ -152,6 +152,9 @@ const LexFlowAPI = (() => {
       const query = qs.toString() ? `?${qs.toString()}` : '';
       return request('GET', `/users${query}`, { role });
     },
+    getAllFirms(role) {
+      return request('GET', '/users/firms/all', { role });
+    },
     getById(id, role) {
       return request('GET', `/users/${id}`, { role });
     },
@@ -179,8 +182,30 @@ const LexFlowAPI = (() => {
     },
   };
 
+  // ── Tasks namespace ───────────────────────────────────────────────────────
+  const tasks = {
+    getAll(filters = {}, role) {
+      const qs = new URLSearchParams();
+      Object.entries(filters).forEach(([k, v]) => { if (v) qs.set(k, v); });
+      const query = qs.toString() ? `?${qs.toString()}` : '';
+      return request('GET', `/tasks${query}`, { role });
+    },
+    getById(id, role) {
+      return request('GET', `/tasks/${id}`, { role });
+    },
+    create(data, role) {
+      return request('POST', '/tasks', { body: data, role });
+    },
+    update(id, data, role) {
+      return request('PATCH', `/tasks/${id}`, { body: data, role });
+    },
+    remove(id, role) {
+      return request('DELETE', `/tasks/${id}`, { role });
+    },
+  };
+
   // Public interface
-  return { consultations, users, cases, getCurrentUser, getRole, BASE_URL };
+  return { consultations, users, cases, tasks, getCurrentUser, getRole, BASE_URL };
 })();
 
 // Make globally available

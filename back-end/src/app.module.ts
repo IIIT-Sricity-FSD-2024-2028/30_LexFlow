@@ -6,6 +6,7 @@ import { ConsultationsModule } from './consultations/consultations.module';
 import { CasesModule } from './cases/cases.module';
 import { DocumentsModule } from './documents/documents.module';
 import { BillingModule } from './billing/billing.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { BillingModule } from './billing/billing.module';
     CasesModule,
     DocumentsModule,
     BillingModule,
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [AppService],
