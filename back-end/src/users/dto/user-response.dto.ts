@@ -36,21 +36,10 @@ export class UserResponseDto {
   @ApiProperty({ description: 'Phone number', required: false })
   phone?: string;
 
-  @ApiProperty({ description: 'Address line 1', required: false })
-  addressLine1?: string;
-
-  @ApiProperty({ description: 'Address line 2', required: false })
-  addressLine2?: string;
-
-  @ApiProperty({ description: 'City', required: false })
-  city?: string;
-
-  @ApiProperty({ description: 'State', required: false })
-  state?: string;
-
-  @ApiProperty({ description: 'Pin / ZIP code', required: false })
-  pinCode?: string;
-
-  @ApiProperty({ description: 'Case access map', required: false })
-  caseAccess?: Record<string, string[]>;
+  @ApiProperty({
+    description: 'Associated firm ID (for FIRMADMIN, LAWYER, INTERN roles)',
+    example: 'firm-1',
+    required: false,
+  })
+  firmId?: string;
 }
