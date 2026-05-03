@@ -157,8 +157,30 @@ const LexFlowAPI = (() => {
     },
   };
 
+  // ── Cases namespace ──────────────────────────────────────────────────────────
+  const cases = {
+    getAll(filters = {}, role) {
+      const qs = new URLSearchParams();
+      Object.entries(filters).forEach(([k, v]) => { if (v) qs.set(k, v); });
+      const query = qs.toString() ? `?${qs.toString()}` : '';
+      return request('GET', `/cases${query}`, { role });
+    },
+    getById(id, role) {
+      return request('GET', `/cases/${id}`, { role });
+    },
+    create(data, role) {
+      return request('POST', '/cases', { body: data, role });
+    },
+    update(id, data, role) {
+      return request('PATCH', `/cases/${id}`, { body: data, role });
+    },
+    remove(id, role) {
+      return request('DELETE', `/cases/${id}`, { role });
+    },
+  };
+
   // Public interface
-  return { consultations, users, getCurrentUser, getRole, BASE_URL };
+  return { consultations, users, cases, getCurrentUser, getRole, BASE_URL };
 })();
 
 // Make globally available

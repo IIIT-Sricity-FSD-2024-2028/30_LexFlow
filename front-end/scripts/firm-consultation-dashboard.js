@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statPendingEl   = document.querySelector('#stat-pending .stat-card-value');
   const statActiveEl    = document.querySelector('#stat-active .stat-card-value');
   const statCompletedEl = document.querySelector('#stat-completed .stat-card-value');
+  let _consultations = [];
+
 
   // ── Firm context ───────────────────────────────────────────────────────────
   const firmId   = currentUser.firmId   || null;
@@ -219,6 +221,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     activeTableBody.innerHTML = '';
     active.forEach(cons => {
       const row = document.createElement('tr');
+      
+      // Flexible status check
+      const s = (cons.status || '').toUpperCase();
+      const isActive = ['SCHEDULED', 'CONFIRMED', 'IN PROGRESS', 'IN_PROGRESS'].includes(s);
+      
       row.innerHTML = `
         <td><a href="#" class="link-id">${cons.id}</a></td>
         <td>
@@ -240,9 +247,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         <td>
           <div class="table-actions">
             <button class="btn btn-sm btn-primary btn-join" data-id="${cons.id}" id="btn-join-${cons.id}">Join Call</button>
+            ${isActive ? `<button class="btn btn-sm btn-convert" data-id="${cons.id}" id="btn-convert-${cons.id}">Convert to Case</button>` : ''}
             <button class="btn btn-sm btn-outline btn-cancel" data-id="${cons.id}" id="btn-cancel-${cons.id}">Cancel</button>
           </div>
-        </td>`;
+        </td>
+`;
       activeTableBody.appendChild(row);
     });
   }
@@ -308,12 +317,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // ── Convert to Case ────────────────────────────────────────────────────────
+  async function handleConvertToCase(consId) {
+    const cons = _consultations.find(c => c.id === consId);
+    if (!cons) return;
+
+    if (!confirm(`Convert consultation ${consId} for ${cons.clientName} into a formal case?`)) return;
+
+    const btn = document.getElementById(`btn-convert-${consId}`);
+    if (btn) { btn.disabled = true; btn.textContent = 'Converting…'; }
+
+    try {
+      const caseDto = {
+        consultation_id: consId,
+        lawfirm_id: firmId,
+        lawyer_id: cons.lawyerId,
+        client_id: cons.clientId,
+        cnr: `LEX-${Math.floor(100000 + Math.random() * 900000)}-${new Date().getFullYear()}`,
+        case_type: cons.type || 'Consultation',
+        brief_description: cons.caseDescription || 'Converted from consultation',
+        status: 'Active',
+        filed_date: new Date().toISOString().split('T')[0]
+      };
+
+      await LexFlowAPI.cases.create(caseDto, userRole);
+      
+      // Update consultation status to COMPLETED (or similar) to indicate it's done
+      await LexFlowAPI.consultations.update(consId, { status: 'COMPLETED' }, userRole);
+
+      showToast(`Successfully converted to Case ${caseDto.cnr}!`, 'success');
+      await refreshAll();
+    } catch (err) {
+      console.error('[FirmDashboard] Conversion failed:', err);
+      showToast(`Failed to convert: ${err.message}`, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Convert to Case'; }
+    }
+  }
+
+
   // ── Global click delegation ────────────────────────────────────────────────
   document.addEventListener('click', async (e) => {
     const btnJoin   = e.target.closest('.btn-join');
     const btnAccept = e.target.closest('.btn-accept');
     const btnReject = e.target.closest('.btn-reject');
     const btnCancel = e.target.closest('.btn-cancel');
+    const btnConvert = e.target.closest('.btn-convert');
 
     if (btnJoin) {
       const id = btnJoin.dataset.id;
@@ -331,6 +379,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         await handleCancel(btnCancel.dataset.id);
       }
     }
+    if (btnConvert) await handleConvertToCase(btnConvert.dataset.id);
+
   });
 
   // ── Main data load ─────────────────────────────────────────────────────────
@@ -344,6 +394,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (firmId) filters.firmId = firmId;
 
       const allConsultations = await LexFlowAPI.consultations.getAll(filters, userRole);
+      _consultations = allConsultations;
+
 
       // Update stats
       updateStats(allConsultations);
