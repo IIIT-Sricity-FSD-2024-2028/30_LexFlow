@@ -13,10 +13,10 @@ function safeParse(value, fallback) {
 
 // Persist errors across Live Server reloads so we can always read them
 function persistError(msg) {
-  try { sessionStorage.setItem('lexflow_last_error', msg); } catch (_) {}
+  try { sessionStorage.setItem('lexflow_last_error', msg); } catch (_) { }
 }
 function clearPersistedError() {
-  try { sessionStorage.removeItem('lexflow_last_error'); } catch (_) {}
+  try { sessionStorage.removeItem('lexflow_last_error'); } catch (_) { }
 }
 // Show any error that survived a page refresh
 (function showPersistedError() {
@@ -33,7 +33,7 @@ function clearPersistedError() {
         setTimeout(() => el.remove(), 8000);
       }, 800);
     }
-  } catch (_) {}
+  } catch (_) { }
 })();
 
 const currentUser = safeParse(localStorage.getItem('currentUser'), null);
@@ -357,6 +357,17 @@ const CURRENT_CASE_ID =
     if (!CURRENT_USER) {
       CURRENT_USER = db.users.find(u => u.email === CURRENT_USER_EMAIL);
     }
+    // Fallback: construct from localStorage directly if not in docs.json
+    if (!CURRENT_USER && localUser && localUser.email && localUser.role) {
+      CURRENT_USER = {
+        id: localUser.id || 'USR-UNKNOWN',
+        name: localUser.fullName || localUser.name || localUser.email,
+        email: localUser.email,
+        role: localUser.role,
+        firmId: localUser.firmId || null,
+        caseAccess: localUser.caseAccess || {},
+      };
+    }
     if (!CURRENT_USER) {
       toast(`User "${CURRENT_USER_EMAIL}" not found.`, "error");
       return;
@@ -365,11 +376,12 @@ const CURRENT_CASE_ID =
       toast(`User profile incomplete: missing role.`, "error");
       return;
     }
-
     const ROLE = CURRENT_USER.role;
+      
+
     const CURRENT_FIRM = CURRENT_USER.firmId
-      ? db.firms.find(f => f.id === CURRENT_USER.firmId) || null
-      : null;
+  ? (db.firms.find(f => f.id === CURRENT_USER.firmId) || { id: CURRENT_USER.firmId, name: CURRENT_USER.firmName || CURRENT_USER.firmId })
+  : null;  
     const FIRM_NAME = CURRENT_FIRM ? CURRENT_FIRM.name : "Independent";
 
     // FIX: Update breadcrumb and case header immediately with the correct CURRENT_CASE_ID
@@ -744,12 +756,12 @@ const CURRENT_CASE_ID =
               "x-user-email": CURRENT_USER_EMAIL
             }
           });
-          
+
           if (!resp.ok) {
             toast("Delete failed", "error");
             delOverlay.classList.remove("active"); _pendingDeleteId = null; return;
           }
-          
+
           if (doc.blobUrl) { try { URL.revokeObjectURL(doc.blobUrl); } catch (_) { } }
           logActivity("deleted", doc);
           docsData.splice(idx, 1);
@@ -915,10 +927,10 @@ const CURRENT_CASE_ID =
           },
           body: patchFormData
         });
-        
+
         if (!resp.ok) {
           let errMsg = `Update failed (HTTP ${resp.status})`;
-          try { const errBody = await resp.json(); errMsg += `: ${errBody.message || JSON.stringify(errBody)}`; } catch (_) {}
+          try { const errBody = await resp.json(); errMsg += `: ${errBody.message || JSON.stringify(errBody)}`; } catch (_) { }
           toast(errMsg, "error");
           updSaveBtn.disabled = false;
           updSaveBtn.textContent = origText;
@@ -927,7 +939,7 @@ const CURRENT_CASE_ID =
         const updatedDoc = await resp.json();
         updatedDoc.blobUrl = URL.createObjectURL(_updFile);
         updatedDoc.fileType = (_updFile.name.split(".").pop() || "BIN").toUpperCase().slice(0, 3);
-        
+
         Object.assign(_updDoc, updatedDoc);
         logActivity("updated", _updDoc);
         closeUpdateModal();
@@ -1210,7 +1222,7 @@ const CURRENT_CASE_ID =
 
         const typeVal = allSelects[0] ? allSelects[0].value : "CONTRACT";
         const fileExt = (selectedFile.name.split(".").pop() || "BIN").toUpperCase().slice(0, 3);
-        
+
         const formData = new FormData();
         formData.append('name', selectedFile.name);
         formData.append('caseId', CURRENT_CASE_ID);
@@ -1234,10 +1246,10 @@ const CURRENT_CASE_ID =
             },
             body: formData
           });
-          
+
           if (!resp.ok) {
             let errMsg = `Upload failed (HTTP ${resp.status})`;
-            try { const errBody = await resp.json(); errMsg += `: ${errBody.message || JSON.stringify(errBody)}`; } catch (_) {}
+            try { const errBody = await resp.json(); errMsg += `: ${errBody.message || JSON.stringify(errBody)}`; } catch (_) { }
             toast(errMsg, "error");
             persistError(errMsg);
             submitBtn.disabled = false;
@@ -1247,10 +1259,10 @@ const CURRENT_CASE_ID =
           const createdDoc = await resp.json();
           const uploadedFileName = selectedFile.name; // capture before closeModal() nulls selectedFile
           createdDoc.blobUrl = URL.createObjectURL(selectedFile);
-          
+
           docsData.unshift(createdDoc);
           logActivity("uploaded", createdDoc);
-          
+
           closeModal();
           submitBtn.disabled = false;
           submitBtn.textContent = origText;

@@ -56,8 +56,10 @@ export class UsersService {
       { id: 'user-0', fullName: 'Super Admin', email: 'superadmin@lexflow.test', role: UserRole.SUPERADMIN, createdAt: now, password: 'superadminpass' },
       { id: 'user-1', fullName: 'Firm Admin', email: 'firmadmin@lexflow.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-1' },
       { id: 'user-2', fullName: 'Client Alice', email: 'alice@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', phone: '+91-9000000001' },
-      { id: 'user-3', fullName: 'Lawyer Bob', email: 'bob@lawyer.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass' },
-      { id: 'user-4', fullName: 'Intern Charlie', email: 'charlie@intern.test', role: UserRole.INTERN, createdAt: now, password: 'internpass' },
+
+      { id: 'user-3', fullName: 'Lawyer Bob', email: 'bob@lawyer.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-1' },
+
+      { id: 'user-4', fullName: 'Intern Charlie', email: 'charlie@intern.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-1' },
     ];
 
     const seedFirms: Firm[] = [
@@ -147,18 +149,19 @@ export class UsersService {
     return this.mapToResponse(user);
   }
 
-  private mapToResponse(user: User): UserResponseDto {
-    return {
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-      createdAt: user.createdAt,
-      phone: user.phone,
-      firmId: user.firmId,
-    };
-  }
-
+private mapToResponse(user: User): UserResponseDto {
+  const firm = user.firmId ? this.firms.find(f => f.id === user.firmId) : null;
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+    createdAt: user.createdAt,
+    phone: user.phone,
+    firmId: user.firmId,
+    firmName: firm ? firm.name : undefined,
+  };
+}
   // Firm Onboarding Methods
 
   /**
