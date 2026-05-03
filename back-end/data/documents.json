@@ -152,5 +152,19 @@
     "uploaderEmail": "alice@client.test",
     "iconColor": "blue",
     "filePath": "http://localhost:3000/data/docs/Sricity report-1777808952234-280794985.pdf"
+  },
+  {
+    "id": "DOC-214",
+    "name": "AI_report.pdf",
+    "caseId": "CASE-46",
+    "type": "REPORT",
+    "fileType": "PDF",
+    "access": "PRIVATE",
+    "version": 1,
+    "date": "2026-05-03",
+    "uploader": "rahulsharma",
+    "uploaderEmail": "rahulsharma@example.com",
+    "iconColor": "blue",
+    "filePath": "http://localhost:3000/data/docs/AI_report-1777813390954-776802151.pdf"
   }
 ]

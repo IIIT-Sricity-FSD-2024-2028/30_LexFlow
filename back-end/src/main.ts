@@ -46,8 +46,6 @@ async function bootstrap() {
   // serve Swagger UI at /api
   SwaggerModule.setup('api', app, document);
 
-<<<<<<< HEAD
-=======
   // Enable CORS for local development and include the custom 'role' header
   app.enableCors({
     origin: [
@@ -62,7 +60,6 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'role'],
   });
 
->>>>>>> 789cb78d1ebdbd0b309888c76a2cac3d7bd6fccb
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
   console.log(`✅ NestJS Backend listening on port ${port}`);
