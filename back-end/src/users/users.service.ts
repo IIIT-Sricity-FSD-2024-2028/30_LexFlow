@@ -56,7 +56,7 @@ export class UsersService {
       { id: 'user-0', fullName: 'Super Admin', email: 'superadmin@lexflow.test', role: UserRole.SUPERADMIN, createdAt: now, password: 'superadminpass' },
       { id: 'user-1', fullName: 'Firm Admin', email: 'firmadmin@lexflow.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-1' },
       { id: 'user-2', fullName: 'Client Alice', email: 'alice@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', phone: '+91-9000000001' },
-      { id: 'user-3', fullName: 'Lawyer Bob', email: 'bob@lawyer.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass' },
+      { id: 'user-3', fullName: 'Lawyer Bob', email: 'bob@lawyer.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-1' },
       { id: 'user-4', fullName: 'Intern Charlie', email: 'charlie@intern.test', role: UserRole.INTERN, createdAt: now, password: 'internpass' },
     ];
 
@@ -335,4 +335,18 @@ export class UsersService {
     }
     return this.getFirmById(user.firmId);
   }
+
+  /**
+   * Get lawyers belonging to a specific firm.
+   * firmadmin: pass their own firmId — only gets lawyers in that firm.
+   * superadmin: pass undefined — gets all lawyers across all firms.
+   */
+  getLawyersByFirmId(firmId?: string): UserResponseDto[] {
+    let results = this.users.filter((u) => u.role === UserRole.LAWYER);
+    if (firmId) {
+      results = results.filter((u) => u.firmId === firmId);
+    }
+    return results.map(this.mapToResponse);
+  }
 }
+

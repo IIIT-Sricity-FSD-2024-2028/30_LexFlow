@@ -222,6 +222,71 @@
         ]
       }
     },
+    "/users/lawyers": {
+      "get": {
+        "description": "Returns all lawyers belonging to the given firm. firmadmin must pass their firmId via x-firm-id header — only lawyers with a matching firmId are returned. superadmin can omit the header to get all lawyers.",
+        "operationId": "UsersController_getLawyers",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "firmId",
+            "required": false,
+            "in": "query",
+            "description": "Alternative: pass firmId as query param instead of header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-firm-id",
+            "in": "header",
+            "description": "The firm ID of the calling firm admin (e.g. \"firm-1\"). Omit to get all (superadmin only).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of lawyers in the specified firm",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden – insufficient role"
+          }
+        },
+        "summary": "Get lawyers for a firm (firmadmin / superadmin)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/users/{id}": {
       "get": {
         "description": "Retrieve a specific user by their ID. Available to all roles.",
@@ -1666,6 +1731,167 @@
           "Billing"
         ]
       }
+    },
+    "/law-firms": {
+      "get": {
+        "description": "Returns all law firms. Supports optional query filters: keyword, location, practiceArea, sortBy.",
+        "operationId": "LawFirmsController_findAll",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "keyword",
+            "required": false,
+            "in": "query",
+            "description": "Search across firm name, subtitle, description, bio, practice areas",
+            "schema": {
+              "example": "corporate",
+              "type": "string"
+            }
+          },
+          {
+            "name": "location",
+            "required": false,
+            "in": "query",
+            "description": "Filter by city / location key",
+            "schema": {
+              "enum": [
+                "mumbai",
+                "bangalore",
+                "chennai",
+                "remote"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "practiceArea",
+            "required": false,
+            "in": "query",
+            "description": "Filter by practice area",
+            "schema": {
+              "enum": [
+                "corporate",
+                "family",
+                "ip",
+                "criminal",
+                "civil",
+                "immigration"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Sort order. Default: highest rated first.",
+            "schema": {
+              "enum": [
+                "rating",
+                "price_asc",
+                "reviews",
+                "availability"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of law firms matching the filters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LawFirmResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden – insufficient role"
+          }
+        },
+        "summary": "Search / list law firms",
+        "tags": [
+          "law-firms"
+        ]
+      }
+    },
+    "/law-firms/{id}": {
+      "get": {
+        "description": "Returns the full profile of a law firm by ID.",
+        "operationId": "LawFirmsController_findOne",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Caller role: client | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Law firm ID",
+            "schema": {
+              "example": "firm-001",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Law firm profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LawFirmResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden – insufficient role"
+          },
+          "404": {
+            "description": "Law firm not found"
+          }
+        },
+        "summary": "Get a single law firm profile",
+        "tags": [
+          "law-firms"
+        ]
+      }
     }
   },
   "info": {
@@ -2349,6 +2575,145 @@
         },
         "required": [
           "paymentMethod"
+        ]
+      },
+      "EducationEntry": {
+        "type": "object",
+        "properties": {
+          "school": {
+            "type": "string",
+            "example": "Harvard Law School"
+          },
+          "degree": {
+            "type": "string",
+            "example": "Juris Doctor (JD), 2011"
+          }
+        },
+        "required": [
+          "school",
+          "degree"
+        ]
+      },
+      "LawFirmResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "firm-1"
+          },
+          "name": {
+            "type": "string",
+            "example": "Sharma & Associates"
+          },
+          "subtitle": {
+            "type": "string",
+            "example": "Corporate & Civil Law • New Delhi, Delhi"
+          },
+          "description": {
+            "type": "string",
+            "example": "Full-service law firm offering expert legal counsel."
+          },
+          "location": {
+            "type": "string",
+            "example": "new-delhi"
+          },
+          "locationLabel": {
+            "type": "string",
+            "example": "New Delhi, Delhi"
+          },
+          "practiceArea": {
+            "type": "string",
+            "example": "corporate"
+          },
+          "availability": {
+            "type": "string",
+            "example": "AVAILABLE"
+          },
+          "rating": {
+            "type": "number",
+            "example": 4.8
+          },
+          "reviews": {
+            "type": "number",
+            "example": 97
+          },
+          "price": {
+            "type": "number",
+            "example": 180
+          },
+          "experience": {
+            "type": "string",
+            "example": "10+ Years"
+          },
+          "bio": {
+            "type": "string",
+            "example": "Sharma & Associates is a leading law firm…"
+          },
+          "practiceAreas": {
+            "example": [
+              "Corporate Law",
+              "Civil Law"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "languages": {
+            "example": [
+              "English (Fluent)",
+              "Hindi (Fluent)"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "education": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EducationEntry"
+            }
+          },
+          "avatarColor": {
+            "type": "string",
+            "example": "indigo"
+          },
+          "email": {
+            "type": "string",
+            "example": "hello@sharma.law"
+          },
+          "phone": {
+            "type": "string",
+            "example": "9876543210"
+          },
+          "address": {
+            "type": "string",
+            "example": "21, Connaught Place, New Delhi, Delhi - 110001"
+          },
+          "website": {
+            "type": "string",
+            "example": "https://www.sharma.law"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "subtitle",
+          "description",
+          "location",
+          "locationLabel",
+          "practiceArea",
+          "availability",
+          "rating",
+          "reviews",
+          "price",
+          "experience",
+          "bio",
+          "practiceAreas",
+          "languages",
+          "education",
+          "avatarColor"
         ]
       }
     }

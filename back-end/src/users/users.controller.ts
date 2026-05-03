@@ -132,6 +132,41 @@ export class UsersController {
   }
 
   /**
+   * Get lawyers filtered by firm.
+   * GET /users/lawyers
+   * firmadmin: pass x-firm-id header → only returns lawyers in that firm.
+   * superadmin: no header needed → returns all lawyers.
+   */
+  @Get('lawyers')
+  @Roles(UserRole.FIRMADMIN, UserRole.SUPERADMIN)
+  @ApiOperation({
+    summary: 'Get lawyers for a firm (firmadmin / superadmin)',
+    description:
+      'Returns all lawyers belonging to the given firm. firmadmin must pass their firmId via x-firm-id header — only lawyers with a matching firmId are returned. superadmin can omit the header to get all lawyers.',
+  })
+  @ApiHeader({
+    name: 'x-firm-id',
+    description: 'The firm ID of the calling firm admin (e.g. "firm-1"). Omit to get all (superadmin only).',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'firmId',
+    required: false,
+    description: 'Alternative: pass firmId as query param instead of header',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of lawyers in the specified firm',
+    type: [UserResponseDto],
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden – insufficient role' })
+  getLawyers(
+    @Query('firmId') firmId?: string,
+  ): UserResponseDto[] {
+    return this.usersService.getLawyersByFirmId(firmId);
+  }
+
+  /**
    * Get a specific user by ID
    * GET /users/:id
    * Available to all authenticated roles
