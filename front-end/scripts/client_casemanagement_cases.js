@@ -21,14 +21,35 @@ const caseListEl = document.getElementById("caseList"),
   paginationPages = document.getElementById("paginationPages"),
   searchInput = document.getElementById("searchInput");
 function renderCaseCard(e) {
-  const t = (e.avatars || [])
-      .map(
-        (e, t) =>
-          `<div class="${e.startsWith("+") ? "av av-more" : "av"}">${e}</div>`,
-      )
-      .join(""),
-    a = e.nextHearing ? e.nextHearing.date : "TBD";
-  return `\n    <div class="case-card page-item" data-title="${e.title.toLowerCase()}" data-cnr="${e.cnr.toLowerCase()}">\n      <div class="case-icon">\n        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 8H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V10a2 2 0 00-2-2zM16 8V6a3 3 0 00-6 0v2M7 13v3m10-3v3"/></svg>\n      </div>\n      <div class="case-info">\n        <div class="case-badges">\n          <span class="badge-active">${e.status}</span>\n          <span class="badge-type">${e.type}</span>\n        </div>\n        <div class="case-title">${e.title}</div>\n        <div class="case-meta">\n          <span><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2"/></svg> CNR: ${e.cnr}</span>\n          <span><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5"/></svg> ${e.court}</span>\n        </div>\n        <div class="avatars">${t}</div>\n      </div>\n      <div class="case-right">\n        <div class="hearing-box">\n          <div class="label">NEXT HEARING</div>\n          <div class="date">${a}</div>\n        </div>\n        <a class="view-details" href="client_casemanagement_case-details.html?cnr=${e.cnr}">View Details →</a>\n      </div>\n    </div>`;
+  const caseType = e.case_type || 'N/A';
+  const briefDesc = e.brief_description || '';
+  const cnr = e.cnr || 'N/A';
+  const nextHearing = e.nextHearing ? e.nextHearing.date : "TBD";
+  
+  return `
+    <div class="case-card page-item" data-title="${caseType.toLowerCase()}" data-cnr="${cnr.toLowerCase()}">
+      <div class="case-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 8H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V10a2 2 0 00-2-2zM16 8V6a3 3 0 00-6 0v2M7 13v3m10-3v3"/></svg>
+      </div>
+      <div class="case-info">
+        <div class="case-badges">
+          <span class="badge-active">${e.status}</span>
+          <span class="badge-type">${caseType}</span>
+        </div>
+        <div class="case-title">${caseType} Case</div>
+        <div class="case-meta">
+          <span><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2"/></svg> CNR: ${cnr}</span>
+          <span><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5"/></svg> ${briefDesc}</span>
+        </div>
+      </div>
+      <div class="case-right">
+        <div class="hearing-box">
+          <div class="label">NEXT HEARING</div>
+          <div class="date">${nextHearing}</div>
+        </div>
+        <a class="view-details" href="client_casemanagement_case-details.html?id=${e.id}">View Details →</a>
+      </div>
+    </div>`;
 }
 function renderPage(e) {
   const t = Math.ceil(filteredCases.length / CASES_PER_PAGE);
@@ -67,8 +88,8 @@ function renderPage(e) {
       ? [...allCases]
       : allCases.filter(
           (t) =>
-            t.title.toLowerCase().includes(e) ||
-            t.cnr.toLowerCase().includes(e),
+            (t.case_type || '').toLowerCase().includes(e) ||
+            (t.cnr || '').toLowerCase().includes(e),
         )),
     renderPage(1));
 }),

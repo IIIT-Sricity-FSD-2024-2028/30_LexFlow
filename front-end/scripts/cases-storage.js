@@ -1,285 +1,176 @@
-// LexFlow Cases Storage Module - Centralized case, task, and user data management
-// Provides unified access to case-related resources across all workflows
-// IIFE pattern: window.LexFlowCasesStorage
+// LexFlow Cases Storage Module — API-first, role-based data isolation
+// All case data comes from the NestJS backend REST API.
+// The correct filter (firmId / clientId / lawyerId) is automatically applied
+// based on the logged-in user's role and identity.
+//
+// Role isolation rules (enforced both here and on the backend):
+//   firmadmin / intern  →  ?firmId=<user.firmId>
+//   lawyer              →  ?lawyerId=<user.id>    (also scoped to firm)
+//   client              →  ?clientId=<user.id>
+//   superadmin          →  no filter (sees all)
+//
+// Public API mirrors the old localStorage module so every page
+// can call  casesStorage.getCases()  without any changes.
 
 window.LexFlowCasesStorage = (function () {
-  // Storage keys
-  const MOCK_STORAGE_KEY = "lexflow_mock_data";
-  const CASES_STORAGE_KEY = "lexflow_cases";
-  const TASKS_STORAGE_KEY = "lexflow_tasks";
-  // Intentionally read/write lexflow_users only; StorageService mirrors users -> lexflow_users.
-  const USERS_STORAGE_KEY = "lexflow_users";
-  const MOCK_PATH = "../scripts/client_casemanagement_mock-data.json";
+  'use strict';
 
-  /**
-   * Safely parse JSON from storage, with error handling
-   * @param {string} value - Raw value from localStorage
-   * @param {*} fallback - Value to return if parse fails
-   * @returns {*} Parsed value or fallback
-   */
-  function safeParse(value, fallback) {
-    try {
-      return value ? JSON.parse(value) : fallback;
-    } catch (error) {
-      console.warn("Failed to parse storage value:", error);
-      return fallback;
-    }
-  }
+  const API_BASE_URL = 'http://127.0.0.1:3000';
 
-  /**
-   * Load mock data object from storage
-   * @returns {object|null} Mock data or null
-   */
-  function loadMockDataFromStorage() {
+  // ─── Auth helpers ────────────────────────────────────────────────────────────
+
+  /** Return the currently logged-in user object from localStorage, or null. */
+  function getCurrentUser() {
     try {
-      return safeParse(localStorage.getItem(MOCK_STORAGE_KEY), null);
-    } catch (e) {
-      console.warn("Storage read failed for key:", MOCK_STORAGE_KEY, e);
+      const raw = localStorage.getItem('currentUser');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
       return null;
     }
   }
 
   /**
-   * Load any JSON-keyed data from storage
-   * @param {string} key - Storage key
-   * @returns {*|null} Parsed data or null
+   * Build the role header value for the current user.
+   * Falls back to 'client' so the request is never completely anonymous.
    */
-  function loadJsonFromStorage(key) {
-    try {
-      return safeParse(localStorage.getItem(key), null);
-    } catch (e) {
-      console.warn("Storage read failed for key:", key, e);
-      return null;
-    }
+  function getRoleHeader() {
+    const user = getCurrentUser();
+    if (!user || !user.role) return 'client';
+    // Normalise: the backend enum uses lowercase ('firmadmin', 'lawyer' …)
+    return user.role.toLowerCase().replace('firmadmin', 'firmadmin');
   }
 
   /**
-   * Save JSON-keyed data to storage
-   * @param {string} key - Storage key
-   * @param {*} value - Value to save
+   * Build query-string parameters that scope the cases to the logged-in user.
+   * Returns a string like "?firmId=firm-1" or "" for superadmin.
    */
-  function saveJsonToStorage(key, value) {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (e) {
-      console.warn("Storage write failed for key:", key, e);
+  function buildCaseQueryParams() {
+    const user = getCurrentUser();
+    if (!user) return '';
+
+    const role = (user.role || '').toLowerCase();
+    const params = new URLSearchParams();
+
+    if (role === 'client') {
+      // Client sees only their own cases
+      params.append('clientId', user.id);
+    } else if (role === 'lawyer') {
+      // Lawyer sees cases assigned to them
+      params.append('lawyerId', user.id);
+    } else if (role === 'firmadmin' || role === 'intern') {
+      // Firm Admin and Interns see all cases belonging to their firm
+      if (user.firmId) params.append('firmId', user.firmId);
     }
+    // superadmin → no params → backend returns all cases
+
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
   }
 
-  /**
-   * Save mock data object to storage
-   * @param {object} mockData - Mock data object
-   */
-  function saveMockDataToStorage(mockData) {
-    try {
-      localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(mockData));
-    } catch (e) {
-      console.warn("Storage write failed for key:", MOCK_STORAGE_KEY, e);
+  // ─── Base fetch helper ───────────────────────────────────────────────────────
+
+  async function apiFetch(path, options = {}) {
+    const url = `${API_BASE_URL}${path}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      'role': getRoleHeader(),
+      ...(options.headers || {}),
+    };
+
+    const res = await fetch(url, { ...options, headers });
+
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try { const j = await res.json(); msg = j.message || msg; } catch {}
+      throw new Error(msg);
     }
+
+    try { return await res.json(); } catch { return undefined; }
   }
 
+  // ─── Public case CRUD (hits NestJS API) ──────────────────────────────────────
+  
   /**
-   * Sync legacy mock_data key with dedicated keys (backward compatibility)
-   * Updates lexflow_mock_data to mirror dedicated storage keys
-   */
-  function syncLegacyFromDedicated() {
-    const mock = loadMockDataFromStorage() || {};
-    const cases = loadJsonFromStorage(CASES_STORAGE_KEY) || mock.cases || [];
-    const tasks = loadJsonFromStorage(TASKS_STORAGE_KEY) || mock.tasks || [];
-    const users = loadJsonFromStorage(USERS_STORAGE_KEY) || mock.users || [];
-
-    mock.cases = cases;
-    mock.tasks = tasks;
-    mock.users = users;
-    saveMockDataToStorage(mock);
-  }
-
-  /**
-   * Save cases to all storage locations (dedicated + legacy mirror)
-   * @param {array} cases - Cases array to save
-   */
-  function saveCasesToAllStores(cases) {
-    const mock = loadMockDataFromStorage() || {};
-    mock.cases = cases;
-    if (!Array.isArray(mock.tasks)) {
-      mock.tasks = loadJsonFromStorage(TASKS_STORAGE_KEY) || [];
-    }
-    if (!Array.isArray(mock.users)) {
-      mock.users = loadJsonFromStorage(USERS_STORAGE_KEY) || [];
-    }
-    saveJsonToStorage(CASES_STORAGE_KEY, cases);
-    saveMockDataToStorage(mock);
-  }
-
-  /**
-   * Save tasks to all storage locations
-   * @param {array} tasks - Tasks array to save
-   */
-  function saveTasksToAllStores(tasks) {
-    const mock = loadMockDataFromStorage() || {};
-    mock.tasks = tasks;
-    if (!Array.isArray(mock.cases)) {
-      mock.cases = loadJsonFromStorage(CASES_STORAGE_KEY) || [];
-    }
-    if (!Array.isArray(mock.users)) {
-      mock.users = loadJsonFromStorage(USERS_STORAGE_KEY) || [];
-    }
-    saveJsonToStorage(TASKS_STORAGE_KEY, tasks);
-    saveMockDataToStorage(mock);
-  }
-
-  /**
-   * Save users to all storage locations
-   * @param {array} users - Users array to save
-   */
-  function saveUsersToAllStores(users) {
-    const mock = loadMockDataFromStorage() || {};
-    mock.users = users;
-    if (!Array.isArray(mock.cases)) {
-      mock.cases = loadJsonFromStorage(CASES_STORAGE_KEY) || [];
-    }
-    if (!Array.isArray(mock.tasks)) {
-      mock.tasks = loadJsonFromStorage(TASKS_STORAGE_KEY) || [];
-    }
-    saveJsonToStorage(USERS_STORAGE_KEY, users);
-    saveMockDataToStorage(mock);
-  }
-
-  /**
-   * Initialize and ensure cases storage is populated
-   * Prioritizes: dedicated keys → mock_data → fetch from JSON
-   * @returns {Promise<object>} Object with { cases, tasks, users }
-   */
-  async function ensureCasesStorage() {
-    const mock = loadMockDataFromStorage();
-    const cases = loadJsonFromStorage(CASES_STORAGE_KEY);
-    const tasks = loadJsonFromStorage(TASKS_STORAGE_KEY);
-    const users = loadJsonFromStorage(USERS_STORAGE_KEY);
-
-    // Case 1: Have mock data, sync to dedicated keys if needed
-    if (mock && Array.isArray(mock.cases)) {
-      if (!Array.isArray(cases)) {
-        saveJsonToStorage(CASES_STORAGE_KEY, mock.cases || []);
-      }
-      if (!Array.isArray(tasks)) {
-        saveJsonToStorage(TASKS_STORAGE_KEY, mock.tasks || []);
-      }
-      if (!Array.isArray(users)) {
-        saveJsonToStorage(USERS_STORAGE_KEY, mock.users || []);
-      }
-      syncLegacyFromDedicated();
-      return {
-        cases: loadJsonFromStorage(CASES_STORAGE_KEY) || mock.cases || [],
-        tasks: loadJsonFromStorage(TASKS_STORAGE_KEY) || mock.tasks || [],
-        users: loadJsonFromStorage(USERS_STORAGE_KEY) || mock.users || [],
-      };
-    }
-
-    // Case 2: Have dedicated keys, sync legacy
-    if (Array.isArray(cases)) {
-      syncLegacyFromDedicated();
-      return {
-        cases: loadJsonFromStorage(CASES_STORAGE_KEY) || [],
-        tasks: loadJsonFromStorage(TASKS_STORAGE_KEY) || [],
-        users: loadJsonFromStorage(USERS_STORAGE_KEY) || [],
-      };
-    }
-
-    // Case 3: Fetch from JSON and initialize all stores
-    try {
-      const response = await fetch(MOCK_PATH);
-      const data = await response.json();
-      saveMockDataToStorage(data);
-      saveJsonToStorage(CASES_STORAGE_KEY, data.cases || []);
-      saveJsonToStorage(TASKS_STORAGE_KEY, data.tasks || []);
-      saveJsonToStorage(USERS_STORAGE_KEY, data.users || []);
-      syncLegacyFromDedicated();
-      return {
-        cases: data.cases || [],
-        tasks: data.tasks || [],
-        users: data.users || [],
-      };
-    } catch (error) {
-      console.error("Failed to load mock data:", error);
-      return { cases: [], tasks: [], users: [] };
-    }
-  }
-
-  /**
-   * Get all cases from storage
-   * @returns {Promise<array>} Cases array
+   * Fetch cases for the current user (role-scoped automatically).
+   * This is the primary method used by all case list pages.
    */
   async function getCases() {
-    const data = await ensureCasesStorage();
-    return Array.isArray(data.cases) ? data.cases : [];
+    try {
+      const qs = buildCaseQueryParams();
+      return await apiFetch(`/cases${qs}`);
+    } catch (err) {
+      console.error('[LexFlowCasesStorage] getCases failed:', err);
+      return [];
+    }
   }
 
-  /**
-   * Get all tasks from storage
-   * @returns {Promise<array>} Tasks array
-   */
-  async function getTasks() {
-    const data = await ensureCasesStorage();
-    return Array.isArray(data.tasks) ? data.tasks : [];
+  /** Alias used by pages that call fetchCases() directly. */
+  async function fetchCases() {
+    return getCases();
   }
 
-  /**
-   * Get all users from storage
-   * @returns {Promise<array>} Users array
-   */
-  async function getUsers() {
-    const data = await ensureCasesStorage();
-    return Array.isArray(data.users) ? data.users : [];
+  /** Fetch a single case by its numeric ID. */
+  async function getCaseById(id) {
+    try {
+      return await apiFetch(`/cases/${id}`);
+    } catch (err) {
+      console.error('[LexFlowCasesStorage] getCaseById failed:', err);
+      return null;
+    }
   }
 
-  /**
-   * Get single case by CNR
-   * @param {string} cnr - Case CNR number
-   * @returns {Promise<object|null>} Case object or null
-   */
+  /** Fetch a single case by CNR (client-side search over getCases result). */
   async function getCaseByCnr(cnr) {
     const cases = await getCases();
-    return cases.find((c) => c.cnr === cnr) || null;
+    return cases.find(c => String(c.cnr) === String(cnr)) || null;
   }
 
-  /**
-   * Save updated cases (syncs to all stores)
-   * @param {array} cases - Updated cases array
-   * @returns {Promise<void>}
-   */
-  async function saveCases(cases) {
-    saveCasesToAllStores(Array.isArray(cases) ? cases : []);
+  /** Create a new case on the backend. */
+  async function createCase(dto) {
+    return apiFetch('/cases', { method: 'POST', body: JSON.stringify(dto) });
   }
 
-  /**
-   * Save updated tasks (syncs to all stores)
-   * @param {array} tasks - Updated tasks array
-   * @returns {Promise<void>}
-   */
-  async function saveTasks(tasks) {
-    saveTasksToAllStores(Array.isArray(tasks) ? tasks : []);
+  /** Update an existing case. */
+  async function updateCase(id, dto) {
+    return apiFetch(`/cases/${id}`, { method: 'PATCH', body: JSON.stringify(dto) });
   }
 
-  /**
-   * Save updated users (syncs to all stores)
-   * @param {array} users - Updated users array
-   * @returns {Promise<void>}
-   */
-  async function saveUsers(users) {
-    saveUsersToAllStores(Array.isArray(users) ? users : []);
+  /** Delete a case. */
+  async function deleteCase(id) {
+    return apiFetch(`/cases/${id}`, { method: 'DELETE' });
   }
 
-  // Public API
+  // ─── Tasks & Users (Stubs for future API migration) ──────────────────────────
+
+  async function getTasks() {
+    // TODO: Migrate to NestJS /tasks
+    return [];
+  }
+
+  async function getUsers(role) {
+    const query = role ? `?role=${role}` : '';
+    return apiFetch(`/users${query}`);
+  }
+
+  // ─── Public API ──────────────────────────────────────────────────────────────
+
   return {
-    ensureCasesStorage,
     getCases,
-    getTasks,
-    getUsers,
+    fetchCases,
+    getCaseById,
     getCaseByCnr,
-    saveCases,
-    saveTasks,
-    saveUsers,
-    // Also expose sync for when needed
-    syncLegacyFromDedicated,
+    createCase,
+    updateCase,
+    deleteCase,
+
+    // Legacy stubs (kept to avoid breakage, but now return empty)
+    saveCases: async () => {},
+    getTasks,
+    saveTasks: async () => {},
+    getUsers,
+    saveUsers: async () => {},
+
+    getCurrentUser,
+    getRoleHeader,
   };
 })();

@@ -1,15 +1,13 @@
 document.addEventListener('DOMContentLoaded', async () => {
     'use strict';
 
-    // Seed data if not already done
-    await StorageService.seed('../data/initialData.json');
 
     const signInForm = document.querySelector('form');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const loginBtn = document.querySelector('button[type="submit"]');
 
-    const API_BASE = window.__API_BASE__ || 'http://localhost:3000';
+    const API_BASE = window.__API_BASE__ || 'http://127.0.0.1:3000';
 
     const signUpLink = document.querySelector('.signup-note a');
     const rawRole = localStorage.getItem('loginRole') || localStorage.getItem('userRole');

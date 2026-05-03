@@ -277,27 +277,6 @@
         ]
       }
     },
-<<<<<<< HEAD
-    "/documents": {
-      "post": {
-        "operationId": "DocumentsController_create",
-        "parameters": [
-          {
-            "name": "x-user-email",
-            "required": false,
-            "in": "header",
-            "description": "Uploader email",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "role",
-            "in": "header",
-            "description": "User role for RBAC",
-            "required": true,
-            "schema": {
-=======
     "/users/firm-onboarding/start": {
       "post": {
         "description": "Initialize firm onboarding session",
@@ -370,7 +349,6 @@
             "required": true,
             "in": "path",
             "schema": {
->>>>>>> 789cb78d1ebdbd0b309888c76a2cac3d7bd6fccb
               "type": "string"
             }
           }
@@ -378,11 +356,6 @@
         "requestBody": {
           "required": true,
           "content": {
-<<<<<<< HEAD
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDocumentDto"
-=======
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/FirmOnboardingDto"
@@ -518,14 +491,207 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/FirmOnboardingDto"
->>>>>>> 789cb78d1ebdbd0b309888c76a2cac3d7bd6fccb
               }
             }
           }
         },
         "responses": {
           "201": {
-<<<<<<< HEAD
+            "description": "Firm and admin account created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirmOnboardingResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or incomplete onboarding"
+          }
+        },
+        "summary": "Firm onboarding step 3 (final)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/cases": {
+      "post": {
+        "operationId": "CasesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new case",
+        "tags": [
+          "cases"
+        ]
+      },
+      "get": {
+        "operationId": "CasesController_findAll",
+        "parameters": [
+          {
+            "name": "firmId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clientId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lawyerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all cases with optional filtering",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/cases/{id}": {
+      "get": {
+        "operationId": "CasesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get a case by ID",
+        "tags": [
+          "cases"
+        ]
+      },
+      "patch": {
+        "operationId": "CasesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a case",
+        "tags": [
+          "cases"
+        ]
+      },
+      "delete": {
+        "operationId": "CasesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a case",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/documents": {
+      "post": {
+        "operationId": "DocumentsController_create",
+        "parameters": [
+          {
+            "name": "x-user-email",
+            "required": false,
+            "in": "header",
+            "description": "Uploader email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
             "description": "The document has been successfully created."
           },
           "403": {
@@ -686,24 +852,6 @@
         "summary": "Delete a document",
         "tags": [
           "documents"
-=======
-            "description": "Firm and admin account created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FirmOnboardingResponseDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or incomplete onboarding"
-          }
-        },
-        "summary": "Firm onboarding step 3 (final)",
-        "tags": [
-          "users"
->>>>>>> 789cb78d1ebdbd0b309888c76a2cac3d7bd6fccb
         ]
       }
     }
@@ -800,32 +948,8 @@
           },
           "firmId": {
             "type": "string",
-<<<<<<< HEAD
-            "description": "Address line 1"
-          },
-          "addressLine2": {
-            "type": "string",
-            "description": "Address line 2"
-          },
-          "city": {
-            "type": "string",
-            "description": "City"
-          },
-          "state": {
-            "type": "string",
-            "description": "State"
-          },
-          "pinCode": {
-            "type": "string",
-            "description": "Pin / ZIP code"
-          },
-          "caseAccess": {
-            "type": "object",
-            "description": "Case access map"
-=======
             "description": "Associated firm ID (for FIRMADMIN, LAWYER, INTERN roles)",
             "example": "firm-1"
->>>>>>> 789cb78d1ebdbd0b309888c76a2cac3d7bd6fccb
           }
         },
         "required": [
@@ -880,77 +1004,6 @@
           "password"
         ]
       },
-<<<<<<< HEAD
-      "CreateDocumentDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Name of the document",
-            "example": "Contract.pdf"
-          },
-          "caseId": {
-            "type": "string",
-            "description": "Case ID the document belongs to",
-            "example": "CASE-45"
-          },
-          "type": {
-            "type": "string",
-            "description": "Type of document",
-            "example": "CONTRACT"
-          },
-          "fileType": {
-            "type": "string",
-            "description": "File type extension",
-            "example": "PDF"
-          },
-          "access": {
-            "type": "string",
-            "description": "Access level",
-            "enum": [
-              "PRIVATE",
-              "SHARED"
-            ],
-            "example": "PRIVATE"
-          },
-          "version": {
-            "type": "number",
-            "description": "Version number",
-            "example": 1
-          }
-        },
-        "required": [
-          "name",
-          "caseId",
-          "type",
-          "fileType",
-          "access"
-        ]
-      },
-      "UpdateDocumentDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Name of the document",
-            "example": "Updated_Contract.pdf"
-          },
-          "access": {
-            "type": "string",
-            "description": "Access level",
-            "enum": [
-              "PRIVATE",
-              "SHARED"
-            ],
-            "example": "SHARED"
-          },
-          "version": {
-            "type": "number",
-            "description": "Version number",
-            "example": 2
-          }
-        }
-=======
       "FirmOnboardingDto": {
         "type": "object",
         "properties": {
@@ -1074,7 +1127,84 @@
           "message",
           "createdAt"
         ]
->>>>>>> 789cb78d1ebdbd0b309888c76a2cac3d7bd6fccb
+      },
+      "CreateCaseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateCaseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateDocumentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the document",
+            "example": "Contract.pdf"
+          },
+          "caseId": {
+            "type": "string",
+            "description": "Case ID the document belongs to",
+            "example": "CASE-45"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of document",
+            "example": "CONTRACT"
+          },
+          "fileType": {
+            "type": "string",
+            "description": "File type extension",
+            "example": "PDF"
+          },
+          "access": {
+            "type": "string",
+            "description": "Access level",
+            "enum": [
+              "PRIVATE",
+              "SHARED"
+            ],
+            "example": "PRIVATE"
+          },
+          "version": {
+            "type": "number",
+            "description": "Version number",
+            "example": 1
+          }
+        },
+        "required": [
+          "name",
+          "caseId",
+          "type",
+          "fileType",
+          "access"
+        ]
+      },
+      "UpdateDocumentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the document",
+            "example": "Updated_Contract.pdf"
+          },
+          "access": {
+            "type": "string",
+            "description": "Access level",
+            "enum": [
+              "PRIVATE",
+              "SHARED"
+            ],
+            "example": "SHARED"
+          },
+          "version": {
+            "type": "number",
+            "description": "Version number",
+            "example": 2
+          }
+        }
       }
     }
   }

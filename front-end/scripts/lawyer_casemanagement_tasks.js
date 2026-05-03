@@ -23,7 +23,10 @@ function loadJsonFromStorage(t) {
 }
 
 function saveJsonToStorage(t, e) {
-  localStorage.setItem(t, JSON.stringify(e));
+  const allowed = ['currentUser', 'userRole', 'loginRole'];
+  if (allowed.includes(t)) {
+    localStorage.setItem(t, JSON.stringify(e));
+  }
 }
 
 function resolveSignedInUser() {

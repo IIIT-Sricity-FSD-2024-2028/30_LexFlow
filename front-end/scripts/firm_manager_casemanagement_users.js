@@ -85,136 +85,19 @@ function getLawyerAvatarColor(e = "") {
     .reduce((e, t) => e + t.charCodeAt(0), 0);
   return LAWYER_AVATAR_COLORS[t % LAWYER_AVATAR_COLORS.length];
 }
-function loadLawyersFromStorage() {
-  try {
-    const e = localStorage.getItem(LAWYERS_STORAGE_KEY);
-    if (!e) return [];
-    const t = JSON.parse(e);
-    return Array.isArray(t) ? t : [];
-  } catch (e) {
-    return (console.warn("Failed to parse lawyers storage:", e), []);
-  }
-}
-function saveLawyersToStorage(e) {
-  localStorage.setItem(LAWYERS_STORAGE_KEY, JSON.stringify(e));
-}
-async function ensureLawyersStorageInitialized() {
-  if (localStorage.getItem(LAWYERS_STORAGE_KEY)) return;
-  try {
-    const e = await fetch("../data/lawyers.json");
-    if (!e.ok) return;
-    const t = await e.json();
-    Array.isArray(t) && saveLawyersToStorage(t);
-  } catch (e) {
-    console.warn("Failed to initialize lawyers storage from seed:", e);
-  }
-}
-function nextLawyerStorageId(e, t = []) {
-  let a = 0;
-  [...e, ...t].forEach((e) => {
-    const t = e.id && String(e.id).match(/^lawyer-(\d+)$/i);
-    t && (a = Math.max(a, parseInt(t[1], 10)));
-  });
-  return `lawyer-${a + 1}`;
-}
-function mapUserToLawyerRecord(e, t, a, n) {
-  const s =
-      t && Array.isArray(t.specialties) && t.specialties.length
-        ? t.specialties
-        : e.specialisation
-          ? [e.specialisation]
-          : ["General Practice"],
-    r = t ? t.id : nextLawyerStorageId(a, n);
-  return {
-    id: r,
-    userId: e.id,
-    name: `Adv. ${e.fullName || e.name}`,
-    email: e.email,
-    specialties: s,
-    activeCases: t && Number.isFinite(t.activeCases) ? t.activeCases : 0,
-    consultationsToday:
-      t && Number.isFinite(t.consultationsToday) ? t.consultationsToday : 0,
-    capacity: t && Number.isFinite(t.capacity) ? t.capacity : 0,
-    avatarColor: (t && t.avatarColor) || getLawyerAvatarColor(e.id),
-  };
-}
 function syncLawyersWithUsers(e) {
-  const t = loadLawyersFromStorage(),
-    a = e.filter(
-      (e) =>
-        ("lawyer" === e.badgeRole || "manager" === e.badgeRole) &&
-        "active" === e.accountStatus,
-    ),
-    n = [],
-    s = [];
-  a.forEach((e) => {
-    const a = t.find(
-      (t) =>
-        t.userId === e.id ||
-        (t.email && e.email &&
-          t.email.toLowerCase().trim() === e.email.toLowerCase().trim()),
-    );
-    (a && n.push(a.id), s.push(mapUserToLawyerRecord(e, a, t, s)));
-  });
-  const r = t.filter((e) => !e.userId && !n.includes(e.id));
-  saveLawyersToStorage([...r, ...s]);
+  // No-op: lawyers are now derived from users
+}
+
+function saveLawyersToStorage(e) {
+  // No-op
+}
+
+async function ensureLawyersStorageInitialized() {
+  // No-op
 }
 function importApprovedLawyersIntoUsers(e) {
-  const t = loadLawyersFromStorage();
-  if (!Array.isArray(t) || 0 === t.length) return;
-
-  t.filter((e) => {
-    const t = String(e.status || "").toLowerCase().trim();
-    // Include both superAdmin-approved lawyers and lawyer records created from User Management
-    // (those often do not carry an explicit status field).
-    return "approved" === t || "" === t;
-  }).forEach(
-    (t) => {
-      const a = String(t.email || "").trim().toLowerCase();
-      if (!a) return;
-
-      const n = e.find(
-        (e) => String(e.email || "").trim().toLowerCase() === a,
-      );
-      const s =
-        String(t.name || "")
-          .replace(/^Adv\.\s*/i, "")
-          .trim() || "Lawyer";
-      const r =
-        Array.isArray(t.specialties) && t.specialties.length
-          ? t.specialties[0]
-          : "General Practice";
-
-      if (n) {
-        (n.name || (n.name = s),
-          (n.fullName = n.fullName || n.name),
-          (n.badgeRole = "lawyer"),
-          (n.accountStatus = "active"),
-          (n.availability = n.availability || "available"),
-          n.specialisation || (n.specialisation = r),
-          syncRoleFromBadge(n));
-      } else {
-        // Email uniqueness guard during import
-        const emailAlreadyExists = e.some(
-          (u) => String(u.email || "").trim().toLowerCase() === a
-        );
-        if (emailAlreadyExists) return;
-        const t = normalizeUser({
-          id: nextInternalId(e, "lawyer"),
-          name: s,
-          email: a,
-          password: "changeme123",
-          phone: "",
-          firmUserId: nextFirmUserId(e),
-          badgeRole: "lawyer",
-          accountStatus: "active",
-          availability: "available",
-          specialisation: r,
-        });
-        (syncRoleFromBadge(t), e.push(t));
-      }
-    },
-  );
+  // No-op
 }
 function loadFromStorage() {
   const e = localStorage.getItem(LEGACY_STORAGE_KEY);
@@ -260,25 +143,15 @@ function saveData() {
 }
 async function initUsers() {
   try {
-    await ensureLawyersStorageInitialized();
-
-    let e = loadFromStorage();
-    if (!e) {
-      const t = await fetch(MOCK_PATH);
-      e = await t.json();
-      localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(e));
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(e.users || []));
-    }
-    ((appData = e),
-      Array.isArray(appData.users) || (appData.users = []),
-      (appData.users = appData.users.map((e) => normalizeUser(e))),
-      importApprovedLawyersIntoUsers(appData.users),
-      assignMissingFirmUserIds(appData.users),
-      appData.users.forEach(syncRoleFromBadge),
-      syncLawyersWithUsers(appData.users),
-      saveData(),
-      (allUsers = appData.users),
-      applyFilters());
+    const users = (await LexFlowCasesStorage.getUsers()) || [];
+    
+    appData = { users: users.map((e) => normalizeUser(e)) };
+    
+    assignMissingFirmUserIds(appData.users);
+    appData.users.forEach(syncRoleFromBadge);
+    
+    allUsers = appData.users;
+    applyFilters();
   } catch (e) {
     console.error("User management init failed:", e);
   }

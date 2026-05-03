@@ -5,60 +5,11 @@ let allData = {},
 // Use shared cases storage utility
 const casesStorage = window.LexFlowCasesStorage;
 
-const DOCS_STORAGE_KEY = "lexflow_documents",
-  MOCK_STORAGE_KEY = "lexflow_mock_data";
 
-function buildDocumentIndexFromCases(cases) {
-  if (!Array.isArray(cases)) {
-    return [];
-  }
 
-  const docs = [];
-  cases.forEach((caseItem) => {
-    const caseDocs = Array.isArray(caseItem.documents) ? caseItem.documents : [];
-    caseDocs.forEach((doc, idx) => {
-      docs.push({
-        id: doc.id || `${caseItem.cnr || caseItem.id || "CASE"}-DOC-${idx + 1}`,
-        caseCnr: caseItem.cnr || "",
-        caseId: caseItem.id || caseItem.cnr || "",
-        caseTitle: caseItem.title || "",
-        court: caseItem.court || "",
-        name: doc.name || "Untitled Document",
-        type: doc.type || "DOC",
-        date: doc.date || "",
-        status: doc.status || "Reviewing",
-      });
-    });
-  });
-
-  return docs;
-}
-
-function loadJsonFromStorage(key) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  } catch (error) {
-    console.warn(`Failed to parse ${key}:`, error);
-    return null;
-  }
-}
-
-function saveJsonToStorage(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
-async function ensureCaseStorage() {
-  const data = await casesStorage.ensureCasesStorage();
-  return data;
-}
 
 function saveAllData() {
-  casesStorage.saveCases(allData.cases || []);
-  casesStorage.saveTasks(allData.tasks || []);
-  casesStorage.saveUsers(allData.users || []);
-  saveJsonToStorage(DOCS_STORAGE_KEY, buildDocumentIndexFromCases(allData.cases || []));
-  saveJsonToStorage(MOCK_STORAGE_KEY, allData);
+  // No-op: backend is the source of truth
 }
 const caseTopTitle = document.getElementById("caseTopTitle"),
   caseTopSub = document.getElementById("caseTopSub"),
@@ -74,39 +25,45 @@ const caseTopTitle = document.getElementById("caseTopTitle"),
   documentsTbody = document.getElementById("documentsTbody");
 async function initCaseDetails() {
   try {
-    allData = await ensureCaseStorage();
-    Array.isArray(loadJsonFromStorage(DOCS_STORAGE_KEY)) ||
-      saveJsonToStorage(DOCS_STORAGE_KEY, buildDocumentIndexFromCases(allData.cases || []));
-    const t = new URLSearchParams(window.location.search).get("cnr");
-    if (!t) { window.location.href = 'firm_manager_casemanagement_cases.html'; return; }
-    currentCase = allData.cases.find((e) => e.cnr === t);
-    if (!currentCase) { window.location.href = 'firm_manager_casemanagement_cases.html'; return; }
-    if (
-      (allData.tasks &&
-        (currentTasks = allData.tasks.filter(
-          (e) => e.caseCnr === currentCase.cnr || e.caseId === currentCase.id,
-        )),
-      currentCase.timeline || (currentCase.timeline = []),
-      currentCase.documents || (currentCase.documents = []),
-      currentCase.client ||
-        (currentCase.client = {
-          contact: "Data Pending",
-          type: "Individual",
-          opposingParty: "None/Unknown",
-        }),
-      !currentCase.team)
-    ) {
-      const e = allData.users.find(
-        (e) => e.id === currentCase.lawyerId,
-      ) || { name: "Assigned Lawyer" };
+    const cnrFromUrl = new URLSearchParams(window.location.search).get("cnr");
+    const idFromUrl = new URLSearchParams(window.location.search).get("id");
+    
+    if (idFromUrl) {
+      currentCase = await casesStorage.getCaseById(idFromUrl);
+    } else if (cnrFromUrl) {
+      currentCase = await casesStorage.getCaseByCnr(cnrFromUrl);
+    }
+
+    if (!currentCase) { 
+      window.location.href = 'firm_manager_casemanagement_cases.html'; 
+      return; 
+    }
+
+    // Fetch tasks/users if needed (currently empty stubs in cases-storage)
+    currentTasks = (await casesStorage.getTasks()) || [];
+    const users = (await casesStorage.getUsers()) || [];
+
+    if (!currentCase.timeline) currentCase.timeline = [];
+    if (!currentCase.documents) currentCase.documents = [];
+    if (!currentCase.client) {
+      currentCase.client = {
+        contact: "Data Pending",
+        type: "Individual",
+        opposingParty: "None/Unknown",
+      };
+    }
+    
+    if (!currentCase.team) {
+      const lawyer = users.find(u => u.id === currentCase.lawyer_id) || { fullName: "Assigned Lawyer" };
       currentCase.team = [
         {
-          id: currentCase.lawyerId || "ADM001",
-          name: e.fullName || e.name,
+          id: currentCase.lawyer_id || "ADM001",
+          name: lawyer.fullName || lawyer.name,
           role: "Lead Counsel",
         },
       ];
     }
+
     (renderHeader(),
       renderOverview(),
       renderTeam(),
@@ -134,8 +91,8 @@ function getStatusIcon(e) {
 function renderHeader() {
   ((document.querySelector(".breadcrumb .current").textContent =
     `Case #${currentCase.cnr}`),
-    (caseTopTitle.textContent = currentCase.title),
-    (caseTopSub.textContent = `${currentCase.type} | Opened: ${formatDate(currentCase.filedDate)}`),
+    (caseTopTitle.textContent = currentCase.case_type || 'N/A'),
+    (caseTopSub.textContent = `${currentCase.case_type} | Opened: ${formatDate(currentCase.filed_date)}`),
     (caseTopStatus.textContent = currentCase.status),
     "Ongoing" === currentCase.status || "Active" === currentCase.status
       ? ((caseTopStatus.style.background = "#d1fae5"),
@@ -286,7 +243,7 @@ function renderEditTeamList() {
   (window.exportCSV = function () {
     let e = "data:text/csv;charset=utf-8,";
     ((e += "Case ID,Title,Court,Status,Opened\n"),
-      (e += `"${currentCase.cnr}","${currentCase.title}","${currentCase.court}","${currentCase.status}","${currentCase.filedDate}"`));
+      (e += `"${currentCase.cnr}","${currentCase.case_type}","${currentCase.brief_description}","${currentCase.status}","${currentCase.filed_date}"`));
     var t = encodeURI(e),
       n = document.createElement("a");
     (n.setAttribute("href", t),
@@ -323,14 +280,14 @@ function renderEditTeamList() {
           450,
         )
       );
-    ((currentCase.title = e.value.trim()),
+    ((currentCase.case_type = e.value.trim()),
       (currentCase.status = document.getElementById("editCaseStatus").value),
       (currentCase.progress = parseInt(t.value, 10)),
       saveData(),
       closeModal("editCaseModal"));
   }),
   (window.addDocumentPrompt = function () {
-    ((document.getElementById("docClientName").value = currentCase.title
+    ((document.getElementById("docClientName").value = (currentCase.case_type || "")
       .split("vs.")[0]
       .trim()),
       (document.getElementById("docCaseCnr").value = currentCase.cnr),

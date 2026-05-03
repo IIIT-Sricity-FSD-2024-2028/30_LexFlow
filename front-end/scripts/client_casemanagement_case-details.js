@@ -3,15 +3,7 @@ const DOCS_STORAGE_KEY = "lexflow_documents";
 // Use shared cases storage utility
 const casesStorage = window.LexFlowCasesStorage;
 
-function loadJsonFromStorage(key) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  } catch (error) {
-    console.warn(`Failed to parse ${key}:`, error);
-    return null;
-  }
-}
+
 
 function formatDate(value) {
   return new Date(value).toLocaleDateString(undefined, {
@@ -69,19 +61,7 @@ function renderDocuments(documents) {
 }
 
 function getDocumentsForCase(currentCase) {
-  const docsIndex = loadJsonFromStorage(DOCS_STORAGE_KEY);
-  if (Array.isArray(docsIndex) && docsIndex.length > 0) {
-    const byCnr = docsIndex.filter((doc) => String(doc.caseCnr || "") === String(currentCase.cnr || ""));
-    if (byCnr.length > 0) {
-      return byCnr.map((doc) => ({
-        name: doc.name,
-        type: doc.type || "DOC",
-        date: doc.date || "-",
-        status: doc.status || "Reviewing",
-      }));
-    }
-  }
-
+  // TODO: Migrate documents to NestJS API
   return Array.isArray(currentCase.documents) ? currentCase.documents : [];
 }
 
@@ -108,29 +88,29 @@ function attachDownloadHandlers() {
 
 async function initCaseDetails() {
   try {
-    const data = await casesStorage.ensureCasesStorage();
-    let cnr = new URLSearchParams(window.location.search).get("cnr");
-
-    if (!cnr) {
-      const currentCrumb = document.querySelector(".breadcrumb .current");
-      const crumbText = currentCrumb ? currentCrumb.textContent : "";
-      cnr = crumbText.includes("CNR:") ? crumbText.replace("CNR:", "").trim() : "";
+    const cnrFromUrl = new URLSearchParams(window.location.search).get("cnr");
+    const idFromUrl = new URLSearchParams(window.location.search).get("id");
+    
+    let currentCase = null;
+    if (idFromUrl) {
+      currentCase = await casesStorage.getCaseById(idFromUrl);
+    } else if (cnrFromUrl) {
+      currentCase = await casesStorage.getCaseByCnr(cnrFromUrl);
     }
 
-    const currentCase = (data.cases || []).find((item) => item.cnr === cnr);
     if (!currentCase) {
       return;
     }
 
-    document.querySelector(".page-header p").textContent = currentCase.title;
-    document.querySelector(".breadcrumb .current").textContent = `CNR: ${currentCase.cnr}`;
+    document.querySelector(".page-header p").textContent = currentCase.case_type || 'Case Details';
+    document.querySelector(".breadcrumb .current").textContent = `CNR: ${currentCase.cnr || 'N/A'}`;
 
     document.querySelector(".info-grid").innerHTML = `
-      <div class="info-item"><label>CNR Number</label><div class="value">${currentCase.cnr}</div></div>
-      <div class="info-item"><label>Case Type</label><div class="value">${currentCase.type}</div></div>
-      <div class="info-item"><label>Court</label><div class="value">${currentCase.court}</div></div>
-      <div class="info-item"><label>Assigned Lawyer</label><div class="value link" onclick="window.location.href='client_casemanagement_advocate-profile.html?id=${currentCase.lawyerId}'">Advocate Details</div></div>
-      <div class="info-item"><label>Filed Date</label><div class="value">${formatDate(currentCase.filedDate)}</div></div>
+      <div class="info-item"><label>CNR Number</label><div class="value">${currentCase.cnr || 'N/A'}</div></div>
+      <div class="info-item"><label>Case Type</label><div class="value">${currentCase.case_type || 'N/A'}</div></div>
+      <div class="info-item"><label>Description</label><div class="value">${currentCase.brief_description || 'N/A'}</div></div>
+      <div class="info-item"><label>Assigned Lawyer</label><div class="value link" onclick="window.location.href='client_casemanagement_advocate-profile.html?id=${currentCase.lawyer_id}'">Advocate Details</div></div>
+      <div class="info-item"><label>Filed Date</label><div class="value">${formatDate(currentCase.filed_date)}</div></div>
       <div class="info-item"><label>Status</label><div class="value"><span class="badge-status">${currentCase.status}</span></div></div>
     `;
 
