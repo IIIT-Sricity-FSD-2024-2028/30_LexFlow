@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     attachStep1Validators();
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       setAlert(null);
 
@@ -63,6 +63,38 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
 
       _saveDraft(data);
+
+      try {
+        let sessionId = sessionStorage.getItem('firmOnboardingSessionId') || localStorage.getItem('firmOnboardingSessionId');
+        
+        if (!sessionId) {
+          const startRes = await fetch(`http://localhost:3000/users/firm-onboarding/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
+          });
+          if (!startRes.ok) throw new Error(await startRes.text());
+          const startData = await startRes.json();
+          sessionId = startData.sessionId;
+          sessionStorage.setItem('firmOnboardingSessionId', sessionId);
+          localStorage.setItem('firmOnboardingSessionId', sessionId);
+        }
+
+        // send step1 data to server
+        const step1Res = await fetch(`http://localhost:3000/users/firm-onboarding/step1/${sessionId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
+          body: JSON.stringify({
+            ...data,
+            pinCode: data.zip,
+          }),
+        });
+        if (!step1Res.ok) throw new Error(await step1Res.text());
+      } catch (err) {
+        console.error(err);
+        setAlert(typeof err === 'string' ? err : (err.message || 'Unable to start onboarding on server'));
+        return;
+      }
+
       _showToast('Firm info saved!');
 
       setTimeout(() => {
@@ -79,7 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const draft = _getDraft();
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       setAlert(null);
 
@@ -115,6 +147,27 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
 
       _saveDraft({ ...draft, ...contactData });
+
+      // If a server-side onboarding session exists, submit step2
+      const sessionId = sessionStorage.getItem('firmOnboardingSessionId') || localStorage.getItem('firmOnboardingSessionId');
+      if (sessionId) {
+        try {
+          const step2Res = await fetch(`http://localhost:3000/users/firm-onboarding/step2/${sessionId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
+            body: JSON.stringify({
+              ...contactData,
+              phone: contactData.contactPhone
+            }),
+          });
+          if (!step2Res.ok) throw new Error(await step2Res.text());
+        } catch (err) {
+          console.error(err);
+          setAlert(typeof err === 'string' ? err : (err.message || 'Unable to submit contact info to server'));
+          return;
+        }
+      }
+
       _showToast('Contact info saved!');
 
       setTimeout(() => {
@@ -131,7 +184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const draft = _getDraft();
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       setAlert(null);
 
@@ -183,6 +236,64 @@ document.addEventListener('DOMContentLoaded', async () => {
         adminEmail: adminEmail
       };
 
+      const sessionId = sessionStorage.getItem('firmOnboardingSessionId') || localStorage.getItem('firmOnboardingSessionId');
+
+      // If there's an active server-side onboarding session, complete it via step3
+      if (sessionId) {
+        try {
+          const step3Payload = {
+            adminName: _val('admin-name'),
+            adminEmail: adminEmail,
+            password: _val('password'),
+            confirmPassword: _val('confirm-password'),
+          };
+
+          const step3Res = await fetch(`http://localhost:3000/users/firm-onboarding/step3/${sessionId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
+            body: JSON.stringify(step3Payload),
+          });
+
+          if (!step3Res.ok) {
+            const err = await step3Res.text();
+            throw new Error(err || 'Unable to complete onboarding');
+          }
+
+          const result = await step3Res.json();
+
+          // Mirror previous frontend behavior: persist firm and set current user
+          StorageService.create('lawFirms', {
+            ...firmData,
+            adminId: result.adminUserId,
+          });
+
+          const frontendUser = {
+            id: result.adminUserId,
+            fullName: _val('admin-name'),
+            email: adminEmail,
+            role: 'firmAdmin',
+            firmId: result.firmId,
+          };
+
+          localStorage.setItem('currentUser', JSON.stringify(frontendUser));
+          localStorage.setItem('userRole', frontendUser.role);
+          sessionStorage.removeItem(DRAFT_KEY);
+          sessionStorage.removeItem('firmOnboardingSessionId');
+          localStorage.removeItem('firmOnboardingSessionId');
+
+          _showToast('Firm account created!');
+          setTimeout(() => {
+            window.location.href = 'firm-consultation-dashboard.html';
+          }, 800);
+          return;
+        } catch (error) {
+          console.error(error);
+          setAlert(error.message || 'Unable to complete onboarding on server');
+          return;
+        }
+      }
+
+      // Fallback: previous behavior (create user directly via /users)
       const payload = {
         fullName: _val('admin-name'),
         email: adminEmail,
@@ -192,16 +303,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         addressLine1: draft.street || undefined,
         city: draft.city || undefined,
         state: draft.state || undefined,
-        pinCode: draft.zip || undefined
+        pinCode: draft.zip || undefined,
       };
 
       fetch('http://localhost:3000/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          role: 'superadmin'
+          role: 'superadmin',
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       })
         .then(async (res) => {
           if (!res.ok) {

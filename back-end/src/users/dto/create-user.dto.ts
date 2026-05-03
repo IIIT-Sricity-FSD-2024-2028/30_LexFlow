@@ -12,6 +12,7 @@ export enum UserRole {
   CLIENT = 'client',
   LAWYER = 'lawyer',
   INTERN = 'intern',
+  FIRM = 'firm',
   FIRMADMIN = 'firmadmin',
   SUPERADMIN = 'superadmin',
 }
@@ -59,29 +60,4 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   phone?: string;
-
-  @ApiProperty({ description: 'Address line 1', required: false })
-  @IsOptional()
-  @IsString()
-  addressLine1?: string;
-
-  @ApiProperty({ description: 'Address line 2', required: false })
-  @IsOptional()
-  @IsString()
-  addressLine2?: string;
-
-  @ApiProperty({ description: 'City', required: false })
-  @IsOptional()
-  @IsString()
-  city?: string;
-
-  @ApiProperty({ description: 'State', required: false })
-  @IsOptional()
-  @IsString()
-  state?: string;
-
-  @ApiProperty({ description: 'Pin / ZIP code', required: false })
-  @IsOptional()
-  @IsString()
-  pinCode?: string;
 }

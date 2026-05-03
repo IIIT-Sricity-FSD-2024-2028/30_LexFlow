@@ -32,7 +32,8 @@ async function bootstrap() {
       'http://127.0.0.1:3000',
       'http://localhost:5500',
       'http://127.0.0.1:5500',
-      'http://10.0.5.168:5500'
+      'http://10.0.5.168:5500',
+      'http://localhost:8080'
     ],
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'role'],

@@ -31,6 +31,7 @@
                 "client",
                 "lawyer",
                 "intern",
+                "firm",
                 "firmadmin",
                 "superadmin"
               ]
@@ -70,7 +71,7 @@
     },
     "/users": {
       "post": {
-        "description": "Creates a new user with the specified role (client, lawyer, intern, firmadmin, superadmin). Only firmadmins/superadmins can create users.",
+        "description": "Creates a new user with the specified role (client, lawyer, intern, firm, firmadmin, superadmin). Only firmadmins/superadmins can create users.",
         "operationId": "UsersController_create",
         "parameters": [
           {
@@ -84,6 +85,7 @@
                 "client",
                 "lawyer",
                 "intern",
+                "firm",
                 "firmadmin",
                 "superadmin"
               ]
@@ -138,6 +140,7 @@
                 "client",
                 "lawyer",
                 "intern",
+                "firm",
                 "firmadmin",
                 "superadmin"
               ]
@@ -153,6 +156,7 @@
                 "client",
                 "lawyer",
                 "intern",
+                "firm",
                 "firmadmin",
                 "superadmin"
               ],
@@ -184,6 +188,40 @@
         ]
       }
     },
+    "/users/firms/all": {
+      "get": {
+        "description": "Retrieve a list of all business entities (Firms).",
+        "operationId": "UsersController_getAllFirms",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of firms"
+          }
+        },
+        "summary": "Get all registered law firms",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/users/{id}": {
       "get": {
         "description": "Retrieve a specific user by their ID. Available to all roles.",
@@ -200,6 +238,7 @@
                 "client",
                 "lawyer",
                 "intern",
+                "firm",
                 "firmadmin",
                 "superadmin"
               ]
@@ -233,6 +272,245 @@
           }
         },
         "summary": "Get user by ID (all roles)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/firm-onboarding/start": {
+      "post": {
+        "description": "Initialize firm onboarding session",
+        "operationId": "UsersController_startFirmOnboarding",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Onboarding session started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Start firm onboarding",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/firm-onboarding/step1/{sessionId}": {
+      "post": {
+        "description": "Submit firm basic information (name, address, contact)",
+        "operationId": "UsersController_submitStep1",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirmOnboardingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Step 1 completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "step": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Firm onboarding step 1",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/firm-onboarding/step2/{sessionId}": {
+      "post": {
+        "description": "Submit firm contact details (email, phone, website)",
+        "operationId": "UsersController_submitStep2",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirmOnboardingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Step 2 completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "step": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Firm onboarding step 2",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/firm-onboarding/step3/{sessionId}": {
+      "post": {
+        "description": "Complete onboarding by setting up the firm admin account",
+        "operationId": "UsersController_submitStep3",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin"
+              ]
+            }
+          },
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirmOnboardingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Firm and admin account created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirmOnboardingResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or incomplete onboarding"
+          }
+        },
+        "summary": "Firm onboarding step 3 (final)",
         "tags": [
           "users"
         ]
@@ -276,6 +554,7 @@
               "client",
               "lawyer",
               "intern",
+              "firm",
               "firmadmin",
               "superadmin"
             ],
@@ -312,6 +591,7 @@
               "client",
               "lawyer",
               "intern",
+              "firm",
               "firmadmin",
               "superadmin"
             ],
@@ -327,25 +607,10 @@
             "type": "string",
             "description": "Phone number"
           },
-          "addressLine1": {
+          "firmId": {
             "type": "string",
-            "description": "Address line 1"
-          },
-          "addressLine2": {
-            "type": "string",
-            "description": "Address line 2"
-          },
-          "city": {
-            "type": "string",
-            "description": "City"
-          },
-          "state": {
-            "type": "string",
-            "description": "State"
-          },
-          "pinCode": {
-            "type": "string",
-            "description": "Pin / ZIP code"
+            "description": "Associated firm ID (for FIRMADMIN, LAWYER, INTERN roles)",
+            "example": "firm-1"
           }
         },
         "required": [
@@ -376,6 +641,7 @@
               "client",
               "lawyer",
               "intern",
+              "firm",
               "firmadmin",
               "superadmin"
             ],
@@ -390,26 +656,6 @@
             "type": "string",
             "description": "Phone number",
             "example": "+91-9876543210"
-          },
-          "addressLine1": {
-            "type": "string",
-            "description": "Address line 1"
-          },
-          "addressLine2": {
-            "type": "string",
-            "description": "Address line 2"
-          },
-          "city": {
-            "type": "string",
-            "description": "City"
-          },
-          "state": {
-            "type": "string",
-            "description": "State"
-          },
-          "pinCode": {
-            "type": "string",
-            "description": "Pin / ZIP code"
           }
         },
         "required": [
@@ -417,6 +663,130 @@
           "email",
           "role",
           "password"
+        ]
+      },
+      "FirmOnboardingDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "description": "Full name of the primary contact person",
+            "example": "Amit Sharma"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address of the primary contact",
+            "example": "amit.sharma@example.in"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number (10 digits)",
+            "example": "9876543210"
+          },
+          "street": {
+            "type": "string",
+            "description": "Street address",
+            "example": "21, Connaught Place"
+          },
+          "city": {
+            "type": "string",
+            "description": "City name",
+            "example": "New Delhi"
+          },
+          "state": {
+            "type": "string",
+            "description": "State name",
+            "example": "Delhi"
+          },
+          "pinCode": {
+            "type": "string",
+            "description": "PIN / Zip Code",
+            "example": "110001"
+          },
+          "logo": {
+            "type": "string",
+            "description": "Firm logo (base64 or file path)"
+          },
+          "primaryEmail": {
+            "type": "string",
+            "description": "Primary email for firm operations",
+            "example": "contact@firm.com"
+          },
+          "website": {
+            "type": "string",
+            "description": "Firm website URL",
+            "example": "https://www.yourfirm.com"
+          },
+          "adminName": {
+            "type": "string",
+            "description": "Admin full name",
+            "example": "Rahul Verma"
+          },
+          "adminEmail": {
+            "type": "string",
+            "description": "Admin email address",
+            "example": "rahul.verma@lawfirm.in"
+          },
+          "password": {
+            "type": "string",
+            "description": "Admin password (minimum 8 characters)",
+            "example": "SecurePass@123"
+          },
+          "confirmPassword": {
+            "type": "string",
+            "description": "Confirm password",
+            "example": "SecurePass@123"
+          }
+        }
+      },
+      "FirmOnboardingResponseDto": {
+        "type": "object",
+        "properties": {
+          "firmId": {
+            "type": "string",
+            "description": "Firm ID",
+            "example": "firm-1"
+          },
+          "name": {
+            "type": "string",
+            "description": "Firm name",
+            "example": "Sharma & Associates"
+          },
+          "primaryEmail": {
+            "type": "string",
+            "description": "Primary email",
+            "example": "contact@firm.com"
+          },
+          "adminUserId": {
+            "type": "string",
+            "description": "Admin user ID",
+            "example": "user-5"
+          },
+          "adminEmail": {
+            "type": "string",
+            "description": "Admin email",
+            "example": "rahul.verma@lawfirm.in"
+          },
+          "message": {
+            "type": "string",
+            "description": "Status message",
+            "example": "Firm and admin account created successfully"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Timestamp",
+            "example": "2026-04-30T10:30:00Z"
+          }
+        },
+        "required": [
+          "firmId",
+          "name",
+          "primaryEmail",
+          "adminUserId",
+          "adminEmail",
+          "message",
+          "createdAt"
         ]
       }
     }
