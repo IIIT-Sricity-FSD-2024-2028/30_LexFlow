@@ -42,38 +42,21 @@ const userRole =
   localStorage.getItem('userRole') ||
   'client';
 
-const roleToEmailMap = {
-  client: 'rahulsharma@example.com',
-  firmAdmin: 'mehta@lexflow.in',
-  'firm-admin': 'mehta@lexflow.in',
-  lawfirm_admin: 'admin@lexflow.in',
-  lawyer: 'mehta@lexflow.in',
-  intern: 'priya.intern@lexflow.in',
-};
+const CURRENT_USER_EMAIL = (currentUser && currentUser.email) || '';
 
-const CURRENT_USER_EMAIL =
-  (currentUser && currentUser.email) ||
-  roleToEmailMap[userRole] ||
-  roleToEmailMap.client;
+
 
 // FIX: Always read caseId from URL params first
 const urlParams = new URLSearchParams(window.location.search);
 const urlCaseId = urlParams.get('caseId');
 
-if (urlCaseId) {
-  localStorage.setItem('caseId', urlCaseId);
-}
+const CURRENT_CASE_ID = urlCaseId || '1';
 
-const CURRENT_CASE_ID =
-  urlCaseId ||
-  localStorage.getItem('caseId') ||
-  localStorage.getItem('currentCaseId') ||
-  'CASE-45';
 
 (function () {
   "use strict";
 
-  const USERS_JSON_PATH = "../data/docs.json";
+
 
   // In-memory activity log — not persisted to localStorage
   let activityLog = [];
@@ -310,32 +293,48 @@ const CURRENT_CASE_ID =
   document.head.appendChild(styleEl);
 
 
+  // In-memory data storage (Replaces removed docs.json)
+  const MEMORY_DB = {
+    users: [
+      { id: 'user-0', name: 'Super Admin', email: 'superadmin@lexflow.test', role: 'superAdmin' },
+      { id: 'user-1', name: 'Firm Admin', email: 'firmadmin@lexflow.test', role: 'firmAdmin', firmId: 'firm-1' },
+      { id: 'user-2', name: 'Client Alice', email: 'alice@client.test', role: 'client', phone: '+91-9000000001' },
+      { id: 'user-3', name: 'Lawyer Bob', email: 'bob@lawyer.test', role: 'lawyer', firmId: 'firm-1' },
+      { id: 'user-4', name: 'Intern Charlie', email: 'charlie@intern.test', role: 'intern', firmId: 'firm-1' },
+    ],
+    firms: [
+      { id: 'firm-1', name: 'Sharma & Associates', email: 'contact@sharma.law' },
+    ],
+    cases: [
+      { id: '1', title: 'State vs John Doe', cnr: 'PH010012342024', status: 'Active', clientId: 'user-2', lawyerId: 'user-3', firmId: 'firm-1', court: 'District Court' },
+      { id: '2', title: 'Sharma vs Gupta', cnr: 'DL020056782024', status: 'Active', clientId: 'user-2', lawyerId: 'user-3', firmId: 'firm-1', court: 'High Court' },
+      { id: '3', title: 'TechCorp vs SoftSystems', cnr: 'MH030099992024', status: 'Pending', clientId: 'user-2', lawyerId: 'user-3', firmId: 'firm-1', court: 'Supreme Court' },
+    ]
+  };
+
   async function bootApp() {
     try {
-      // Load static metadata (users, cases, firms) from docs.json.
-      // Documents themselves come from the backend API.
-      let fullDb = null;
-      try {
-        const resp = await fetch(USERS_JSON_PATH);
-        if (resp.ok) fullDb = await resp.json();
-      } catch (e) {
-        console.warn("Could not fetch docs.json:", e);
-      }
-
-      // Merge the logged-in user from localStorage into the user list
-      // so the page works even if they're not in docs.json yet.
-      const users = (fullDb && fullDb.users) ? [...fullDb.users] : [];
+      // Merge the logged-in user from localStorage into our in-memory user list
+      const users = [...MEMORY_DB.users];
       const localUser = safeParse(localStorage.getItem('currentUser'), null);
       if (localUser && localUser.email) {
         const exists = users.find(u => u.email === localUser.email);
-        if (!exists) users.push(localUser);
+        if (!exists) {
+          users.push({
+            id: localUser.id || `local-${Date.now()}`,
+            name: localUser.fullName || localUser.name || 'Current User',
+            email: localUser.email,
+            role: localUser.role || userRole,
+            firmId: localUser.firmId || null
+          });
+        }
       }
 
       const db = {
         users,
-        cases: (fullDb && fullDb.cases) || [],
-        documents: [], // not used — docs come from backend API
-        firms: (fullDb && fullDb.firms) || [],
+        cases: MEMORY_DB.cases,
+        documents: [], 
+        firms: MEMORY_DB.firms,
       };
 
       await init(db);
@@ -344,6 +343,7 @@ const CURRENT_CASE_ID =
       toast(`Failed to boot: ${err.message}`, "error");
     }
   }
+
 
   bootApp();
 
@@ -429,27 +429,29 @@ const CURRENT_CASE_ID =
     }
 
     // ── Document access resolution ───────────────────────────────────────
-    // lawfirm_admin for their own case: backend is source of truth — no ID allowlist.
-    // Everyone else: filter by their explicit caseAccess list from docs.json.
-    const isFullAccess =
-      ROLE === "lawfirm_admin" &&
-      CURRENT_FIRM &&
-      CURRENT_CASE.firmId === CURRENT_FIRM.id;
+    // Check for explicit case access (either an array of IDs or an object mapping IDs to permissions)
+    const caseAccess = CURRENT_USER.caseAccess || [];
+    const hasExplicitAccess = Array.isArray(caseAccess) 
+      ? caseAccess.includes(CURRENT_CASE_ID)
+      : !!(caseAccess[CURRENT_CASE_ID]);
 
-    if (!isFullAccess) {
-      if (!userHasExplicitCaseAccess) {
-        renderAccessDenied(
-          `You do not have document access to ${CURRENT_CASE_ID}. Contact your firm administrator to request access.`,
-          "NO_DOC_ACCESS"
-        );
-        renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
-        return;
-      }
+    const isFullAccess =
+      ROLE === "superAdmin" || 
+      (ROLE === "firmAdmin" && CURRENT_FIRM && CURRENT_CASE.firmId === CURRENT_FIRM.id);
+
+    if (!isFullAccess && !hasExplicitAccess) {
+      renderAccessDenied(
+        `You do not have access to Case ${CURRENT_CASE_ID}. Contact your firm administrator to request access.`,
+        "NO_DOC_ACCESS"
+      );
+      renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
+      return;
     }
 
     const allowedIds = isFullAccess
-      ? null  // null = no filter, admin sees all
-      : new Set(CURRENT_USER.caseAccess[CURRENT_CASE_ID] || []);
+      ? null  // null = no filter
+      : new Set(Array.isArray(caseAccess) ? [] : (caseAccess[CURRENT_CASE_ID] || []));
+
 
     let docsData = [];
     try {

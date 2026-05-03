@@ -1,5 +1,5 @@
 // AGGRESSIVE CLEANUP: Run this in the console to remove all non-essential localStorage
-const keysToKeep = ['currentUser', 'userRole', 'users', 'loginRole'];
+const keysToKeep = ['currentUser', 'userRole', 'loginRole'];
 
 const allKeys = Object.keys(localStorage);
 allKeys.forEach(key => {

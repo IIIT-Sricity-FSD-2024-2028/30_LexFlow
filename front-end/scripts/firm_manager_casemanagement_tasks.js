@@ -14,19 +14,7 @@ const currentUser = (() => {
     };
   } catch { return { name: 'Firm Admin', avatar: 'FA', role: 'firmAdmin' }; }
 })();
-const MOCK_STORAGE_KEY = "lexflow_mock_data",
-  TASKS_STORAGE_KEY = "lexflow_tasks",
-  USERS_STORAGE_KEY = "lexflow_users",
-  MOCK_PATH = "../scripts/client_casemanagement_mock-data.json";
 
-function loadJsonFromStorage(t) {
-  try {
-    const e = localStorage.getItem(t);
-    return e ? JSON.parse(e) : null;
-  } catch (e) {
-    return (console.warn(`Failed to parse ${t}:`, e), null);
-  }
-}
 
 function saveJsonToStorage(t, e) {
   // Only allow essential auth keys
@@ -38,41 +26,27 @@ function saveJsonToStorage(t, e) {
   }
 }
 
-async function ensureTaskStorage() {
-  let t = loadJsonFromStorage(MOCK_STORAGE_KEY),
-    e = loadJsonFromStorage(TASKS_STORAGE_KEY),
-    n = loadJsonFromStorage(USERS_STORAGE_KEY);
+  // In-memory data storage (Replaces removed JSON and restricted localStorage)
+  const MEMORY_DB = {
+    tasks: [
+      { id: "T-001", name: "Review Evidence", caseTitle: "State vs John Doe", assignedUser: "Lawyer Bob", priority: "HIGH", dueDate: "May 15, 2026", status: "Pending", description: "Analyze the forensic reports for Case #1." },
+      { id: "T-002", name: "Draft Agreement", caseTitle: "TechCorp vs SoftSystems", assignedUser: "Lawyer Bob", priority: "MEDIUM", dueDate: "Jun 10, 2026", status: "Pending", description: "Prepare the initial draft for the settlement agreement." },
+      { id: "T-003", name: "Client Briefing", caseTitle: "General Task", assignedUser: "Firm Admin", priority: "LOW", dueDate: "May 05, 2026", status: "Completed", description: "Introductory session for the new case onboarding." },
+    ]
+  };
 
-  if (!(t && Array.isArray(t.tasks))) {
-    if (!Array.isArray(e)) {
-      const a = await fetch(MOCK_PATH),
-        s = await a.json();
-      ((t = s),
-        saveJsonToStorage(MOCK_STORAGE_KEY, s),
-        saveJsonToStorage(TASKS_STORAGE_KEY, s.tasks || []),
-        saveJsonToStorage(USERS_STORAGE_KEY, s.users || []));
-    } else {
-      t = { ...(t || {}), tasks: e || [], users: n || [] };
-      saveJsonToStorage(MOCK_STORAGE_KEY, t);
-    }
-  } else {
-    (Array.isArray(e) || saveJsonToStorage(TASKS_STORAGE_KEY, t.tasks || []),
-      Array.isArray(n) || saveJsonToStorage(USERS_STORAGE_KEY, t.users || []));
+  async function ensureTaskStorage() {
+    console.log('[TaskStorage] Using in-memory storage.');
+    return {
+      tasks: MEMORY_DB.tasks,
+      users: (casesStorage && (await casesStorage.getUsers())) || []
+    };
   }
 
-  return {
-    tasks: loadJsonFromStorage(TASKS_STORAGE_KEY) || (t && t.tasks) || [],
-    users: loadJsonFromStorage(USERS_STORAGE_KEY) || (t && t.users) || [],
-  };
-}
+  function saveTasksToAllStores() {
+    console.log('[TaskStorage] In-memory tasks updated.');
+  }
 
-function saveTasksToAllStores() {
-  const t = loadJsonFromStorage(MOCK_STORAGE_KEY) || {};
-  ((t.tasks = allTasks),
-    Array.isArray(t.users) || (t.users = loadJsonFromStorage(USERS_STORAGE_KEY) || []),
-    saveJsonToStorage(TASKS_STORAGE_KEY, allTasks),
-    saveJsonToStorage(MOCK_STORAGE_KEY, t));
-}
 async function initTasks() {
   try {
     const t = await ensureTaskStorage();
