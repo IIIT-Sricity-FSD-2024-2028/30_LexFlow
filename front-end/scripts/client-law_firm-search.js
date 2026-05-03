@@ -201,10 +201,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // 7. Booking Form Submission
+    // 7. Booking Form Submission — calls backend API
     const bookingForm = document.getElementById('booking-form');
     if (bookingForm) {
-        bookingForm.addEventListener('submit', (e) => {
+        bookingForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const activeUser = AuthService.getCurrentUser();
@@ -212,80 +212,79 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.location.href = 'SignIn.html';
                 return;
             }
-            
-            // Get form data
-            const firmName = document.getElementById('lawfirm-name').value;
-            const typeSelect = document.querySelector('.type-option.selected input');
-            const consultationType = typeSelect ? typeSelect.value : 'video';
-            
-            // Get selected date
-            const daySelected = document.querySelector('.cal-day.selected');
-            const dayNum = daySelected ? daySelected.textContent : '1';
-            
-            // Get selected time
-            const timeSelected = document.querySelector('.time-slot.selected');
-            const selectedTime = timeSelected ? timeSelected.textContent : '10:00 AM';
-            
-            // Get current date context - format as "MMM DD, YYYY"
-            const now = new Date();
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const currentMonth = monthNames[now.getMonth()];
-            const currentYear = now.getFullYear();
-            const consultationDate = `${currentMonth} ${dayNum}, ${currentYear}`;
-            
-            // Get the firm object to extract better data
-            const firmId = sessionStorage.getItem('booking_firm_id');
-            const firm = firmId ? LexFlowStorage.getFirmById(firmId) : null;
-            
-            // Use the authenticated client identity only.
+
             const clientName = activeUser.fullName || activeUser.name;
-            if (!clientName) {
+            const clientId   = activeUser.id || activeUser.userId || activeUser.clientId;
+            if (!clientName || !clientId) {
                 window.location.href = 'SignIn.html';
                 return;
             }
-            
-            // Generate unique consultation ID
-            const consultationId = 'CONS-' + Date.now();
-            
-            // Avatar color classes: blue, green, orange, purple, pink, indigo, teal, etc
-            const avatarColors = ['blue', 'green', 'orange', 'purple', 'pink', 'indigo', 'teal'];
-            const randomColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
-            
-            // Create new consultation with all required fields
-            const newConsultation = {
-                id: consultationId,
-                clientName: clientName,
-                lawyerName: 'Awaiting Assignment',
-                firmName: firmName,
-                type: consultationType, // 'video' or 'inperson'
-                date: consultationDate,
-                time: selectedTime + ' - ' + selectedTime, // Time range
-                status: 'PENDING', // New bookings start as pending for Firm Admin review
-                avatarClass: randomColor, // Random avatar color for visual variety
-                caseType: 'General Consultation', // Default case type
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
+
+            // ── Form values ──────────────────────────────────────────────────
+            const firmName    = document.getElementById('lawfirm-name').value;
+            const typeSelect  = document.querySelector('.type-option.selected input');
+            const consType    = typeSelect ? typeSelect.value : 'video';
+
+            const daySelected  = document.querySelector('.cal-day.selected');
+            const dayNum       = daySelected ? daySelected.textContent.trim() : '1';
+            const timeSelected = document.querySelector('.time-slot.selected');
+            const selectedTime = timeSelected ? timeSelected.textContent.trim() : '10:00 AM';
+
+            const now        = new Date();
+            const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const consDate   = `${monthNames[now.getMonth()]} ${dayNum}, ${now.getFullYear()}`;
+            const consTime   = `${selectedTime} - ${selectedTime}`;
+
+            const caseDesc = document.getElementById('case-description')
+                ? document.getElementById('case-description').value.trim()
+                : '';
+
+            const firmId = sessionStorage.getItem('booking_firm_id');
+            const firm   = firmId ? LexFlowStorage.getFirmById(firmId) : null;
+
+            const avatarColors = ['blue','green','orange','purple','pink','indigo','teal'];
+            const avatarClass  = avatarColors[Math.floor(Math.random() * avatarColors.length)];
+
+            // ── Build DTO ────────────────────────────────────────────────────
+            const payload = {
+                clientId,
+                clientName,
+                firmId:   firm ? String(firm.id) : (firmId || 'unknown'),
+                firmName: firm ? firm.name : firmName,
+                type:     consType,
+                date:     consDate,
+                time:     consTime,
+                caseDescription:  caseDesc || 'General consultation request.',
+                consultationFee:  firm ? `$${firm.price}` : undefined,
+                avatarClass,
+                bookedViaWorkflow: true,
             };
-            
-            // If we have firm data, add more details
-            if (firm) {
-                newConsultation.firmId = firm.id;
-                newConsultation.firmLocation = firm.location;
-                newConsultation.firmRating = firm.rating;
-                newConsultation.firmReviews = firm.reviews;
-                newConsultation.consultationFee = '$' + firm.price;
+
+            // ── Loading state on button ──────────────────────────────────────
+            const submitBtn = document.getElementById('modal-confirm-btn');
+            if (submitBtn) {
+                submitBtn.disabled    = true;
+                submitBtn.textContent = 'Booking…';
             }
-            
-            // Save to localStorage via storage API
-            const savedConsultation = LexFlowStorage.addConsultation(newConsultation);
-            
-            console.log('[Find Firm] Consultation booked:', savedConsultation.id);
-            
-            // Show success feedback
-            alert('Consultation request sent successfully! Redirecting to your consultations dashboard...');
-            
-            // Redirect to client dashboard to show the newly created consultation
-            window.location.href = 'client-consultation-dashboard.html';
+
+            try {
+                const saved = await LexFlowAPI.consultations.create(payload, 'client');
+                console.log('[Find Firm] Consultation booked via API:', saved.id);
+
+                // Clear session
+                sessionStorage.removeItem('booking_firm_id');
+
+                alert('Consultation request sent successfully! Redirecting to your consultations dashboard…');
+                window.location.href = 'client-consultation-dashboard.html';
+
+            } catch (err) {
+                console.error('[Find Firm] Booking failed:', err);
+                alert(`Booking failed: ${err.message}\n\nPlease ensure the backend server is running at http://localhost:3000`);
+                if (submitBtn) {
+                    submitBtn.disabled    = false;
+                    submitBtn.textContent = 'Confirm Booking';
+                }
+            }
         });
     }
 
