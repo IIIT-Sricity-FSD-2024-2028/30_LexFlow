@@ -164,6 +164,8 @@ const LexFlowAPI = (() => {
     },
   };
 
+
+
   // ── Cases namespace ──────────────────────────────────────────────────────────
   const cases = {
     getAll(filters = {}, role) {
@@ -212,9 +214,39 @@ const LexFlowAPI = (() => {
     },
   };
 
+  // ── Law Firms namespace ───────────────────────────────────────────────────
+  const lawFirms = {
+    /**
+     * GET /law-firms
+     * Client: search/filter law firms
+     * @param {{ keyword?, location?, practiceArea?, sortBy? }} filters
+     * @param {string} role - should be "client"
+     */
+    getAll(filters = {}, role) {
+      const qs = new URLSearchParams();
+      Object.entries(filters).forEach(([k, v]) => { 
+        if (v !== undefined && v !== null) qs.set(k, v); 
+      });
+      const query = qs.toString() ? `?${qs.toString()}` : '';
+      return request('GET', `/law-firms${query}`, { role });
+    },
+
+    /**
+     * GET /law-firms/:id
+     * Client: get full profile of a single firm
+     * @param {string} id - firm ID e.g. 'firm-001'
+     * @param {string} role
+     */
+    getById(id, role) {
+      return request('GET', `/law-firms/${id}`, { role });
+    },
+  };
+
   // Public interface
-  return { consultations, users, cases, tasks, getCurrentUser, getRole, BASE_URL };
+  return { consultations, users, cases, tasks, lawFirms, getCurrentUser, getRole, BASE_URL };
+
 })();
 
 // Make globally available
 window.LexFlowAPI = LexFlowAPI;
+

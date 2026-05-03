@@ -513,4 +513,18 @@ export class UsersService {
     }
     return this.getFirmById(user.firmId);
   }
+
+  /**
+   * Get lawyers belonging to a specific firm.
+   * firmadmin: pass their own firmId — only gets lawyers in that firm.
+   * superadmin: pass undefined — gets all lawyers across all firms.
+   */
+  getLawyersByFirmId(firmId?: string): UserResponseDto[] {
+    let results = this.users.filter((u) => u.role === UserRole.LAWYER);
+    if (firmId) {
+      results = results.filter((u) => u.firmId === firmId);
+    }
+    return results.map(this.mapToResponse);
+  }
 }
+

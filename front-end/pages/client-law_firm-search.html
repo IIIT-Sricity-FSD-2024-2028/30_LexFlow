@@ -150,11 +150,11 @@
         <section class="section" id="search-results">
             <div class="section-header results-header">
                 <h2>Recommended Match</h2>
-                <p>24 firms matching your criteria.</p>
+                <p id="results-count">Loading firms…</p>
                 
                 <div class="sort-dropdown">
                     <span>Sort by:</span>
-                    <select class="clean-select-small">
+                    <select class="clean-select-small" id="sort-select">
                         <option>Highest Rated</option>
                         <option>Lowest Price</option>
                         <option>Most Reviews</option>
@@ -164,125 +164,7 @@
             </div>
 
             <div class="firms-grid">
-                <!-- Firm Card 1 -->
-                <div class="firm-card" id="firm-card-1">
-                    <div class="firm-card-header">
-                        <div class="firm-avatar">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <div class="firm-info">
-                            <h3>Mehta & Associates</h3>
-                            <span class="firm-subtitle">Corporate & IP • Mumbai, MH</span>
-                        </div>
-                        <span class="badge badge-available">AVAILABLE</span>
-                    </div>
-                    <div class="firm-card-body">
-                        <p class="firm-description">Top tier law firm specializing in high-stakes corporate litigation and tech mergers. Rated as Legal500 Tier 1.</p>
-                    </div>
-                    <div class="firm-card-stats">
-                        <div class="stat-item">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                            </svg>
-                            <span class="stat-rating">4.9</span>
-                            <span class="stat-reviews">(230 reviews)</span>
-                        </div>
-                        <div class="stat-item">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="1" x2="12" y2="23"></line>
-                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                            </svg>
-                            <span class="stat-price">$200/hr</span>
-                        </div>
-                    </div>
-                    <div class="firm-card-actions">
-                        <button class="btn btn-outline-sm" id="btn-view-firm-1">View Profile</button>
-                        <button class="btn btn-primary-sm" id="btn-book-firm-1">Book Now</button>
-                    </div>
-                </div>
-
-                <!-- Firm Card 2 -->
-                <div class="firm-card" id="firm-card-2">
-                    <div class="firm-card-header">
-                        <div class="firm-avatar" style="background: #e5edff;">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <div class="firm-info">
-                            <h3>Kapoor Legal Solutions</h3>
-                            <span class="firm-subtitle">Family & Divorce • Bangalore, KA</span>
-                        </div>
-                        <span class="badge badge-available-today">TODAY</span>
-                    </div>
-                    <div class="firm-card-body">
-                        <p class="firm-description">Compassionate representation for complex family matters, divorce mediation, and custody agreements.</p>
-                    </div>
-                    <div class="firm-card-stats">
-                        <div class="stat-item">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                            </svg>
-                            <span class="stat-rating">4.8</span>
-                            <span class="stat-reviews">(184 reviews)</span>
-                        </div>
-                        <div class="stat-item">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="1" x2="12" y2="23"></line>
-                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                            </svg>
-                            <span class="stat-price">$150/hr</span>
-                        </div>
-                    </div>
-                    <div class="firm-card-actions">
-                        <button class="btn btn-outline-sm" id="btn-view-firm-2">View Profile</button>
-                        <button class="btn btn-primary-sm" id="btn-book-firm-2">Book Now</button>
-                    </div>
-                </div>
-
-                <!-- Firm Card 3 -->
-                <div class="firm-card" id="firm-card-3">
-                    <div class="firm-card-header">
-                        <div class="firm-avatar" style="background: #ecfdf5;">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <div class="firm-info">
-                            <h3>Rao & Menon Legal</h3>
-                            <span class="firm-subtitle">Criminal Defense • Chennai, TN</span>
-                        </div>
-                        <span class="badge badge-busy">BUSY</span>
-                    </div>
-                    <div class="firm-card-body">
-                        <p class="firm-description">Aggressive criminal defense attorneys with a track record of numerous acquittals and reduced sentences.</p>
-                    </div>
-                    <div class="firm-card-stats">
-                        <div class="stat-item">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                            </svg>
-                            <span class="stat-rating">4.7</span>
-                            <span class="stat-reviews">(92 reviews)</span>
-                        </div>
-                        <div class="stat-item">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="1" x2="12" y2="23"></line>
-                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                            </svg>
-                            <span class="stat-price">$220/hr</span>
-                        </div>
-                    </div>
-                    <div class="firm-card-actions">
-                        <button class="btn btn-outline-sm" id="btn-view-firm-3">View Profile</button>
-                        <button class="btn btn-primary-sm" id="btn-book-firm-3">Book Now</button>
-                    </div>
-                </div>
+                <!-- Populated dynamically by client-law_firm-search.js via GET /law-firms -->
             </div>
         </section>
 
@@ -384,7 +266,7 @@
                                 </div>
                                 <div class="cal-grid">
                                     <span class="cal-dow">S</span><span class="cal-dow">M</span><span class="cal-dow">T</span><span class="cal-dow">W</span><span class="cal-dow">T</span><span class="cal-dow">F</span><span class="cal-dow">S</span>
-                                    <span class="cal-day">1</span><span class="cal-day">2</span><span class="cal-day selected">3</span><span class="cal-day">4</span><span class="cal-day">5</span><span class="cal-day">6</span><span class="cal-day">7</span>
+                                    <!-- Day cells injected by client-law_firm-search.js buildCalendar() -->
                                 </div>
                             </div>
                         </div>
