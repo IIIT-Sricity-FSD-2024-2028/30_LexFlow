@@ -214,7 +214,7 @@
     <script src="../scripts/sidebar-utils.js"></script>
     <script>
         // Auth Guard
-        AuthService.requireAuth(['firmAdmin']);
+        AuthService.requireAuth(['firmAdmin', 'lawyer', 'intern']);
         
         // Initialize storage on load
         document.addEventListener('DOMContentLoaded', initStorage);

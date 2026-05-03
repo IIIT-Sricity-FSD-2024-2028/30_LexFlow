@@ -35,7 +35,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             loginBtn.classList.add('btn-loading');
             try {
-                const user = await _postJSON(`${API_BASE}/users/login`, { email, password, role: expectedRole });
+                const user = await _postJSON(`${API_BASE}/users/login`, { email, password });
+
+                if (expectedRole === 'firmadmin' && !['firmadmin', 'lawyer', 'intern'].includes(user.role.toLowerCase())) {
+                    throw new Error('This login portal is only for law firm staff (Admin/Lawyer/Intern).');
+                }
+                if (expectedRole === 'client' && user.role.toLowerCase() !== 'client') {
+                    throw new Error('This login portal is only for clients.');
+                }
 
                 const frontendRoleMap = {
                     firmadmin: 'firmAdmin',
