@@ -4,6 +4,6 @@ import { CasesService } from './cases.service';
 
 @Module({
   controllers: [CasesController],
-  providers: [CasesService]
+  providers: [CasesService],
 })
 export class CasesModule {}

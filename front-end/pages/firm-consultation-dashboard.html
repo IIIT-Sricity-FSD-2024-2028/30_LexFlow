@@ -212,6 +212,13 @@
     <script src="../scripts/storageService.js"></script>
     <script src="../scripts/auth.js"></script>
     <script src="../scripts/sidebar-utils.js"></script>
+    <script>
+        // Auth Guard
+        AuthService.requireAuth(['firmAdmin', 'lawyer', 'intern']);
+        
+        // Initialize storage on load
+        document.addEventListener('DOMContentLoaded', initStorage);
+    </script>
     <script src="../scripts/api.js"></script>
     <script src="../scripts/firm-consultation-dashboard.js"></script>
     <style>

@@ -1,0 +1,9 @@
+{
+  "liveServer.settings.root": "/front-end",
+  "liveServer.settings.ignoreFiles": [
+    "back-end/**",
+    "Database/**",
+    "postman/**",
+    "**/.git/**"
+  ]
+}

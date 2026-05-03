@@ -6,7 +6,7 @@ export class AppController {
   getStatus() {
     return {
       message: 'LexFlow Backend Running',
-      status: 'OK'
+      status: 'OK',
     };
   }
 }
