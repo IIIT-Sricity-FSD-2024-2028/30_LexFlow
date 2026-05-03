@@ -81,7 +81,6 @@ export class UsersController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  // @Roles(UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({
     summary: 'Create a new user',
     description:

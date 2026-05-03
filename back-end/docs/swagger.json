@@ -1499,11 +1499,489 @@
           "documents"
         ]
       }
+    },
+    "/billing/clients": {
+      "get": {
+        "description": "Returns all registered clients.\n\n> **TODO:** Once ConsultationsModule is ready, this will be filtered to only clients who have a consultation with the calling law firm.",
+        "operationId": "BillingController_getClients",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of clients"
+          }
+        },
+        "summary": "Client dropdown for Create Invoice",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/billing/invoices": {
+      "post": {
+        "operationId": "BillingController_createInvoice",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invoice created"
+          },
+          "404": {
+            "description": "Client ID not found or not a client"
+          }
+        },
+        "summary": "Create a new invoice",
+        "tags": [
+          "Billing"
+        ]
+      },
+      "get": {
+        "description": "CLIENT → only their own invoices (pass `x-user-id`).\nLAWYER → invoices where they are the advocate (pass `x-user-name`).\nFIRMADMIN / SUPERADMIN → all invoices.",
+        "operationId": "BillingController_findAllInvoices",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-name",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get invoices (role-scoped)",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/billing/invoices/summary": {
+      "get": {
+        "operationId": "BillingController_getSummary",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-name",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Billing summary stats (role-scoped)",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/billing/invoices/{id}": {
+      "get": {
+        "operationId": "BillingController_findOneInvoice",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "INV-A1B2C3D4",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Invoice not found"
+          }
+        },
+        "summary": "Get single invoice by ID",
+        "tags": [
+          "Billing"
+        ]
+      },
+      "patch": {
+        "operationId": "BillingController_updateInvoice",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "INV-A1B2C3D4",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update an invoice (partial)",
+        "tags": [
+          "Billing"
+        ]
+      },
+      "delete": {
+        "operationId": "BillingController_removeInvoice",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "INV-A1B2C3D4",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete an invoice",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/billing/payments": {
+      "get": {
+        "operationId": "BillingController_findAllPayments",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get payments (role-scoped)",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/billing/payments/invoice/{invoiceId}": {
+      "get": {
+        "operationId": "BillingController_findPaymentsByInvoice",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "INV-A1B2C3D4",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get payments for a specific invoice",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/billing/payments/{invoiceId}": {
+      "post": {
+        "operationId": "BillingController_recordPayment",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "INV-A1B2C3D4",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Record a payment — CLIENT only",
+        "tags": [
+          "Billing"
+        ]
+      }
     }
   },
   "info": {
     "title": "LexFlow API",
-    "description": "Legal ERP Backend",
+    "description": "REST API for the LexFlow Legal Platform.\n\n**RBAC:** Pass `role` in the request header to identify the caller.\nAccepted values: `client` | `lawyer` | `intern` | `firmadmin` | `superadmin`",
     "version": "1.0",
     "contact": {}
   },
@@ -1511,10 +1989,11 @@
   "servers": [],
   "components": {
     "securitySchemes": {
-      "role": {
+      "role-auth": {
         "type": "apiKey",
         "in": "header",
-        "name": "role"
+        "name": "role",
+        "description": "User role for RBAC. Values: client | lawyer | intern | firmadmin | superadmin"
       }
     },
     "schemas": {
@@ -2172,6 +2651,101 @@
             "example": 2
           }
         }
+      },
+      "CreateInvoiceDto": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "description": "User ID of the client (from GET /billing/clients dropdown)",
+            "example": "user-2"
+          },
+          "caseName": {
+            "type": "string",
+            "description": "Case name",
+            "example": "Property Dispute vs. Urban Developers"
+          },
+          "advocateName": {
+            "type": "string",
+            "description": "Advocate / lawyer name",
+            "example": "Lawyer Bob"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Invoice amount in INR",
+            "example": 25000
+          },
+          "status": {
+            "type": "string",
+            "description": "Initial status (auto-derived to Overdue if dueDate is past)",
+            "enum": [
+              "Pending",
+              "Paid",
+              "Overdue"
+            ],
+            "example": "Pending"
+          },
+          "dueDate": {
+            "type": "string",
+            "description": "Due date in ISO format YYYY-MM-DD",
+            "example": "2026-12-31"
+          }
+        },
+        "required": [
+          "clientId",
+          "caseName",
+          "amount",
+          "dueDate"
+        ]
+      },
+      "UpdateInvoiceDto": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "description": "New client user ID"
+          },
+          "caseName": {
+            "type": "string"
+          },
+          "advocateName": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Paid",
+              "Overdue"
+            ]
+          },
+          "dueDate": {
+            "type": "string"
+          }
+        }
+      },
+      "RecordPaymentDto": {
+        "type": "object",
+        "properties": {
+          "paymentMethod": {
+            "type": "string",
+            "description": "Payment method used by the client",
+            "enum": [
+              "Card",
+              "UPI",
+              "Net Banking",
+              "Bank Transfer",
+              "Cash"
+            ],
+            "example": "Card"
+          }
+        },
+        "required": [
+          "paymentMethod"
+        ]
       }
     }
   }
