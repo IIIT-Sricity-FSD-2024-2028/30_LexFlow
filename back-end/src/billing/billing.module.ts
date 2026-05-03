@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { BillingController } from './billing.controller';
 import { BillingService } from './billing.service';
 
+// CommonModule is @Global() — SharedDataService injected automatically.
 @Module({
   controllers: [BillingController],
-  providers: [BillingService]
+  providers:   [BillingService],
+  exports:     [BillingService],
 })
 export class BillingModule {}
