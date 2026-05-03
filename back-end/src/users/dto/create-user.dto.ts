@@ -15,6 +15,7 @@ export enum UserRole {
   FIRM = 'firm',
   FIRMADMIN = 'firmadmin',
   SUPERADMIN = 'superadmin',
+  USER = 'user',
 }
 
 export class CreateUserDto {
@@ -35,7 +36,7 @@ export class CreateUserDto {
   email!: string;
 
   @ApiProperty({
-    description: 'User role (client, lawyer, intern, firmadmin, superadmin)',
+    description: 'User role (client, lawyer, intern, firmadmin, superadmin, user)',
     enum: UserRole,
     example: UserRole.CLIENT,
   })
@@ -60,4 +61,19 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @ApiProperty({ required: false, example: 'active' })
+  @IsOptional()
+  @IsString()
+  accountStatus?: 'active' | 'inactive';
+
+  @ApiProperty({ required: false, example: 'available' })
+  @IsOptional()
+  @IsString()
+  availability?: 'available' | 'unavailable';
+
+  @ApiProperty({ required: false, example: 'firm-1' })
+  @IsOptional()
+  @IsString()
+  firmId?: string;
 }

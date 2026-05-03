@@ -23,7 +23,8 @@ export class RolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const userRole = request.headers['role'] as UserRole | undefined;
+    const rawRole = request.headers['role'];
+    const userRole = typeof rawRole === 'string' ? rawRole.toLowerCase() : undefined;
 
     if (!userRole) {
       throw new ForbiddenException('Role header is required');
@@ -34,7 +35,7 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    if (!requiredRoles.includes(userRole)) {
+    if (!requiredRoles.includes(userRole as UserRole)) {
       throw new ForbiddenException(
         `This endpoint requires one of the following roles: ${requiredRoles.join(', ')}`,
       );

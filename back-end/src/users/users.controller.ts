@@ -7,6 +7,8 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  Put,
+  Delete,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -17,7 +19,7 @@ import {
   ApiHeader,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
-import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto } from './dto';
+import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto, UpdateUserDto } from './dto';
 import { FirmOnboardingDto } from './dto/firm-onboarding.dto';
 import { FirmOnboardingResponseDto } from './dto/firm-onboarding-response.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -34,6 +36,24 @@ import { Roles } from '../common/decorators/roles.decorator';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  /**
+   * Get all users for a specific firm
+   * GET /users/by-firm/:firmId
+   */
+  @Get('firm/:firmId')
+  @ApiOperation({
+    summary: 'Get users by firm',
+    description: 'Retrieve all users belonging to a specific firm',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of users for the firm',
+    type: [UserResponseDto],
+  })
+  getUsersByFirm(@Param('firmId') firmId: string): UserResponseDto[] {
+    return this.usersService.findUsersByFirm(firmId);
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -132,11 +152,6 @@ export class UsersController {
     return this.usersService.getAllFirms();
   }
 
-  /**
-   * Get a specific user by ID
-   * GET /users/:id
-   * Available to all authenticated roles
-   */
   @Get(':id')
   @ApiOperation({
     summary: 'Get user by ID (all roles)',
@@ -158,6 +173,42 @@ export class UsersController {
   })
   findOne(@Param('id') id: string): UserResponseDto {
     return this.usersService.findOne(id);
+  }
+
+  /**
+   * Update a user
+   * PUT /users/:id
+   */
+  @Put(':id')
+  @ApiOperation({
+    summary: 'Update a user',
+    description: 'Update user details like role, status, and availability',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User updated successfully',
+    type: UserResponseDto,
+  })
+  updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): UserResponseDto {
+    return this.usersService.updateUser(id, updateUserDto);
+  }
+
+  /**
+   * Delete a user
+   * DELETE /users/:id
+   */
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Delete a user',
+    description: 'Remove a user from the system',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User deleted successfully',
+  })
+  deleteUser(@Param('id') id: string) {
+    this.usersService.deleteUser(id);
+    return { message: 'User deleted successfully' };
   }
 
   /**

@@ -12,6 +12,8 @@ interface User {
   phone?: string;
   password?: string;
   firmId?: string;
+  accountStatus?: 'active' | 'inactive';
+  availability?: 'available' | 'unavailable';
 }
 
 interface Firm {
@@ -53,13 +55,11 @@ export class UsersService {
 
     const now = new Date();
     const seed: User[] = [
-      { id: 'user-0', fullName: 'Super Admin', email: 'superadmin@lexflow.test', role: UserRole.SUPERADMIN, createdAt: now, password: 'superadminpass' },
-      { id: 'user-1', fullName: 'Firm Admin', email: 'firmadmin@lexflow.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-1' },
-      { id: 'user-2', fullName: 'Client Alice', email: 'alice@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', phone: '+91-9000000001' },
-
-      { id: 'user-3', fullName: 'Lawyer Bob', email: 'bob@lawyer.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-1' },
-
-      { id: 'user-4', fullName: 'Intern Charlie', email: 'charlie@intern.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-1' },
+      { id: 'user-0', fullName: 'Super Admin', email: 'superadmin@lexflow.test', role: UserRole.SUPERADMIN, createdAt: now, password: 'superadminpass', accountStatus: 'active', availability: 'available' },
+      { id: 'user-1', fullName: 'Firm Admin', email: 'firmadmin@lexflow.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
+      { id: 'user-2', fullName: 'Client Alice', email: 'alice@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', phone: '+91-9000000001', accountStatus: 'active', availability: 'available' },
+      { id: 'user-3', fullName: 'Lawyer Bob', email: 'bob@lawyer.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
+      { id: 'user-4', fullName: 'Intern Charlie', email: 'charlie@intern.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
     ];
 
     const seedFirms: Firm[] = [
@@ -107,6 +107,9 @@ export class UsersService {
       createdAt: new Date(),
       password: createUserDto.password,
       phone: createUserDto.phone,
+      firmId: createUserDto.firmId,
+      accountStatus: createUserDto.accountStatus || 'active',
+      availability: createUserDto.availability || 'available',
     };
 
     this.users.push(user);
@@ -121,6 +124,11 @@ export class UsersService {
     return results.map((user) => this.mapToResponse(user));
   }
 
+  findUsersByFirm(firmId: string): UserResponseDto[] {
+    const results = this.users.filter((user) => user.firmId === firmId);
+    return results.map((user) => this.mapToResponse(user));
+  }
+
   findOne(id: string): UserResponseDto {
     const user = this.users.find((u) => u.id === id);
 
@@ -129,6 +137,33 @@ export class UsersService {
     }
 
     return this.mapToResponse(user);
+  }
+
+  updateUser(id: string, updateUserDto: Partial<CreateUserDto>): UserResponseDto {
+    const userIndex = this.users.findIndex((u) => u.id === id);
+    if (userIndex === -1) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (updateUserDto.email && updateUserDto.email !== this.users[userIndex].email) {
+      const existingUser = this.users.find((u) => u.email.toLowerCase() === updateUserDto.email!.toLowerCase());
+      if (existingUser) {
+        throw new ConflictException('Email is already registered');
+      }
+    }
+
+    const updatedUser = { ...this.users[userIndex], ...updateUserDto };
+    this.users[userIndex] = updatedUser;
+
+    return this.mapToResponse(updatedUser);
+  }
+
+  deleteUser(id: string): void {
+    const userIndex = this.users.findIndex((u) => u.id === id);
+    if (userIndex === -1) {
+      throw new NotFoundException('User not found');
+    }
+    this.users.splice(userIndex, 1);
   }
 
   login(loginUserDto: LoginUserDto): UserResponseDto {
@@ -149,19 +184,20 @@ export class UsersService {
     return this.mapToResponse(user);
   }
 
-private mapToResponse(user: User): UserResponseDto {
-  const firm = user.firmId ? this.firms.find(f => f.id === user.firmId) : null;
-  return {
-    id: user.id,
-    fullName: user.fullName,
-    email: user.email,
-    role: user.role,
-    createdAt: user.createdAt,
-    phone: user.phone,
-    firmId: user.firmId,
-    firmName: firm ? firm.name : undefined,
-  };
-}
+  private mapToResponse(user: User): UserResponseDto {
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+      phone: user.phone,
+      firmId: user.firmId,
+      accountStatus: user.accountStatus,
+      availability: user.availability,
+    };
+  }
+
   // Firm Onboarding Methods
 
   /**

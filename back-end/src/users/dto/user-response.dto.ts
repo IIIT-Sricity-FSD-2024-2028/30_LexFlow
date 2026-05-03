@@ -43,4 +43,10 @@ export class UserResponseDto {
     required: false,
   })
   firmId?: string;
+
+  @ApiProperty({ required: false, example: 'active' })
+  accountStatus?: 'active' | 'inactive';
+
+  @ApiProperty({ required: false, example: 'available' })
+  availability?: 'available' | 'unavailable';
 }
