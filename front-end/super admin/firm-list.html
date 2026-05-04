@@ -6,11 +6,12 @@
     <title>Select law firm to change | Django site admin</title>
     <link rel="stylesheet" href="super-admin-global.css">
     <script src="../scripts/storageService.js"></script>
+    <script src="../scripts/api.js"></script>
     <script src="../scripts/auth.js"></script>
     <script src="../scripts/superadmin-auth.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            await StorageService.seed('../data/initialData.json');
+            
             SuperAdminAuth.requireSuperAdmin();
         });
         function logoutSuperAdmin() {
@@ -33,7 +34,7 @@
             </div>
             <div id="user-tools">
                 WELCOME, <strong>SUPERADMIN</strong>. 
-                <a href="../pages/landing_page.html">VIEW SITE</a> / 
+                <a href="../pages/../index.html">VIEW SITE</a> / 
                 <a href="super-admin-login.html" onclick="logoutSuperAdmin(); return false;">LOG OUT</a>
             </div>
         </div>
@@ -73,7 +74,7 @@
                         <table id="result_list">
                             <thead>
                                 <tr>
-                                    <th scope="col" class="action-checkbox-column">
+                                    <th scope="col" class="action-checkbox-column" style="width: 40px;">
                                         <div class="text"><span><input type="checkbox" id="action-toggle"></span></div>
                                     </th>
                                     <th scope="col" class="column-title">

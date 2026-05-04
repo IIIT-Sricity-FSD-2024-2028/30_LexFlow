@@ -59,62 +59,65 @@
 </div>
 </div>
 </div>
-<div class="grid-top" style="grid-template-columns: 320px 1fr; gap: 24px;">
+<div class="grid-top" style="grid-template-columns: 1fr 340px; gap: 24px;">
 <div class="left-col">
-<div class="card" style="padding: 24px;">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-<h2 style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #9ca3af; margin: 0; letter-spacing: 0.5px;">CORE TEAM</h2>
-<button class="filter-btn" style="padding: 4px 8px; font-size: 10px;" onclick="openEditTeamModal()">Edit Team</button>
-</div>
-<div style="display: flex; flex-direction: column; gap: 16px;" id="teamContainer">
-</div>
-</div>
-<div class="card" style="padding: 24px;">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-<h2 style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #9ca3af; margin: 0; letter-spacing: 0.5px;">CLIENT DETAILS</h2>
-<button class="filter-btn" style="padding: 4px 8px; font-size: 10px;" onclick="openEditClientModal()">Edit Client</button>
-</div>
-<div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
-<div style="display: flex; justify-content: space-between;">
-<span style="color: #6b7280;">Primary Contact:</span>
-<span style="font-weight: 600; color: #1a1a2e;" id="clientContact">Arjun Sharma</span>
-</div>
-<div style="display: flex; justify-content: space-between;">
-<span style="color: #6b7280;">Account Type:</span>
-<span style="font-weight: 600; color: #1a1a2e;" id="clientType">Corporate</span>
-</div>
-<div style="display: flex; justify-content: space-between;">
-<span style="color: #6b7280;">Opposing Counsel:</span>
-<span style="font-weight: 600; color: #1a1a2e;" id="opposingParty">Maharashtra</span>
-</div>
-</div>
-</div>
-<div class="card" style="padding: 24px;">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-<h2 style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #9ca3af; margin: 0; letter-spacing: 0.5px;">PENDING TASKS</h2>
-<div id="pendingCountBadge" style="background:#3b5bdb; color:#fff; font-size:10px; font-weight:700; border-radius:50%; width: 20px; height: 20px; display:flex; align-items:center; justify-content:center;">0</div>
-</div>
-<div id="pendingTasksContainer" style="display: flex; flex-direction: column; gap: 12px;">
-</div>
-<button onclick="window.location.href='./firm_manager_casemanagement_tasks.html'" style="width: 100%; border: 1px solid #c7d2fe; background: #fff; color: #3b5bdb; font-weight: 600; font-size: 13px; padding: 10px; border-radius: 8px; margin-top: 16px; cursor: pointer; transition: all 0.2s;">
-  View All Tasks
-</button>
-<button onclick="openAddTaskModal()" style="width: 100%; border: none; background: #f3f4f6; color: #4b5563; font-weight: 600; font-size: 13px; padding: 10px; border-radius: 8px; margin-top: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;">
-  <span style="font-size: 16px;">+</span> Assign New Task
-</button>
+  <!-- Client Details -->
+  <div class="card" style="padding: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+  <h2 style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #9ca3af; margin: 0; letter-spacing: 0.5px;">CLIENT DETAILS</h2>
+  <button class="filter-btn" style="padding: 4px 8px; font-size: 10px;" onclick="openEditClientModal()">Edit Client</button>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+  <div style="display: flex; justify-content: space-between;">
+  <span style="color: #6b7280;">Primary Contact:</span>
+  <span style="font-weight: 600; color: #1a1a2e;" id="clientContact">Arjun Sharma</span>
+  </div>
+  <div style="display: flex; justify-content: space-between;">
+  <span style="color: #6b7280;">Email:</span>
+  <span style="font-weight: 600; color: #1a1a2e;" id="clientEmail">N/A</span>
+  </div>
+  <div style="display: flex; justify-content: space-between;">
+  <span style="color: #6b7280;">Phone:</span>
+  <span style="font-weight: 600; color: #1a1a2e;" id="clientPhone">N/A</span>
+  </div>
+  <div style="display: flex; justify-content: space-between;">
+  <span style="color: #6b7280;">Account Type:</span>
+  <span style="font-weight: 600; color: #1a1a2e;" id="clientType">Corporate</span>
+  </div>
+  <div style="display: flex; justify-content: space-between;">
+  <span style="color: #6b7280;">Opposing Counsel:</span>
+  <span style="font-weight: 600; color: #1a1a2e;" id="opposingParty">Maharashtra</span>
+  </div>
+  </div>
+  </div>
 
+  <!-- Pending Tasks -->
+  <div class="card" style="padding: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+  <h2 style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #9ca3af; margin: 0; letter-spacing: 0.5px;">PENDING TASKS</h2>
+  <div id="pendingCountBadge" style="background:#3b5bdb; color:#fff; font-size:10px; font-weight:700; border-radius:50%; width: 20px; height: 20px; display:flex; align-items:center; justify-content:center;">0</div>
+  </div>
+  <div id="pendingTasksContainer" style="display: flex; flex-direction: column; gap: 12px;">
+  </div>
+  <button onclick="window.location.href='./firm_manager_casemanagement_tasks.html'" style="width: 100%; border: 1px solid #c7d2fe; background: #fff; color: #3b5bdb; font-weight: 600; font-size: 13px; padding: 10px; border-radius: 8px; margin-top: 16px; cursor: pointer; transition: all 0.2s;">
+    View All Tasks
+  </button>
+  <button onclick="openAddTaskModal()" style="width: 100%; border: none; background: #f3f4f6; color: #4b5563; font-weight: 600; font-size: 13px; padding: 10px; border-radius: 8px; margin-top: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;">
+    <span style="font-size: 16px;">+</span> Assign New Task
+  </button>
+  </div>
 </div>
-</div>
+
 <div class="right-col">
-<div class="timeline-card card">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-<h2 style="margin: 0;">Case Timeline</h2>
-<button class="filter-btn" style="background:#eef2ff; color:#3b5bdb; border:none; padding:8px 12px; font-size:12px;" onclick="addTimelineEvent()">
-+ Add Timeline Event
-</button>
-</div>
-<div class="timeline" id="timelineContainer">
-</div>
+  <!-- Core Team -->
+  <div class="card" style="padding: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+  <h2 style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #9ca3af; margin: 0; letter-spacing: 0.5px;">CORE TEAM</h2>
+  <button class="filter-btn" style="padding: 4px 8px; font-size: 10px;" onclick="openEditTeamModal()">Edit Team</button>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 16px;" id="teamContainer">
+  </div>
+  </div>
 </div>
 </div>
 </div>
@@ -200,37 +203,7 @@ Upload New Document
 </div>
 </div>
 </div>
-<div class="modal-backdrop" id="timelineModal">
-<div class="modal-content">
-<div class="modal-header">
-<h2 id="timelineModalTitle">Add Timeline Event</h2>
-<button class="modal-close" onclick="closeModal('timelineModal')">&times;</button>
-</div>
-<div class="modal-body">
-<input type="hidden" id="timelineEditIndex" value="-1">
-<div class="form-group">
-<label class="form-label">Event Title</label>
-<input type="text" id="timelineTitle" class="form-input" placeholder="e.g. Final Arguments" required maxlength="120">
-</div>
-<div class="form-group">
-<label class="form-label">Date</label>
-<input type="date" id="timelineDate" class="form-input" required>
-</div>
-<div class="form-group">
-<label class="form-label">Notes (Optional)</label>
-<textarea id="timelineNotes" class="form-input" rows="3" placeholder="Enter details about what happened..."></textarea>
-</div>
-<div class="form-group" style="display: flex; align-items: center; gap: 8px;">
-<input type="checkbox" id="timelineUpcoming">
-<label for="timelineUpcoming" style="font-size: 13px; color: #374151;">Mark as Upcoming</label>
-</div>
-</div>
-<div class="modal-footer">
-<button class="btn-outline" onclick="closeModal('timelineModal')">Cancel</button>
-<button class="btn-primary" onclick="saveTimelineModal()">Save Event</button>
-</div>
-</div>
-</div>
+
 <div class="modal-backdrop" id="editCaseModal">
 <div class="modal-content">
 <div class="modal-header">
@@ -273,6 +246,14 @@ Upload New Document
 <div class="form-group">
 <label class="form-label">Primary Contact</label>
 <input type="text" id="editClientContact" class="form-input" required maxlength="100">
+</div>
+<div class="form-group">
+<label class="form-label">Email</label>
+<input type="email" id="editClientEmail" class="form-input">
+</div>
+<div class="form-group">
+<label class="form-label">Phone</label>
+<input type="text" id="editClientPhone" class="form-input">
 </div>
 <div class="form-group">
 <label class="form-label">Account Type</label>
@@ -360,11 +341,12 @@ Upload New Document
 </div>
 <script src="../scripts/storageService.js"></script>
 <script src="../scripts/auth.js"></script>
-<script>AuthService.requireAuth(['firmAdmin']);</script>
+<script>AuthService.requireAuth(['firmAdmin', 'lawyer', 'intern']);</script>
 <script src="../scripts/shared_form-validation.js"></script>
 <script src="../scripts/sidebar.js"></script>
-<script src="../scripts/cases-storage.js"></script>
-<script src="../scripts/firm_manager_casemanagement_case-details.js"></script>
+<script src="../scripts/api.js"></script>
+<script src="../scripts/cases-storage.js?v=4"></script>
+<script src="../scripts/firm_manager_casemanagement_case-details.js?v=4"></script>
 <script src="../assets/icons.js"></script>
 </div></body>
 </html>

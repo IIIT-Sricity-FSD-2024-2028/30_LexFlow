@@ -11,63 +11,47 @@ function safeParse(value, fallback) {
   }
 }
 
+// Persist errors across Live Server reloads so we can always read them
+function persistError(msg) {
+  try { sessionStorage.setItem('lexflow_last_error', msg); } catch (_) { }
+}
+function clearPersistedError() {
+  try { sessionStorage.removeItem('lexflow_last_error'); } catch (_) { }
+}
+// Show any error that survived a page refresh
+(function showPersistedError() {
+  try {
+    const msg = sessionStorage.getItem('lexflow_last_error');
+    if (msg) {
+      clearPersistedError();
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#be123c;color:#fff;padding:12px 24px;border-radius:8px;font-size:0.9rem;font-weight:600;z-index:999999;box-shadow:0 4px 16px rgba(0,0,0,0.3);max-width:90vw;word-break:break-word;';
+        el.textContent = '⚠ Previous error: ' + msg;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 8000);
+      }, 800);
+    }
+  } catch (_) { }
+})();
+
 const currentUser = safeParse(localStorage.getItem('currentUser'), null);
 const userRole =
   (currentUser && currentUser.role) ||
   localStorage.getItem('userRole') ||
   'client';
 
-const roleToEmailMap = {
-  client: 'rahulsharma@example.com',
-  firmAdmin: 'mehta@lexflow.in',
-  'firm-admin': 'mehta@lexflow.in',
-  lawfirm_admin: 'admin@lexflow.in',
-  lawyer: 'mehta@lexflow.in',
-  intern: 'priya.intern@lexflow.in',
-};
+const CURRENT_USER_EMAIL = (currentUser && currentUser.email) || '';
 
-const CURRENT_USER_EMAIL =
-  (currentUser && currentUser.email) ||
-  roleToEmailMap[userRole] ||
-  roleToEmailMap.client;
-
-// FIX: Always read caseId from URL params first
 const urlParams = new URLSearchParams(window.location.search);
 const urlCaseId = urlParams.get('caseId');
-
-if (urlCaseId) {
-  localStorage.setItem('caseId', urlCaseId);
-}
-
-const CURRENT_CASE_ID =
-  urlCaseId ||
-  localStorage.getItem('caseId') ||
-  localStorage.getItem('currentCaseId') ||
-  'CASE-45';
+const CURRENT_CASE_ID = urlCaseId || '1';
 
 (function () {
   "use strict";
 
-  const LS_DELETED = "lexflow_deleted_ids";
-  const LS_UPLOADS = "lexflow_uploaded_docs";
-  const LS_UPDATES = "lexflow_updated_docs";
-  const LS_ACTIVITY = "lexflow_activity_log";
-  const LS_DOCS_INDEX = "lexflow_documents";
-  const USERS_JSON_PATH = "../data/docs.json";
-
-  function lsGet(key, fallback) {
-    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
-    catch { return fallback; }
-  }
-  function lsSet(key, val) {
-    try { localStorage.setItem(key, JSON.stringify(val)); }
-    catch (e) { console.warn("LS write failed", e); }
-  }
-
-  let deletedIds = new Set(lsGet(LS_DELETED, []));
-  let uploadedDocs = lsGet(LS_UPLOADS, []);
-  let updatedMap = lsGet(LS_UPDATES, {});
-  let activityLog = lsGet(LS_ACTIVITY, []);
+  // In-memory activity log — for side panel only (source of truth is backend)
+  let activityLog = [];
 
   const styleEl = document.createElement("style");
   styleEl.textContent = `
@@ -177,7 +161,6 @@ const CURRENT_CASE_ID =
     .file-preview button { background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 1rem; padding: 0 4px; }
     .file-preview button:hover { color: #be123c; }
 
-    /* FIX: Read-only modal inputs */
     .upload-modal__input[readonly],
     .upload-modal__input:disabled {
       background: #f8f9fb !important;
@@ -300,81 +283,58 @@ const CURRENT_CASE_ID =
   `;
   document.head.appendChild(styleEl);
 
-  function waitForCasesStorage(maxWait = 5000) {
-    return new Promise((resolve, reject) => {
-      const start = Date.now();
-      const checkInterval = setInterval(() => {
-        if (window.LexFlowCasesStorage) {
-          clearInterval(checkInterval);
-          resolve(window.LexFlowCasesStorage);
-        } else if (Date.now() - start > maxWait) {
-          clearInterval(checkInterval);
-          reject(new Error("cases-storage.js did not load in time"));
-        }
-      }, 50);
-    });
-  }
+  const MEMORY_DB = {
+    users: [
+      { id: 'user-0', name: 'Super Admin', email: 'superadmin@lexflow.test', role: 'superAdmin' },
+      { id: 'user-1', name: 'Firm Admin', email: 'firmadmin@lexflow.test', role: 'firmAdmin', firmId: 'firm-1' },
+      { id: 'user-2', name: 'Client Alice', email: 'alice@client.test', role: 'client', phone: '+91-9000000001' },
+      { id: 'user-3', name: 'Lawyer Bob', email: 'bob@lawyer.test', role: 'lawyer', firmId: 'firm-1' },
+      { id: 'user-4', name: 'Intern Charlie', email: 'charlie@intern.test', role: 'intern', firmId: 'firm-1' },
+    ],
+    firms: [
+      { id: 'firm-1', name: 'Sharma & Associates', email: 'contact@sharma.law' },
+    ],
+    cases: [
+      { id: '1', title: 'State vs John Doe', cnr: 'PH010012342024', status: 'Active', clientId: 'user-2', lawyerId: 'user-3', firmId: 'firm-1', court: 'District Court' },
+      { id: '2', title: 'Sharma vs Gupta', cnr: 'DL020056782024', status: 'Active', clientId: 'user-2', lawyerId: 'user-3', firmId: 'firm-1', court: 'High Court' },
+      { id: '3', title: 'TechCorp vs SoftSystems', cnr: 'MH030099992024', status: 'Pending', clientId: 'user-2', lawyerId: 'user-3', firmId: 'firm-1', court: 'Supreme Court' },
+    ]
+  };
 
   async function bootApp() {
     try {
-      let casesStorageUsers = [];
-      try {
-        const casesStorage = await waitForCasesStorage(2000);
-        casesStorageUsers = await casesStorage.getUsers();
-      } catch (e) {
-        const usersJson = localStorage.getItem('lexflow_users');
-        casesStorageUsers = usersJson ? JSON.parse(usersJson) : [];
-      }
-
-      let fullDb = null;
-      try {
-        const resp = await fetch(USERS_JSON_PATH);
-        if (resp.ok) fullDb = await resp.json();
-      } catch (e) {
-        console.warn("Could not fetch docs.json:", e);
-      }
-
-      const mergedUsers = [...casesStorageUsers];
-      if (fullDb && Array.isArray(fullDb.users)) {
-        const existingEmails = new Set(mergedUsers.map(u => u.email));
-        fullDb.users.forEach(u => {
-          if (!existingEmails.has(u.email)) mergedUsers.push(u);
-        });
-      }
-
+      const users = [...MEMORY_DB.users];
       const localUser = safeParse(localStorage.getItem('currentUser'), null);
       if (localUser && localUser.email) {
-        const exists = mergedUsers.find(u => u.email === localUser.email);
-        if (!exists) mergedUsers.push(localUser);
+        const exists = users.find(u => u.email === localUser.email);
+        if (!exists) {
+          users.push({
+            id: localUser.id || `local-${Date.now()}`,
+            name: localUser.fullName || localUser.name || 'Current User',
+            email: localUser.email,
+            role: localUser.role || userRole,
+            firmId: localUser.firmId || null
+          });
+        }
       }
 
       const db = {
-        users: mergedUsers,
-        cases: (fullDb && fullDb.cases) || [],
-        documents: (fullDb && fullDb.documents) || [],
-        firms: (fullDb && fullDb.firms) || [],
+        users,
+        cases: MEMORY_DB.cases,
+        documents: [],
+        firms: MEMORY_DB.firms,
       };
 
-      init(db);
+      await init(db);
     } catch (err) {
       console.error("bootApp() FAILED:", err);
-      if (typeof toast === 'function') {
-        toast(`Failed: ${err.message}`, "error");
-      } else {
-        setTimeout(() => alert("Failed to load documents:\n" + err.message), 100);
-      }
+      toast(`Failed to boot: ${err.message}`, "error");
     }
   }
 
   bootApp();
 
-  function init(db) {
-    if (!db.users || !db.cases || !db.documents || !db.firms) {
-      toast("Document data is missing required fields.", "error");
-      return;
-    }
-
-    // Resolve current user
+  async function init(db) {
     let CURRENT_USER = null;
     const localUser = safeParse(localStorage.getItem('currentUser'), null);
     if (localUser && localUser.email) {
@@ -382,6 +342,16 @@ const CURRENT_CASE_ID =
     }
     if (!CURRENT_USER) {
       CURRENT_USER = db.users.find(u => u.email === CURRENT_USER_EMAIL);
+    }
+    if (!CURRENT_USER && localUser && localUser.email && localUser.role) {
+      CURRENT_USER = {
+        id: localUser.id || 'USR-UNKNOWN',
+        name: localUser.fullName || localUser.name || localUser.email,
+        email: localUser.email,
+        role: localUser.role,
+        firmId: localUser.firmId || null,
+        caseAccess: localUser.caseAccess || {},
+      };
     }
     if (!CURRENT_USER) {
       toast(`User "${CURRENT_USER_EMAIL}" not found.`, "error");
@@ -391,14 +361,13 @@ const CURRENT_CASE_ID =
       toast(`User profile incomplete: missing role.`, "error");
       return;
     }
+    const ROLE = (CURRENT_USER.role || '').toLowerCase();
 
-    const ROLE = CURRENT_USER.role;
     const CURRENT_FIRM = CURRENT_USER.firmId
-      ? db.firms.find(f => f.id === CURRENT_USER.firmId) || null
+      ? (db.firms.find(f => f.id === CURRENT_USER.firmId) || { id: CURRENT_USER.firmId, name: CURRENT_USER.firmName || CURRENT_USER.firmId })
       : null;
     const FIRM_NAME = CURRENT_FIRM ? CURRENT_FIRM.name : "Independent";
 
-    // FIX: Update breadcrumb and case header immediately with the correct CURRENT_CASE_ID
     const breadcrumb = document.querySelector(".breadcrumb");
     if (breadcrumb) {
       breadcrumb.innerHTML = `<a href="documents-main.html" style="color: inherit; text-decoration: none;">Documents</a> > <span>Loading... (${CURRENT_CASE_ID})</span>`;
@@ -411,7 +380,6 @@ const CURRENT_CASE_ID =
       return;
     }
 
-    // FIX: Update case header with actual case title and ID from data
     if (breadcrumb) {
       breadcrumb.innerHTML = `<a href="documents-main.html" style="color: inherit; text-decoration: none;">Documents</a> > <span>${CURRENT_CASE.title} (${CURRENT_CASE_ID})</span>`;
     }
@@ -419,13 +387,11 @@ const CURRENT_CASE_ID =
     if (caseTitle) {
       caseTitle.innerHTML = `${CURRENT_CASE.title} <span class="status">${CURRENT_CASE.status}</span>`;
     }
-    // FIX: Update the static case ID paragraph
     const caseIdParagraph = document.querySelector(".case-header p");
     if (caseIdParagraph) {
       caseIdParagraph.innerHTML = `Case ID: <strong>${CURRENT_CASE_ID}</strong>`;
     }
 
-    // Cross-firm guard
     const userHasExplicitCaseAccess = !!(
       CURRENT_USER.caseAccess && CURRENT_USER.caseAccess[CURRENT_CASE_ID]
     );
@@ -442,77 +408,82 @@ const CURRENT_CASE_ID =
       }
     }
 
-    // Resolve document access
-    let userCaseDocIds = null;
+    const caseAccess = CURRENT_USER.caseAccess || [];
+    const hasExplicitAccess = Array.isArray(caseAccess)
+      ? caseAccess.includes(CURRENT_CASE_ID)
+      : !!(caseAccess[CURRENT_CASE_ID]);
 
-    if (ROLE === "lawfirm_admin" && CURRENT_FIRM && CURRENT_CASE.firmId === CURRENT_FIRM.id) {
-      userCaseDocIds = db.documents
-        .filter(d => d.caseId === CURRENT_CASE_ID)
-        .map(d => d.id);
-    } else if (userHasExplicitCaseAccess) {
-      userCaseDocIds = CURRENT_USER.caseAccess[CURRENT_CASE_ID];
-    } else if (ROLE === "client") {
-      // FIX: clients without explicit caseAccess entry still get access denied properly
+    const isFullAccess =
+      ROLE === "superadmin" ||
+      (ROLE === "firmadmin" && CURRENT_FIRM && CURRENT_CASE.firmId === CURRENT_FIRM.id);
+
+    const isPartyToCase =
+      (ROLE === "client" && CURRENT_CASE.clientId === CURRENT_USER.id) ||
+      (ROLE === "lawyer" && CURRENT_CASE.lawyerId === CURRENT_USER.id) ||
+      (ROLE === "intern" && CURRENT_CASE.firmId === CURRENT_USER.firmId);
+
+    if (!isFullAccess && !isPartyToCase && !hasExplicitAccess) {
       renderAccessDenied(
-        `You do not have document access to ${CURRENT_CASE_ID}. Contact your firm administrator to request access.`,
+        `You do not have access to Case ${CURRENT_CASE_ID}. Contact your firm administrator to request access.`,
         "NO_DOC_ACCESS"
       );
       renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
       return;
     }
 
-    if (!userCaseDocIds || userCaseDocIds.length === 0) {
-      renderAccessDenied(
-        `You do not have document access to ${CURRENT_CASE_ID}. Contact your firm administrator to request access.`,
-        "NO_DOC_ACCESS"
-      );
-      renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
-      return;
+    const allowedIds = (isFullAccess || isPartyToCase)
+      ? null
+      : new Set(Array.isArray(caseAccess) ? [] : (caseAccess[CURRENT_CASE_ID] || []));
+
+    let docsData = [];
+    try {
+      const resp = await fetch(`http://localhost:3000/documents?caseId=${CURRENT_CASE_ID}`, {
+        headers: {
+          'role': ROLE,
+          'x-user-email': CURRENT_USER_EMAIL,
+        }
+      });
+      if (resp.ok) {
+        const allDocs = await resp.json();
+        docsData = allowedIds === null
+          ? allDocs
+          : allDocs.filter(d => allowedIds.has(d.id) || d.uploaderEmail === CURRENT_USER_EMAIL);
+      } else {
+        console.error("Failed to fetch documents from backend", resp.status, await resp.text());
+        toast(`Failed to load documents (HTTP ${resp.status})`, "error");
+      }
+    } catch (e) {
+      console.error("Backend fetch error", e);
+      toast("Cannot reach backend — is the server running?", "error");
     }
 
-    localStorage.setItem("lexflow_active_email", CURRENT_USER_EMAIL);
-    localStorage.setItem("lexflow_active_firm", CURRENT_USER.firmId || "");
-
-    const LS_USER_UPLOADS = `lexflow_user_uploads_${CURRENT_USER.id}`;
-    let userUploadIds = new Set(lsGet(LS_USER_UPLOADS, []));
-
-    const allowedIds = new Set(userCaseDocIds);
-
-    let docsData = db.documents
-      .filter(d =>
-        d.caseId === CURRENT_CASE_ID &&
-        allowedIds.has(d.id) &&
-        !deletedIds.has(d.id)
-      )
-      .map(d => updatedMap[d.id] ? { ...d, ...updatedMap[d.id] } : { ...d });
-
-    // FIX: Also include uploaded docs for THIS case (not just CASE-45)
-    const extraUploads = uploadedDocs.filter(d =>
-      d.caseId === CURRENT_CASE_ID &&
-      !deletedIds.has(d.id) &&
-      (userUploadIds.has(d.id) || d.uploaderEmail === CURRENT_USER.email)
-    ).map(d => updatedMap[d.id] ? { ...d, ...updatedMap[d.id] } : { ...d });
-
-    const seen = new Set(docsData.map(d => d.id));
-    extraUploads.forEach(d => { if (!seen.has(d.id)) { docsData.push(d); seen.add(d.id); } });
+    // ── Load recent activity for side panel from backend ──────────────────
+    try {
+      const actResp = await fetch(`http://localhost:3000/documents/activity?caseId=${CURRENT_CASE_ID}`, {
+        headers: { 'role': ROLE, 'x-user-email': CURRENT_USER.email }
+      });
+      if (actResp.ok) {
+        activityLog = await actResp.json();
+      }
+    } catch (e) {
+      console.warn("[ActivityLog] Could not load activity from backend:", e);
+    }
 
     const PERMS = {
       canView: true,
       canDownload: true,
-      canUpload: ["client", "lawyer", "lawfirm_admin"].includes(ROLE),
-      canUpdate: ["lawyer", "lawfirm_admin", "intern"].includes(ROLE),
-      canDelete: ["lawyer", "lawfirm_admin"].includes(ROLE),
+      canUpload: ["client", "lawyer", "firmadmin", "lawfirm_admin"].includes(ROLE),
+      canUpdate: ["lawyer", "firmadmin", "lawfirm_admin", "intern"].includes(ROLE),
+      canDelete: ["lawyer", "firmadmin", "lawfirm_admin"].includes(ROLE),
     };
 
-    function logActivity(action, doc) {
+    // ── logActivity: posts to backend, keeps local copy for side panel ────
+    async function logActivity(action, doc) {
       const entry = {
-        id: "ACT-" + Date.now(),
-        date: new Date().toISOString(),
         user: CURRENT_USER.name,
         email: CURRENT_USER.email,
         role: ROLE,
         firmId: CURRENT_USER.firmId || null,
-        firmName: FIRM_NAME,
         caseId: CURRENT_CASE_ID,
         action,
         docId: doc.id,
@@ -520,10 +491,26 @@ const CURRENT_CASE_ID =
         docType: doc.type,
         access: doc.access,
       };
-      activityLog.unshift(entry);
-      if (activityLog.length > 500) activityLog = activityLog.slice(0, 500);
-      lsSet(LS_ACTIVITY, activityLog);
+
+      // Optimistically update local array so side panel reflects immediately
+      activityLog.unshift({ ...entry, id: "ACT-" + Date.now(), date: new Date().toISOString() });
+      if (activityLog.length > 100) activityLog = activityLog.slice(0, 100);
       refreshSidePanelActivity();
+
+      // Persist to backend — no localStorage involved
+      try {
+        await fetch("http://localhost:3000/documents/activity", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "role": ROLE,
+            "x-user-email": CURRENT_USER.email,
+          },
+          body: JSON.stringify(entry),
+        });
+      } catch (e) {
+        console.warn("[ActivityLog] Failed to persist activity to backend:", e);
+      }
     }
 
     renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
@@ -545,7 +532,6 @@ const CURRENT_CASE_ID =
       return;
     }
 
-    // Update case meta fields
     const metaDivs = document.querySelectorAll(".case-meta > div");
     if (metaDivs.length >= 4) {
       const caseLayer = db.users.find(u => u.id === CURRENT_CASE.lawyerId);
@@ -594,48 +580,6 @@ const CURRENT_CASE_ID =
       d.textContent = str || "";
       return d.innerHTML;
     }
-    function nextDocId() {
-      const allKnownIds = [...db.documents, ...uploadedDocs]
-        .map(d => parseInt((d.id || "").replace("DOC-", ""), 10))
-        .filter(n => !isNaN(n));
-      const maxId = allKnownIds.length ? Math.max(...allKnownIds) : 210;
-      return "DOC-" + (maxId + 1);
-    }
-
-    function syncSharedDocumentsIndex() {
-      const baseDocs = db.documents
-        .filter(d => !deletedIds.has(d.id))
-        .map(d => updatedMap[d.id] ? { ...d, ...updatedMap[d.id] } : { ...d });
-
-      const uploadDocs = uploadedDocs
-        .filter(d => !deletedIds.has(d.id))
-        .map(d => updatedMap[d.id] ? { ...d, ...updatedMap[d.id] } : { ...d });
-
-      const merged = [...baseDocs];
-      const seen = new Set(merged.map(d => d.id));
-      uploadDocs.forEach((d) => {
-        if (!seen.has(d.id)) { merged.push(d); seen.add(d.id); }
-      });
-
-      const normalized = merged.map((d) => {
-        const caseMeta = db.cases.find((c) => c.id === d.caseId) || {};
-        return {
-          id: d.id,
-          caseId: d.caseId || "",
-          caseCnr: d.caseCnr || d.caseId || "",
-          caseTitle: caseMeta.title || d.caseTitle || "",
-          court: caseMeta.court || d.court || "",
-          name: d.name,
-          type: d.type,
-          date: d.date,
-          status: d.status || "Reviewing",
-          access: d.access || "PRIVATE",
-        };
-      });
-
-      lsSet(LS_DOCS_INDEX, normalized);
-    }
-
     function refreshTypeSelect() {
       const allTypes = [...new Set(docsData.map(d => d.type).filter(Boolean))].sort();
       typeSelect.innerHTML = `<option>All Types</option>` +
@@ -803,7 +747,7 @@ const CURRENT_CASE_ID =
     });
 
     let _pendingDeleteId = null;
-    delOverlay.querySelector(".delete-btn").addEventListener("click", () => {
+    delOverlay.querySelector(".delete-btn").addEventListener("click", async () => {
       const idx = docsData.findIndex(d => d.id === _pendingDeleteId);
       if (idx !== -1) {
         const doc = docsData[idx];
@@ -811,16 +755,30 @@ const CURRENT_CASE_ID =
           toast("You do not have permission to delete documents.", "error");
           delOverlay.classList.remove("active"); _pendingDeleteId = null; return;
         }
-        deletedIds.add(doc.id);
-        lsSet(LS_DELETED, [...deletedIds]);
-        uploadedDocs = uploadedDocs.filter(d => d.id !== doc.id);
-        lsSet(LS_UPLOADS, uploadedDocs);
-        if (doc.blobUrl) { try { URL.revokeObjectURL(doc.blobUrl); } catch (_) { } }
-        logActivity("deleted", doc);
-        docsData.splice(idx, 1);
-        syncSharedDocumentsIndex();
-        render();
-        toast(`🗑 ${doc.name} deleted`);
+
+        try {
+          const resp = await fetch(`http://localhost:3000/documents/${doc.id}`, {
+            method: "DELETE",
+            headers: {
+              "role": ROLE,
+              "x-user-email": CURRENT_USER_EMAIL
+            }
+          });
+
+          if (!resp.ok) {
+            toast("Delete failed", "error");
+            delOverlay.classList.remove("active"); _pendingDeleteId = null; return;
+          }
+
+          if (doc.blobUrl) { try { URL.revokeObjectURL(doc.blobUrl); } catch (_) { } }
+          await logActivity("deleted", doc);
+          docsData.splice(idx, 1);
+          render();
+          toast(`🗑 ${doc.name} deleted`);
+        } catch (e) {
+          console.error(e);
+          toast("Delete request failed", "error");
+        }
       }
       delOverlay.classList.remove("active");
       _pendingDeleteId = null;
@@ -911,23 +869,12 @@ const CURRENT_CASE_ID =
       });
     }
 
-    // function openUpdateModal(d) {
-    //   _updDoc = d; _updFile = null;
-    //   updPreview.style.display = "none"; updPreview.innerHTML = "";
-    //   updateOverlay.querySelector(".upd-name").value = d.name;
-    //   updateOverlay.querySelector(".upd-access").value = d.access || "PRIVATE";
-    //   updateOverlay.querySelector(".upd-version-label").textContent = `v${d.version ?? 1}`;
-    //   updateOverlay.classList.add("active");
-    //   document.body.style.overflow = "hidden";
-    // }
-
     function openUpdateModal(d) {
       _updDoc = d; _updFile = null;
       updPreview.style.display = "none"; updPreview.innerHTML = "";
       updateOverlay.querySelector(".upd-name").value = d.name;
       updateOverlay.querySelector(".upd-access").value = d.access || "PRIVATE";
       updateOverlay.querySelector(".upd-version-label").textContent = `v${d.version ?? 1}`;
-      // Reset dropzone error state
       updDZ.style.borderColor = "";
       updateOverlay.classList.add("active");
       document.body.style.overflow = "hidden";
@@ -938,14 +885,18 @@ const CURRENT_CASE_ID =
       document.body.style.overflow = "";
       _updDoc = _updFile = null;
     }
-    updateOverlay.querySelector(".upd-save").addEventListener("click", () => {
+
+    const updSaveBtn = updateOverlay.querySelector(".upd-save");
+    updSaveBtn.setAttribute('type', 'button');
+    updSaveBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       if (!_updDoc) return;
       if (!PERMS.canUpdate) { toast("You do not have permission to update documents.", "error"); return; }
       const newName = updateOverlay.querySelector(".upd-name").value.trim();
       const newAccess = updateOverlay.querySelector(".upd-access").value;
       if (!newName) { toast("Document name cannot be empty.", "error"); return; }
 
-      // FILE IS NOW REQUIRED
       if (!_updFile) {
         updDZ.style.borderColor = "#be123c";
         updDZ.style.background = "#fff1f2";
@@ -954,25 +905,51 @@ const CURRENT_CASE_ID =
       }
 
       if (_updDoc.blobUrl) { try { URL.revokeObjectURL(_updDoc.blobUrl); } catch (_) { } }
-      const patch = {
-        name: newName,
-        access: newAccess,
-        date: new Date().toISOString().split("T")[0],
-        blobUrl: URL.createObjectURL(_updFile),
-        fileType: (_updFile.name.split(".").pop() || "BIN").toUpperCase().slice(0, 3),
-        version: (_updDoc.version || 1) + 1,
-      };
-      Object.assign(_updDoc, patch);
-      updatedMap[_updDoc.id] = { ...(updatedMap[_updDoc.id] || {}), ...patch };
-      lsSet(LS_UPDATES, updatedMap);
-      const ui = uploadedDocs.findIndex(d => d.id === _updDoc.id);
-      if (ui !== -1) { uploadedDocs[ui] = { ...uploadedDocs[ui], ...patch }; lsSet(LS_UPLOADS, uploadedDocs); }
-      logActivity("updated", _updDoc);
-      syncSharedDocumentsIndex();
-      closeUpdateModal();
-      render();
-      toast(`✓ ${_updDoc.name} updated to v${_updDoc.version ?? 1}`);
+      const patchFormData = new FormData();
+      patchFormData.append('name', newName);
+      patchFormData.append('access', newAccess);
+      patchFormData.append('version', (_updDoc.version || 1) + 1);
+      patchFormData.append('file', _updFile);
+
+      updSaveBtn.disabled = true;
+      const origText = updSaveBtn.textContent;
+      updSaveBtn.textContent = 'Saving...';
+
+      try {
+        const resp = await fetch(`http://localhost:3000/documents/${_updDoc.id}`, {
+          method: "PATCH",
+          headers: {
+            "role": ROLE,
+            "x-user-email": CURRENT_USER_EMAIL
+          },
+          body: patchFormData
+        });
+
+        if (!resp.ok) {
+          let errMsg = `Update failed (HTTP ${resp.status})`;
+          try { const errBody = await resp.json(); errMsg += `: ${errBody.message || JSON.stringify(errBody)}`; } catch (_) { }
+          toast(errMsg, "error");
+          updSaveBtn.disabled = false;
+          updSaveBtn.textContent = origText;
+          return;
+        }
+        const updatedDoc = await resp.json();
+        updatedDoc.blobUrl = URL.createObjectURL(_updFile);
+        updatedDoc.fileType = (_updFile.name.split(".").pop() || "BIN").toUpperCase().slice(0, 3);
+
+        Object.assign(_updDoc, updatedDoc);
+        await logActivity("updated", _updDoc);
+        closeUpdateModal();
+        render();
+        toast(`✓ ${_updDoc.name} updated to v${_updDoc.version ?? 1}`);
+      } catch (e) {
+        console.error('Update error:', e);
+        toast(`Update failed: ${e.message}`, "error");
+        updSaveBtn.disabled = false;
+        updSaveBtn.textContent = origText;
+      }
     });
+
     // Sort Dropdown
     const sortOpts = [
       { key: "name", label: "File Name" },
@@ -983,7 +960,7 @@ const CURRENT_CASE_ID =
     sortDD.innerHTML = `
       <div class="dd-head">Sort by</div>
       ${sortOpts.map(o =>
-      `<div class="dd-row sort-opt ${uiState.sortKey === o.key ? "on" : ""}" data-key="${o.key}">
+        `<div class="dd-row sort-opt ${uiState.sortKey === o.key ? "on" : ""}" data-key="${o.key}">
           ${o.label}<span class="dd-arrow">${uiState.sortKey === o.key ? (uiState.sortDir === "asc" ? "↑" : "↓") : ""}</span>
          </div>`).join("")}`;
     document.body.appendChild(sortDD);
@@ -1009,8 +986,8 @@ const CURRENT_CASE_ID =
     filterDD.innerHTML = `
       <div class="dd-head">Filter by Access</div>
       ${["PRIVATE", "SHARED"].map(s =>
-      `<label class="dd-row"><input type="checkbox" class="fcb" value="${s}"> ${s}</label>`
-    ).join("")}
+        `<label class="dd-row"><input type="checkbox" class="fcb" value="${s}"> ${s}</label>`
+      ).join("")}
       <div class="dd-foot">
         <button class="dd-clear">Clear</button>
         <button class="dd-apply">Apply</button>
@@ -1138,12 +1115,10 @@ const CURRENT_CASE_ID =
     const dropzone = modal.querySelector(".upload-modal__dropzone");
     const dropText = modal.querySelector(".upload-modal__drop-text");
 
-    // FIX: Set read-only fields and update with current case/user data
     const caseClientEl = db.users.find(u => u.id === CURRENT_CASE.clientId);
     const clientNameInModal = modal.querySelectorAll('input[type="text"]')[0];
     const caseIdInModal = modal.querySelectorAll('input[type="text"]')[1];
 
-    // FIX: Populate with dynamic data from current case
     if (clientNameInModal) {
       clientNameInModal.value = caseClientEl ? caseClientEl.name : (CURRENT_USER.role === 'client' ? CURRENT_USER.name : '');
       clientNameInModal.readOnly = true;
@@ -1153,16 +1128,11 @@ const CURRENT_CASE_ID =
       caseIdInModal.readOnly = true;
     }
 
-    // FIX: Make confidential level select read-only (disabled) — only type and description remain editable
     const allSelects = modal.querySelectorAll("select");
-    // allSelects[0] = Document Type (editable)
-    // allSelects[1] = Confidential Level (read-only, show PRIVATE always)
     if (allSelects[1]) {
       allSelects[1].disabled = true;
     }
 
-    // Add "Uploaded By" display (read-only)
-    // Find description field and inject uploader info above it
     const descField = modal.querySelector(".upload-modal__textarea");
     if (descField && descField.parentElement) {
       const uploaderInfo = document.createElement("div");
@@ -1234,59 +1204,81 @@ const CURRENT_CASE_ID =
     }
 
     if (submitBtn) {
-      submitBtn.addEventListener("click", () => {
+      submitBtn.setAttribute('type', 'button');
+      submitBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
         if (!selectedFile) { toast("Please select a file to upload.", "error"); return; }
 
         const typeVal = allSelects[0] ? allSelects[0].value : "CONTRACT";
+        const fileExt = (selectedFile.name.split(".").pop() || "BIN").toUpperCase().slice(0, 3);
 
-        const newDocMeta = {
-          id: nextDocId(),
-          name: selectedFile.name,
-          filePath: null,
-          blobUrl: null,
-          // FIX: Use CURRENT_CASE_ID so uploads work for any case, not just CASE-45
-          caseId: CURRENT_CASE_ID,
-          type: typeVal.toUpperCase(),
-          fileType: (selectedFile.name.split(".").pop() || "BIN").toUpperCase().slice(0, 3),
-          uploader: CURRENT_USER.name,
-          uploaderEmail: CURRENT_USER.email,
-          firmId: CURRENT_USER.firmId || null,
-          date: new Date().toISOString().split("T")[0],
-          version: 1,
-          access: "PRIVATE",
-          iconColor: "green",
-        };
+        const formData = new FormData();
+        formData.append('name', selectedFile.name);
+        formData.append('caseId', CURRENT_CASE_ID);
+        formData.append('type', typeVal.toUpperCase());
+        formData.append('fileType', fileExt);
+        formData.append('access', "PRIVATE");
+        formData.append('version', 1);
+        formData.append('file', selectedFile);
 
-        uploadedDocs.unshift(newDocMeta);
-        lsSet(LS_UPLOADS, uploadedDocs);
+        submitBtn.disabled = true;
+        const origText = submitBtn.textContent;
+        submitBtn.textContent = 'Uploading...';
 
-        userUploadIds.add(newDocMeta.id);
-        lsSet(LS_USER_UPLOADS, [...userUploadIds]);
+        try {
+          const resp = await fetch("http://localhost:3000/documents", {
+            method: "POST",
+            headers: {
+              "role": ROLE,
+              "x-user-email": CURRENT_USER_EMAIL
+            },
+            body: formData
+          });
 
-        const sessionDoc = { ...newDocMeta, blobUrl: URL.createObjectURL(selectedFile) };
-        docsData.unshift(sessionDoc);
+          if (!resp.ok) {
+            let errMsg = `Upload failed (HTTP ${resp.status})`;
+            try { const errBody = await resp.json(); errMsg += `: ${errBody.message || JSON.stringify(errBody)}`; } catch (_) { }
+            toast(errMsg, "error");
+            persistError(errMsg);
+            submitBtn.disabled = false;
+            submitBtn.textContent = origText;
+            return;
+          }
+          const createdDoc = await resp.json();
+          const uploadedFileName = selectedFile.name;
+          createdDoc.blobUrl = URL.createObjectURL(selectedFile);
 
-        logActivity("uploaded", sessionDoc);
-        syncSharedDocumentsIndex();
+          docsData.unshift(createdDoc);
+          await logActivity("uploaded", createdDoc);
 
-        closeModal();
-        refreshTypeSelect();
-        render();
-        toast(`✓ ${selectedFile.name} uploaded successfully`);
+          closeModal();
+          submitBtn.disabled = false;
+          submitBtn.textContent = origText;
+          refreshTypeSelect();
+          render();
+          toast(`✓ ${uploadedFileName} uploaded successfully`);
+        } catch (e) {
+          const errMsg = `Upload failed: ${e.message}`;
+          console.error('Upload error:', e);
+          persistError(errMsg);
+          toast(errMsg, "error");
+          submitBtn.disabled = false;
+          submitBtn.textContent = origText;
+        }
       });
     }
 
-    // FIX: Activity side panel — dynamic, filtered by current case
+    // ── Activity side panel — reads from local activityLog (populated from backend on load) ──
     function refreshSidePanelActivity() {
       const cardEl = document.querySelector(".card");
       if (!cardEl) return;
 
-      // Remove all existing .activity elements
       cardEl.querySelectorAll(".activity").forEach(el => el.remove());
 
       const insertBefore = cardEl.querySelector(".btn-outline");
 
-      // Filter activity for THIS case only
       const latest = activityLog.filter(e =>
         e.caseId === CURRENT_CASE_ID &&
         (!e.firmId || !CURRENT_USER.firmId || e.firmId === CURRENT_USER.firmId)
@@ -1310,7 +1302,6 @@ const CURRENT_CASE_ID =
         });
       }
 
-      // FIX: Hide "View All Activity" for clients
       if (ROLE === "client") {
         const viewAllBtn = cardEl.querySelector(".btn-outline");
         if (viewAllBtn) viewAllBtn.style.display = "none";
@@ -1320,7 +1311,6 @@ const CURRENT_CASE_ID =
     // Boot
     refreshTypeSelect();
     syncViewIcons();
-    syncSharedDocumentsIndex();
     render();
     refreshSidePanelActivity();
 

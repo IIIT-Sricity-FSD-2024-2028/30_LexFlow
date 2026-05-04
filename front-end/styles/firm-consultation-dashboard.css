@@ -685,8 +685,23 @@ table { border-collapse: collapse; width: 100%; }
 
 .table-actions {
     display: flex;
-    gap: 6px;
+    gap: 8px;
+    align-items: center;
 }
+
+.btn-convert {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff !important;
+    border: none;
+    box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+}
+
+.btn-convert:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    transform: translateY(-1px);
+}
+
 
 /* ---------- LAWYER AVAILABILITY ---------- */
 .lawyers-grid {

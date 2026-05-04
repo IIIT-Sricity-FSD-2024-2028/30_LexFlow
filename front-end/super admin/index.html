@@ -6,12 +6,13 @@
     <title>Site administration</title>
     <link rel="stylesheet" href="super-admin-global.css">
     <script src="../scripts/storageService.js"></script>
+    <script src="../scripts/api.js"></script>
     <script src="../scripts/auth.js"></script>
     <script src="../scripts/superadmin-auth.js"></script>
     <script>
         // Auth check on page load
         document.addEventListener('DOMContentLoaded', async () => {
-            await StorageService.seed('../data/initialData.json');
+            
             const user = SuperAdminAuth.requireSuperAdmin();
             if (user) {
               document.getElementById('admin-user-name').textContent = user.fullName;
@@ -42,7 +43,7 @@
             </div>
             <div id="user-tools">
                 WELCOME, <strong><span id="admin-user-name">SUPERADMIN</span></strong>. 
-                <a href="../pages/landing_page.html">VIEW SITE</a> / 
+                <a href="../pages/../index.html">VIEW SITE</a> / 
                 <a href="super-admin-login.html" onclick="logoutSuperAdmin(); return false;">LOG OUT</a>
             </div>
         </div>
@@ -60,7 +61,8 @@
 
             <!-- Left column models -->
             <div id="content-main" style="float: left; width: 68%;">
-                <div class="app-auth module">
+                 
+                <!-- <div class="app-auth module">
                     <table>
                         <caption>
                             <a href="#" class="section">Authentication and Authorization</a>
@@ -84,6 +86,7 @@
                         </tbody>
                     </table>
                 </div>
+            -->
 
                 <div class="app-lexflow module">
                     <table>
@@ -113,8 +116,9 @@
                             </tr>
                             <tr>
                                 <th scope="row"><a href="invoice-list.html">Invoices & Payouts</a></th>
-                                <td><a href="#" class="addlink">Process</a></td>
-                                <td><a href="invoice-list.html" class="changelink">Review</a></td>
+                             <!--   <td><a href="#" class="addlink">Process</a></td> -->
+                                <td></td>
+                                <td ><a href="invoice-list.html" class="changelink">Review</a></td>
                             </tr>
                             <tr style="background:#fefce8;">
                                 <th scope="row"><a href="platform-settings.html" style="color:#a16207;">Platform Settings (Global)</a></th>
@@ -126,7 +130,7 @@
             </div>
 
             <!-- Right Sidebar -->
-            <div id="content-related">
+         <!--   <div id="content-related">
                 <div class="module" id="recent-actions-module">
                     <h2>Recent actions</h2>
                     <ul class="actionlist">
@@ -148,7 +152,7 @@
                     </ul>
                 </div>
             </div>
-
+        -->
         </div> <!-- /content -->
 
     </div> <!-- /container -->

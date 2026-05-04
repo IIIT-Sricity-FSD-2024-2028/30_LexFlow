@@ -21,14 +21,15 @@ const SuperAdminAuth = (() => {
         return null;
       }
 
-      if (user.role !== 'superAdmin') {
+      const userRole = (user.role || '').toLowerCase();
+      if (userRole !== 'superadmin') {
         // Redirect non-superAdmin users based on their role
-        if (user.role === 'client') {
+        if (userRole === 'client') {
           window.location.href = '../pages/client-consultation-dashboard.html';
-        } else if (user.role === 'firmAdmin') {
+        } else if (userRole === 'firmadmin') {
           window.location.href = '../pages/firm-consultation-dashboard.html';
         } else {
-          window.location.href = '../pages/landing_page.html';
+          window.location.href = '../index.html';
         }
         return null;
       }
@@ -49,7 +50,7 @@ const SuperAdminAuth = (() => {
      */
     isSuperAdmin() {
       const user = AuthService.getCurrentUser();
-      return user && user.role === 'superAdmin';
+      return user && (user.role || '').toLowerCase() === 'superadmin';
     },
 
     /**
@@ -58,7 +59,7 @@ const SuperAdminAuth = (() => {
      */
     getCurrentSuperAdmin() {
       const user = AuthService.getCurrentUser();
-      if (user && user.role === 'superAdmin') {
+      if (user && (user.role || '').toLowerCase() === 'superadmin') {
         return user;
       }
       return null;

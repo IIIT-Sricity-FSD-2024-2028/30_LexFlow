@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   'use strict';
 
-  await StorageService.seed('../data/initialData.json');
+  
 
   const DRAFT_KEY = 'firmDraft';
   injectValidationStyles();
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     attachStep1Validators();
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       setAlert(null);
 
@@ -63,6 +63,39 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
 
       _saveDraft(data);
+
+      try {
+        let sessionId = sessionStorage.getItem('firmOnboardingSessionId') || localStorage.getItem('firmOnboardingSessionId');
+        
+        if (!sessionId) {
+          const startRes = await fetch(`http://localhost:3000/users/firm-onboarding/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
+          });
+          if (!startRes.ok) throw new Error(await startRes.text());
+          const startData = await startRes.json();
+          sessionId = startData.sessionId;
+          sessionStorage.setItem('firmOnboardingSessionId', sessionId);
+          localStorage.setItem('firmOnboardingSessionId', sessionId);
+        }
+
+        // send step1 data to server
+        const { zip, ...restData } = data;
+        const step1Res = await fetch(`http://localhost:3000/users/firm-onboarding/step1/${sessionId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
+          body: JSON.stringify({
+            ...restData,
+            pinCode: zip,
+          }),
+        });
+        if (!step1Res.ok) throw new Error(await step1Res.text());
+      } catch (err) {
+        console.error(err);
+        setAlert(typeof err === 'string' ? err : (err.message || 'Unable to start onboarding on server'));
+        return;
+      }
+
       _showToast('Firm info saved!');
 
       setTimeout(() => {
@@ -79,7 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const draft = _getDraft();
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       setAlert(null);
 
@@ -115,6 +148,31 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
 
       _saveDraft({ ...draft, ...contactData });
+
+      // If a server-side onboarding session exists, submit step2
+      const sessionId = sessionStorage.getItem('firmOnboardingSessionId') || localStorage.getItem('firmOnboardingSessionId');
+      if (sessionId) {
+        try {
+          // Only send properties defined in FirmOnboardingDto
+          const step2Payload = {
+            primaryEmail: contactData.primaryEmail,
+            website: contactData.website,
+            phone: contactData.contactPhone // Map contactPhone back to phone
+          };
+
+          const step2Res = await fetch(`http://localhost:3000/users/firm-onboarding/step2/${sessionId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
+            body: JSON.stringify(step2Payload),
+          });
+          if (!step2Res.ok) throw new Error(await step2Res.text());
+        } catch (err) {
+          console.error(err);
+          setAlert(typeof err === 'string' ? err : (err.message || 'Unable to submit contact info to server'));
+          return;
+        }
+      }
+
       _showToast('Contact info saved!');
 
       setTimeout(() => {
@@ -131,7 +189,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const draft = _getDraft();
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       setAlert(null);
 
@@ -165,46 +223,133 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      const user = StorageService.create('users', {
-        fullName: _val('admin-name'),
-        email: adminEmail,
-        password: _val('password'),
-        phone: draft.phone || '',
-        role: 'firmAdmin'
-      });
-
+      const firmName = draft.fullName || draft.firmName || 'Unnamed Firm';
       const firmData = {
         ...draft,
-        name: draft.fullName || draft.firmName || 'Unnamed Firm', // Use 'name' for search compatibility
-        firmName: draft.fullName || draft.firmName || 'Unnamed Firm',
+        name: firmName,
+        firmName,
         subtitle: `${draft.city || ''}, ${draft.state || ''}`.trim().replace(/^,|,$/g, '') || 'General Practice',
         location: (draft.city || '').toLowerCase(),
         practiceArea: 'general',
-        description: draft.description || `${draft.fullName || draft.firmName} — a registered law firm on LexFlow.`,
+        description: draft.description || `${firmName} — a registered law firm on LexFlow.`,
         rating: 4.0,
         reviews: 0,
         price: 150,
         availability: 'AVAILABLE',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(draft.fullName || draft.firmName)}&background=1e3a5f&color=fff`,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(firmName)}&background=1e3a5f&color=fff`,
         adminName: _val('admin-name'),
-        adminEmail: adminEmail,
-        adminId: user.id
+        adminEmail: adminEmail
       };
 
-      StorageService.create('lawFirms', firmData);
+      const sessionId = sessionStorage.getItem('firmOnboardingSessionId') || localStorage.getItem('firmOnboardingSessionId');
 
+      // If there's an active server-side onboarding session, complete it via step3
+      if (sessionId) {
+        try {
+          const step3Payload = {
+            adminName: _val('admin-name'),
+            adminEmail: adminEmail,
+            password: _val('password'),
+            confirmPassword: _val('confirm-password'),
+          };
 
+          const step3Res = await fetch(`http://localhost:3000/users/firm-onboarding/step3/${sessionId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
+            body: JSON.stringify(step3Payload),
+          });
 
-      const { password: _pw, ...safeUser } = user;
-      localStorage.setItem('currentUser', JSON.stringify(safeUser));
+          if (!step3Res.ok) {
+            const err = await step3Res.text();
+            throw new Error(err || 'Unable to complete onboarding');
+          }
 
-      sessionStorage.removeItem(DRAFT_KEY);
+          const result = await step3Res.json();
 
-      _showToast('Firm account created!');
+          // Mirror previous frontend behavior: persist firm and set current user
+          StorageService.create('lawFirms', {
+            ...firmData,
+            adminId: result.adminUserId,
+          });
 
-      setTimeout(() => {
-        window.location.href = 'firm-consultation-dashboard.html';
-      }, 800);
+          const frontendUser = {
+            id: result.adminUserId,
+            fullName: _val('admin-name'),
+            email: adminEmail,
+            role: 'firmAdmin',
+            firmId: result.firmId,
+          };
+
+          localStorage.setItem('currentUser', JSON.stringify(frontendUser));
+          localStorage.setItem('userRole', frontendUser.role);
+          sessionStorage.removeItem(DRAFT_KEY);
+          sessionStorage.removeItem('firmOnboardingSessionId');
+          localStorage.removeItem('firmOnboardingSessionId');
+
+          _showToast('Firm account created!');
+          setTimeout(() => {
+            window.location.href = 'firm-consultation-dashboard.html';
+          }, 800);
+          return;
+        } catch (error) {
+          console.error(error);
+          setAlert(error.message || 'Unable to complete onboarding on server');
+          return;
+        }
+      }
+
+      // Fallback: previous behavior (create user directly via /users)
+      const payload = {
+        fullName: _val('admin-name'),
+        email: adminEmail,
+        role: 'firmadmin',
+        password: _val('password'),
+        phone: draft.phone || undefined,
+        addressLine1: draft.street || undefined,
+        city: draft.city || undefined,
+        state: draft.state || undefined,
+        pinCode: draft.zip || undefined,
+      };
+
+      fetch('http://localhost:3000/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          role: 'superadmin',
+        },
+        body: JSON.stringify(payload),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const err = await res.text();
+            throw new Error(err || 'Unable to create law firm account.');
+          }
+          return res.json();
+        })
+        .then((user) => {
+          StorageService.create('lawFirms', { ...firmData, adminId: user.id });
+
+          const { password: _pw, ...safeUser } = user;
+          const frontendUser = {
+            ...safeUser,
+            role: 'firmAdmin',
+          };
+
+          localStorage.setItem('currentUser', JSON.stringify(frontendUser));
+          localStorage.setItem('userRole', frontendUser.role);
+
+          sessionStorage.removeItem(DRAFT_KEY);
+
+          _showToast('Firm account created!');
+
+          setTimeout(() => {
+            window.location.href = 'firm-consultation-dashboard.html';
+          }, 800);
+        })
+        .catch((error) => {
+          console.error(error);
+          setAlert(error.message || 'Unable to create firm account right now.');
+        });
     });
   }
 

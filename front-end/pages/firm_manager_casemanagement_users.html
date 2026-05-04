@@ -67,9 +67,11 @@ Add New User
 <label class="users-filter-label" for="roleFilterSelect">Role</label>
 <select id="roleFilterSelect" class="form-input users-filter-select">
 <option value="all">All roles</option>
-<option value="manager">Manager</option>
+<option value="firmadmin">Firm Admin</option>
 <option value="lawyer">Lawyer</option>
+
 <option value="client">Client</option>
+<option value="intern">Intern</option>
 </select>
 <button type="button" class="users-icon-btn" id="exportUsersBtn" title="Export users JSON">
 <span class="svg-icon-placeholder" data-icon="icon_45"></span>
@@ -124,12 +126,13 @@ Add New User
 </div>
 <div class="form-group">
 <label class="form-label" for="userFormBadgeRole">Role</label>
-<select class="form-input" id="userFormBadgeRole" required>
-<option value="">Select role</option>
-<option value="manager">Manager</option>
-<option value="lawyer">Lawyer</option>
-<option value="client">Client</option>
-</select>
+                                <select class="form-input" id="userFormBadgeRole" required>
+                                    <option value="">Select role</option>
+                                    <option value="firmadmin" id="roleOptionAdmin">Firm Admin</option>
+                                    <option value="lawyer">Lawyer</option>
+                                    <option value="client">Client</option>
+                                    <option value="intern">Intern</option>
+                                </select>
 </div>
 <div class="form-group">
 <span class="form-label">Account status</span>
@@ -165,9 +168,10 @@ Not available
 </div>
 </div>
 </div>
-<script src="../scripts/storageService.js"></script>
+
 <script src="../scripts/auth.js"></script>
-<script>AuthService.requireAuth(['firmAdmin']);</script>
+<script>AuthService.requireAuth(['firmAdmin', 'lawyer', 'intern']);</script>
+<script src="../scripts/api.js"></script>
 <script src="../scripts/shared_form-validation.js"></script>
 <script src="../scripts/sidebar.js"></script>
 <script src="../scripts/firm_manager_casemanagement_users.js"></script>

@@ -1,66 +1,75 @@
 document.addEventListener('DOMContentLoaded', async () => {
     'use strict';
 
-    // Seed data if not already done
-    await StorageService.seed('../data/initialData.json');
 
     const signInForm = document.querySelector('form');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const loginBtn = document.querySelector('button[type="submit"]');
 
+    const API_BASE = window.__API_BASE__ || 'http://localhost:3000';
 
     const signUpLink = document.querySelector('.signup-note a');
-    const userRole = localStorage.getItem('userRole');
+    const rawRole = localStorage.getItem('loginRole') || localStorage.getItem('userRole');
+    const userRole = _normalizeRole(rawRole);
 
     if (signUpLink) {
-        if (userRole === 'client') {
-            signUpLink.href = 'Client%20Onboarding%20step1.html';
-        } else {
-            signUpLink.href = 'LawFirmOnboardingStep1.html';
-        }
+        signUpLink.href = (userRole === 'client') ? 'Client%20Onboarding%20step1.html' : 'LawFirmOnboardingStep1.html';
     }
+
     if (signInForm) {
         signInForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const email = emailInput.value.trim();
             const password = passwordInput.value.trim();
+            const selectedRole = _normalizeRole(localStorage.getItem('loginRole') || localStorage.getItem('userRole'));
+            const expectedRole = selectedRole || undefined;
 
             if (!email || !password) {
                 _showToast('Please enter both email and password.', 'error');
                 return;
             }
 
-            // Show loading state
             loginBtn.classList.add('btn-loading');
+            try {
+                const user = await _postJSON(`${API_BASE}/users/login`, { email, password });
 
-            // Simulate small delay for better UX
-            setTimeout(() => {
-                const result = AuthService.login(email, password);
+                const isFirmPortal = ['firmadmin', 'intern'].includes(expectedRole);
+                const isFirmStaff = ['firmadmin', 'lawyer', 'intern'].includes(user.role.toLowerCase());
 
-                if (result.success) {
-                    _showToast('Welcome back, ' + (result.user.fullName || result.user.name || 'User') + '!');
-                    // Sync userRole to actual role so sidebar renders correctly
-                    localStorage.setItem('userRole', result.user.role);
-
-                    setTimeout(() => {
-                        const roleRedirects = {
-                            client: 'client-consultation-dashboard.html',
-                            firmAdmin: 'firm-consultation-dashboard.html',
-                            lawyer: 'firm-consultation-dashboard.html',
-                            intern: 'firm-consultation-dashboard.html',
-                            superAdmin: '../super admin/index.html'
-                        };
-
-                        const redirectPath = roleRedirects[result.user.role] || 'SignIn.html';
-                        window.location.href = redirectPath;
-                    }, 800);
-                } else {
-                    loginBtn.classList.remove('btn-loading');
-                    _showToast(result.error, 'error');
+                if (isFirmPortal) {
+                    if (!isFirmStaff) {
+                        throw new Error('This login portal is only for law firm staff (Admin/Lawyer/Intern).');
+                    }
+                } else if (expectedRole === 'client' && user.role.toLowerCase() !== 'client') {
+                    throw new Error('This login portal is only for clients.');
                 }
-            }, 500);
+
+                const frontendRoleMap = {
+                    firmadmin: 'firmAdmin',
+                    superadmin: 'superAdmin',
+                };
+                const normalizedRole = frontendRoleMap[user.role] || user.role || '';
+                const normalizedUser = { ...user, role: normalizedRole };
+
+                localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
+                localStorage.setItem('userRole', normalizedUser.role);
+                localStorage.removeItem('loginRole');
+
+                _showToast('Welcome back, ' + (user.fullName || user.name || 'User') + '!');
+
+                setTimeout(() => {
+                    const redirect = _redirectForRole((normalizedUser.role || '').toLowerCase());
+                    window.location.href = redirect;
+                }, 800);
+            } catch (error) {
+                const msg = (error && error.message) ? error.message : 'Unable to sign in right now. Please check backend server.';
+                _showToast(msg, 'error');
+                console.error(error);
+            } finally {
+                loginBtn.classList.remove('btn-loading');
+            }
         });
     }
 
@@ -86,5 +95,43 @@ document.addEventListener('DOMContentLoaded', async () => {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 300);
         }, 3000);
+    }
+
+    /* Helpers */
+    function _normalizeRole(raw) {
+        if (!raw) return undefined;
+        const r = String(raw).toLowerCase();
+        if (r === 'firmadmin') return 'firmadmin';
+        if (r === 'superadmin') return 'superadmin';
+        return r;
+    }
+
+    function _redirectForRole(roleLower) {
+        const roleRedirects = {
+            client: 'client-consultation-dashboard.html',
+            firmadmin: 'firm-consultation-dashboard.html',
+            lawyer: 'firm-consultation-dashboard.html',
+            intern: 'firm-consultation-dashboard.html',
+            superadmin: '../super admin/index.html',
+        };
+        return roleRedirects[roleLower] || 'SignIn.html';
+    }
+
+    async function _postJSON(url, body, opts = {}) {
+        const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+        const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+        if (res.ok) {
+            try { return await res.json(); } catch (e) { return undefined; }
+        }
+        // try parse json error, fallback to text
+        let errMsg = 'Request failed';
+        try {
+            const json = await res.json();
+            if (json && json.message) errMsg = json.message;
+            else errMsg = JSON.stringify(json);
+        } catch (e) {
+            try { errMsg = await res.text(); } catch (e2) { /* ignore */ }
+        }
+        throw new Error(errMsg || `HTTP ${res.status}`);
     }
 });

@@ -6,6 +6,9 @@
 (function () {
   "use strict";
 
+  console.log('LexFlow: documents-main.js v2.0 (In-Memory) initialized');
+
+
   let casesData = [];
 
   const state = {
@@ -185,6 +188,7 @@
       data = data.filter(c =>
         c.client.toLowerCase().includes(q) ||
         c.id.toLowerCase().includes(q) ||
+        (c.cnr && c.cnr.toLowerCase().includes(q)) ||
         c.caseType.toLowerCase().includes(q) ||
         c.lawyer.toLowerCase().includes(q) ||
         c.court.toLowerCase().includes(q)
@@ -333,25 +337,57 @@
     return "Active";
   }
 
-  fetch("../data/docs.json")
-    .then(r => r.json())
-    .then(data => {
+  async function loadCases() {
+    console.log('[DocumentsMain] Loading cases from backend via casesStorage...');
+    try {
+      const casesStorage = window.LexFlowCasesStorage;
+
+      // Fetch cases — role-scoped automatically.
+      const allCases = await casesStorage.getCases();
+      if (!allCases || !allCases.length) {
+        casesData = [];
+        go();
+        return;
+      }
+
+      // Collect the unique user IDs we need to resolve (client + lawyer).
+      // GET /users/:id is open to all roles, so this works for everyone.
+      const userIds = [...new Set(
+        allCases.flatMap(c => [c.client_id, c.lawyer_id].filter(Boolean))
+      )];
+
       const uMap = {};
-      (data.users || []).forEach(u => { uMap[u.id] = u.name; });
-      casesData = (data.cases || []).map(c => ({
-        id: c.id,
-        client: uMap[c.clientId] || 'Unknown Client',
+      await Promise.allSettled(
+        userIds.map(uid =>
+          fetch(`http://localhost:3000/users/${uid}`, {
+            headers: { 'role': casesStorage.getRoleHeader() }
+          })
+          .then(r => r.ok ? r.json() : null)
+          .then(u => { if (u) uMap[u.id] = u.fullName || u.name || uid; })
+        )
+      );
+
+      casesData = allCases.map(c => ({
+        id: String(c.id),
+        client: uMap[c.client_id] || c.client_name || 'Unknown Client',
         type: 'INDIVIDUAL',
         status: mapStatus(c.status),
-        caseType: c.title,
-        lawyer: uMap[c.lawyerId] || 'Unknown Lawyer',
-        court: c.court,
+        caseType: c.case_type || c.title,
+        lawyer: uMap[c.lawyer_id] || c.lawyer_name || 'Unknown Lawyer',
+        court: c.court || 'District Court',
       }));
+
+      console.log(`[DocumentsMain] Loaded ${casesData.length} cases.`);
       go();
-    })
-    .catch(e => {
-      console.error("Failed to load cases", e);
-      grid.innerHTML = `<p class="no-results">Failed to load cases data.</p>`;
-    });
+    } catch (err) {
+      console.error('[DocumentsMain] Failed to load cases:', err);
+      grid.innerHTML = `<p class="no-results">Error loading cases. Please try again.</p>`;
+    }
+  }
+
+
+
+  loadCases();
+
 
 })();

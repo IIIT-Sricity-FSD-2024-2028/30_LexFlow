@@ -114,65 +114,7 @@
             </div>
 
             <div class="scheduled-grid">
-                <!-- Card 1 -->
-                <div class="consultation-card" id="consultation-card-1">
-                    <div class="card-top-row">
-                        <div class="card-avatar blue">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                            </svg>
-                        </div>
-                        <div class="card-info">
-                            <div class="card-badges">
-                                <span class="badge badge-id">CONS-882</span>
-                                <span class="badge badge-scheduled">SCHEDULED</span>
-                            </div>
-                            <h3 class="card-lawyer-name">Dr. Julian Voss</h3>
-                            <span class="card-firm-detail">Voss &amp; Associates • Video Call</span>
-                        </div>
-                        <div class="card-date-block">
-                            <span class="card-date">Oct 24, 2023</span>
-                            <span class="card-time">10:30 AM - 11:00 AM</span>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <button class="btn btn-primary" id="btn-join-1">Consultation</button>
-                        <button class="btn btn-outline" id="btn-details-1">View Details</button>
-                        <button class="btn btn-cancel-text" id="btn-cancel-1">Cancel</button>
-                    </div>
-                </div>
-
-                <!-- Card 2 -->
-                <div class="consultation-card" id="consultation-card-2">
-                    <div class="card-top-row">
-                        <div class="card-avatar green">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <div class="card-info">
-                            <div class="card-badges">
-                                <span class="badge badge-id">CONS-895</span>
-                                <span class="badge badge-confirmed">CONFIRMED</span>
-                            </div>
-                            <h3 class="card-lawyer-name">Sarah Jenkins</h3>
-                            <span class="card-firm-detail">Jenkins Family Law • In-person</span>
-                        </div>
-                        <div class="card-date-block">
-                            <span class="card-date">Oct 26, 2023</span>
-                            <span class="card-time">02:00 PM - 03:00 PM</span>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <button class="btn btn-primary" id="btn-join-2">Consultation</button>
-                        <button class="btn btn-outline" id="btn-details-2">View Details</button>
-                        <button class="btn btn-cancel-text" id="btn-cancel-2">Cancel</button>
-                    </div>
-                </div>
+                <!-- Dynamically loaded from backend by client-consultation-dashboard.js -->
             </div>
         </section>
 
@@ -197,24 +139,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td><a href="#" class="link-id">CONS-204</a></td>
-                            <td>Adv. Rahul Mehta</td>
-                            <td>Property Law</td>
-                            <td>Mar 14, 2026</td>
-                            <td>30 min</td>
-                            <td><span class="status-badge status-completed">COMPLETED</span></td>
-                            <td><a href="#" class="link-action">View Summary</a></td>
-                        </tr>
-                        <tr>
-                            <td><a href="#" class="link-id">CONS-156</a></td>
-                            <td>Elena Rodriguez</td>
-                            <td>Civil Law</td>
-                            <td>Jan 10, 2026</td>
-                            <td>-</td>
-                            <td><span class="status-badge status-cancelled">CANCELLED</span></td>
-                            <td><a href="#" class="link-action">View Details</a></td>
-                        </tr>
+                        <!-- Dynamically loaded from backend by client-consultation-dashboard.js -->
                     </tbody>
                 </table>
             </div>
@@ -502,19 +427,86 @@
         </div>
     </div>
 
+    <!-- ============ CONSULTATION DETAILS OVERLAY ============ -->
+    <div class="details-overlay" id="details-overlay">
+        <div class="details-panel">
+            <div class="details-panel-header">
+                <div>
+                    <span class="details-cons-id" id="det-id">CONS-000</span>
+                    <h2 class="details-title">Consultation Details</h2>
+                </div>
+                <button class="details-close-btn" id="details-close-btn" aria-label="Close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="details-grid">
+                <div class="det-field"><span class="det-label">Lawyer / Advocate</span><span class="det-value" id="det-lawyer">—</span></div>
+                <div class="det-field"><span class="det-label">Law Firm</span><span class="det-value" id="det-firm">—</span></div>
+                <div class="det-field"><span class="det-label">Consultation Type</span><span class="det-value" id="det-type">—</span></div>
+                <div class="det-field"><span class="det-label">Consultation Fee</span><span class="det-value" id="det-fee">—</span></div>
+                <div class="det-field"><span class="det-label">Date</span><span class="det-value" id="det-date">—</span></div>
+                <div class="det-field"><span class="det-label">Time Slot</span><span class="det-value" id="det-time">—</span></div>
+                <div class="det-field det-field-full"><span class="det-label">Status</span><span class="det-value" id="det-status">—</span></div>
+                <div class="det-field det-field-full"><span class="det-label">Case Description</span><p class="det-desc-text" id="det-desc">—</p></div>
+                <div class="det-field det-field-full" id="det-notes-row" style="display:none"><span class="det-label">Lawyer Notes</span><p class="det-desc-text" id="det-notes">—</p></div>
+            </div>
+            <div class="details-panel-footer">
+                <button class="btn btn-outline" id="det-close-footer-btn">Close</button>
+                <button class="btn btn-primary" id="det-join-btn" style="display:none">Join Consultation</button>
+            </div>
+        </div>
+    </div>
+    <style>
+      .details-overlay { display:none; position:fixed; inset:0; z-index:1500; background:rgba(15,23,42,.6); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:24px; }
+      .details-overlay.active { display:flex; }
+      .details-panel { background:#fff; border-radius:16px; width:100%; max-width:620px; box-shadow:0 24px 48px rgba(0,0,0,.18); display:flex; flex-direction:column; overflow:hidden; }
+      .details-panel-header { display:flex; align-items:flex-start; justify-content:space-between; padding:22px 24px 16px; border-bottom:1px solid #f1f5f9; }
+      .details-cons-id { font-size:11px; font-weight:600; color:#6366f1; background:#eef2ff; padding:2px 10px; border-radius:20px; letter-spacing:.5px; display:inline-block; margin-bottom:6px; }
+      .details-title { font-size:17px; font-weight:700; color:#0f172a; margin:0; }
+      .details-close-btn { background:none; border:none; cursor:pointer; padding:6px; border-radius:8px; color:#6b7280; transition:background .15s; }
+      .details-close-btn:hover { background:#f1f5f9; color:#111; }
+      .details-grid { display:grid; grid-template-columns:1fr 1fr; overflow-y:auto; max-height:52vh; }
+      .det-field { display:flex; flex-direction:column; gap:5px; padding:14px 24px; border-bottom:1px solid #f8fafc; }
+      .det-field-full { grid-column:1/-1; }
+      .det-label { font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.6px; }
+      .det-value { font-size:14px; font-weight:600; color:#1e293b; }
+      .det-desc-text { font-size:13px; color:#475569; line-height:1.65; margin:0; background:#f8fafc; padding:12px; border-radius:8px; }
+      .details-panel-footer { display:flex; align-items:center; justify-content:flex-end; gap:12px; padding:16px 24px; border-top:1px solid #f1f5f9; }
+    </style>
+
     <!-- ============ SCRIPTS ============ -->
+
     <script src="../scripts/storageService.js"></script>
     <script src="../scripts/auth.js"></script>
     <script src="../scripts/sidebar-utils.js"></script>
-    <script>
-        // Auth Guard
-        AuthService.requireAuth(['client']);
-        
-        // Initialize storage on load
-        document.addEventListener('DOMContentLoaded', initStorage);
-    </script>
     <script src="../scripts/storage.js"></script>
+    <script src="../scripts/api.js"></script>
     <script src="../scripts/client-consultation-dashboard.js"></script>
+    <style>
+      /* ── API Loading & Error UI Utilities ── */
+      .api-loading-block { display:flex; flex-direction:column; align-items:center; justify-content:center;
+        padding:48px 20px; background:#f9fafb; border-radius:12px; grid-column:1/-1; }
+      .api-loading-block p { color:#6b7280; font-size:13px; margin-top:10px; }
+      .api-loading-spinner { width:36px; height:36px; border:3px solid #e5e7eb;
+        border-top-color:#4f46e5; border-radius:50%; animation:spin .7s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .api-error-banner { display:flex; align-items:center; gap:8px; background:#fef2f2;
+        color:#b91c1c; border:1px solid #fecaca; border-radius:8px; padding:12px 16px;
+        font-size:13px; font-weight:500; grid-column:1/-1; }
+      .no-data-notice { display:flex; flex-direction:column; align-items:center; justify-content:center;
+        padding:60px 20px; background:#f9fafb; border-radius:12px; border:2px dashed #e5e7eb;
+        grid-column:1/-1; text-align:center; }
+      .no-data-notice p { color:#6b7280; font-weight:500; margin-top:12px; }
+      .no-data-notice a { color:#4f46e5; text-decoration:none; }
+      /* Toast */
+      .lexflow-toast { position:fixed; bottom:24px; right:24px; z-index:9999;
+        padding:12px 20px; border-radius:10px; font-size:14px; font-weight:500;
+        color:#fff; opacity:0; transform:translateY(10px); transition:all .3s ease;
+        box-shadow:0 4px 16px rgba(0,0,0,.15); }
+      .lexflow-toast.toast-visible { opacity:1; transform:translateY(0); }
+      .lexflow-toast.toast-success { background:#10b981; }
+      .lexflow-toast.toast-error   { background:#ef4444; }
+    </style>
 
 </body>
 </html>

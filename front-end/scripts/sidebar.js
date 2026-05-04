@@ -126,7 +126,9 @@
       // Role-based nav visibility
       // firmAdmin: hide "Find a Law Firm", point Consultations to firm dashboard
       // client:    hide "Schedules",        point Consultations to client dashboard
-      if (userRole === 'firmAdmin') {
+      const isFirmStaff = ['firmAdmin', 'lawyer', 'intern'].includes(userRole);
+
+      if (isFirmStaff) {
         const searchLink = document.getElementById('nav-search');
         if (searchLink) searchLink.closest('a').style.display = 'none';
 
@@ -134,16 +136,24 @@
         if (consultLink) consultLink.href = 'firm-consultation-dashboard.html';
 
         const casesLink = document.getElementById('nav-cases');
-        if (casesLink) casesLink.href = 'firm_manager_casemanagement_cases.html';
+        if (casesLink) {
+          // If role is lawyer, we could optionally point to a different cases list, 
+          // but for now firm_manager_casemanagement_cases.html seems intended for staff.
+          casesLink.href = 'firm_manager_casemanagement_cases.html';
+        }
 
         const billingLink = document.getElementById('nav-billing');
         if (billingLink) billingLink.href = 'firm_manager_casemanagement_billing.html';
 
-        // Show and link User Management for firmAdmin
+        // Show and link User Management for firmAdmin only (or decide if lawyers can see it)
         const userMgmtLink = document.getElementById('nav-usermanagement');
         if (userMgmtLink) {
-          userMgmtLink.closest('a').style.display = 'flex';
-          userMgmtLink.href = 'firm_manager_casemanagement_users.html';
+          if (userRole === 'firmAdmin') {
+            userMgmtLink.closest('a').style.display = 'flex';
+            userMgmtLink.href = 'firm_manager_casemanagement_users.html';
+          } else {
+            userMgmtLink.closest('a').style.display = 'none';
+          }
         }
 
       } else {
