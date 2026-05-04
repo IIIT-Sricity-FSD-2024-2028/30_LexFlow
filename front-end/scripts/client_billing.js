@@ -1,7 +1,8 @@
-const billingStorage = window.LexFlowBillingStorage;
-const normalizeInvoices = billingStorage.normalizeInvoices;
-const normalizePayments = billingStorage.normalizePayments;
-const ensureBillingStorage = billingStorage.ensureBillingStorage;
+let billingStorage;
+let normalizeInvoices;
+let normalizePayments;
+let ensureBillingStorage;
+
 const BILLING_TODAY = new Date();
 
 function formatDate(value) {
@@ -20,6 +21,13 @@ function formatCurrency(value) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+
+  // initialize billing storage AFTER page load
+  billingStorage = window.LexFlowBillingStorage;
+  normalizeInvoices = billingStorage.normalizeInvoices;
+  normalizePayments = billingStorage.normalizePayments;
+  ensureBillingStorage = billingStorage.ensureBillingStorage;
+
   let invoices = [];
   let payments = [];
   let currentFilter = "All";
@@ -72,24 +80,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     if (filtered.length === 0) {
-      invoicesList.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#6b7280;">No invoices found.</td></tr>';
+      invoicesList.innerHTML =
+        '<tr><td colspan="7" style="text-align:center; color:#6b7280;">No invoices found.</td></tr>';
       return;
     }
 
     filtered.forEach((invoice) => {
       const row = document.createElement("tr");
+
       const badgeClass =
         invoice.status === "Paid"
           ? "badge-paid"
           : invoice.status === "Pending"
             ? "badge-pending"
             : "badge-overdue";
-      const dueClass = invoice.status === "Paid"
-        ? "due-green"
-        : invoice.status === "Overdue"
-          ? "due-red"
-          : (() => {
-              const days = Math.ceil((new Date(invoice.dueDate) - BILLING_TODAY) / 86400000);
+
+      const dueClass =
+        invoice.status === "Paid"
+          ? "due-green"
+          : invoice.status === "Overdue"
+            ? "due-red"
+            : (() => {
+              const days = Math.ceil(
+                (new Date(invoice.dueDate) - BILLING_TODAY) / 86400000
+              );
               if (days <= 14) {
                 return "due-yellow";
               }
@@ -98,7 +112,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       let actionsHtml = "";
       if (invoice.status !== "Paid") {
-        actionsHtml += `<button class="btn-pay-now" onclick="window.location.href='client_billing_pay-now.html?id=${encodeURIComponent(invoice.id)}'">Pay Now</button>`;
+        actionsHtml += `<button class="btn-pay-now" onclick="window.location.href='client_billing_pay-now.html?id=${encodeURIComponent(
+          invoice.id
+        )}'">Pay Now</button>`;
       }
 
       row.innerHTML = `
@@ -119,13 +135,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     paymentHistoryList.innerHTML = "";
 
     if (payments.length === 0) {
-      paymentHistoryList.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#6b7280;">No payment history.</td></tr>';
+      paymentHistoryList.innerHTML =
+        '<tr><td colspan="6" style="text-align:center; color:#6b7280;">No payment history.</td></tr>';
       return;
     }
 
     payments.slice(0, 3).forEach((payment) => {
       const row = document.createElement("tr");
-      const methodIcon = (payment.method || "").toLowerCase().includes("bank")
+
+      const methodIcon = (payment.method || "")
+        .toLowerCase()
+        .includes("bank")
         ? '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>'
         : '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>';
 
@@ -144,6 +164,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     const data = await ensureBillingStorage();
+
     invoices = normalizeInvoices(data.invoices || []);
     payments = normalizePayments(data.payments || []);
 
@@ -155,10 +176,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   searchInput.addEventListener("input", renderInvoices);
+
   filterButtons.forEach((button) => {
     button.addEventListener("click", (event) => {
       filterButtons.forEach((btn) => btn.classList.remove("active"));
       event.target.classList.add("active");
+
       currentFilter = event.target.getAttribute("data-filter");
       renderInvoices();
     });

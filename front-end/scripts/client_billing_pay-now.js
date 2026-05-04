@@ -1,149 +1,141 @@
-const billingStorage = window.LexFlowBillingStorage;
-const normalizeInvoices = billingStorage.normalizeInvoices;
-const normalizePayments = billingStorage.normalizePayments;
-const ensureBillingStorage = billingStorage.ensureBillingStorage;
-const saveBillingToAllStores = billingStorage.saveBillingToAllStores;
+/**
+ * client_billing_pay-now.js  —  CLIENT payment page
+ *
+ * Replaced: localStorage read/write, saveBillingToAllStores, generatePaymentId
+ * Added:    fetch-based recordPayment, loading state on submit button,
+ *           error banner on API failure
+ */
+
+
 const BILLING_TODAY = new Date();
 
-function formatLongDate(dateValue) {
-  return new Date(dateValue).toLocaleDateString("en-IN", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
+function formatLongDate(value) {
+  return new Date(value).toLocaleDateString('en-IN', {
+    month: 'long', day: 'numeric', year: 'numeric',
   });
 }
 
-function generatePaymentId() {
-  return `#PAY-${String(Date.now()).slice(-6)}`;
+function formatCurrency(value) {
+  return '₹' + Number(value).toLocaleString('en-IN', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  });
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  const invoiceId = new URLSearchParams(window.location.search).get("id");
+document.addEventListener('DOMContentLoaded', async () => {
+
+  const { fetchInvoice: fetchInvoiceById, recordPayment } = window.LexFlowBillingStorage;
+  const invoiceId = new URLSearchParams(window.location.search).get('id');
   if (!invoiceId) {
-    alert("No invoice ID provided. Redirecting to billing dashboard.");
-    window.location.href = "client_billing.html";
+    alert('No invoice ID provided. Redirecting to billing dashboard.');
+    window.location.href = 'client_billing.html';
     return;
   }
 
-  let invoices = [];
-  let payments = [];
   let currentInvoice = null;
 
+  // ── Load invoice from backend ───────────────────────────────────────────────
   try {
-    const data = await ensureBillingStorage();
-    invoices = normalizeInvoices(data.invoices || []);
-    payments = normalizePayments(data.payments || []);
-    currentInvoice = invoices.find((invoice) => invoice.id === invoiceId) || null;
+    currentInvoice = await fetchInvoiceById(invoiceId);
 
     if (!currentInvoice) {
-      alert("Invoice not found.");
-      window.location.href = "client_billing.html";
+      alert('Invoice not found.');
+      window.location.href = 'client_billing.html';
       return;
     }
 
-    // Verify invoice belongs to the logged-in client
-    const _payUser = (() => { try { return JSON.parse(localStorage.getItem('currentUser') || '{}'); } catch { return {}; } })();
-    const _clientName = (_payUser.fullName || _payUser.name || '').trim().toLowerCase();
-    
+    // Populate summary card
+    document.getElementById('summaryId').textContent = currentInvoice.id;
+    document.getElementById('summaryCaseName').textContent = currentInvoice.caseName || '-';
+    document.getElementById('summaryLawFirm').textContent = currentInvoice.advocateName || 'Awaiting Assignment';
 
-    document.getElementById("summaryId").textContent = currentInvoice.id;
-    document.getElementById("summaryCaseName").textContent = currentInvoice.caseName || "-";
-    document.getElementById("summaryLawFirm").textContent = currentInvoice.lawyerName || "Awaiting Assignment";
-
-    const daysLeft = Math.ceil((new Date(currentInvoice.dueDate) - BILLING_TODAY) / 86400000);
-    let dueDateColor = "#1a1a2e";
-    if (daysLeft < 0) {
-      dueDateColor = "#ef4444";
-    } else if (daysLeft <= 14) {
-      dueDateColor = "#f59e0b";
-    }
-
-    const dueDateEl = document.getElementById("summaryDueDate");
+    const days = Math.ceil((new Date(currentInvoice.dueDate) - BILLING_TODAY) / 86400000);
+    const dueDateEl = document.getElementById('summaryDueDate');
     dueDateEl.textContent = formatLongDate(currentInvoice.dueDate);
-    dueDateEl.style.color = dueDateColor;
+    dueDateEl.style.color = days < 0 ? '#ef4444' : days <= 14 ? '#f59e0b' : '#1a1a2e';
 
-    const formattedAmount = "₹" + currentInvoice.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 });
-    document.getElementById("summaryAmount").textContent = formattedAmount;
-    document.getElementById("btnPayAmount").textContent = formattedAmount;
-  } catch (error) {
-    console.error(error);
-    window.location.href = "client_billing.html";
+    const formatted = formatCurrency(currentInvoice.amount);
+    document.getElementById('summaryAmount').textContent = formatted;
+    document.getElementById('btnPayAmount').textContent = formatted;
+
+  } catch (err) {
+    console.error('Failed to load invoice:', err);
+    alert('Could not load invoice details. Please check if the backend is running.');
+    window.location.href = 'client_billing.html';
     return;
   }
 
-  const cardNameInput = document.getElementById("cardName");
-  const cardNumberInput = document.getElementById("cardNumber");
-  const cardExpiryInput = document.getElementById("cardExpiry");
-  const cardCvcInput = document.getElementById("cardCVC");
-  const paymentForm = document.getElementById("paymentForm");
-  const paymentSuccess = document.getElementById("paymentSuccess");
+  // ── Form inputs ─────────────────────────────────────────────────────────────
+  const cardNameInput = document.getElementById('cardName');
+  const cardNumberInput = document.getElementById('cardNumber');
+  const cardExpiryInput = document.getElementById('cardExpiry');
+  const cardCvcInput = document.getElementById('cardCVC');
+  const paymentForm = document.getElementById('paymentForm');
+  const paymentSuccess = document.getElementById('paymentSuccess');
 
-  LexValidation.formatNameInput(cardNameInput);
-  LexValidation.attachBlurValidation(cardNameInput, (value) => LexValidation.validateName(value, "Cardholder name"));
-  LexValidation.formatCardNumberInput(cardNumberInput);
-  LexValidation.formatExpiryInput(cardExpiryInput);
-  LexValidation.formatCVCInput(cardCvcInput);
+  // Re-use existing LexValidation helpers (shared_form-validation.js)
+  if (window.LexValidation) {
+    LexValidation.formatNameInput(cardNameInput);
+    LexValidation.attachBlurValidation(cardNameInput,
+      v => LexValidation.validateName(v, 'Cardholder name'));
+    LexValidation.formatCardNumberInput(cardNumberInput);
+    LexValidation.formatExpiryInput(cardExpiryInput);
+    LexValidation.formatCVCInput(cardCvcInput);
+  }
 
-  paymentForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    LexValidation.clearAllErrors(paymentForm);
+  // ── Submit handler ──────────────────────────────────────────────────────────
+  paymentForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-    const fields = [
-      {
-        input: cardNameInput,
-        validator: (value) => LexValidation.validateName(value, "Cardholder name"),
-      },
-      { input: cardNumberInput, validator: LexValidation.validateCardNumber },
-      { input: cardExpiryInput, validator: LexValidation.validateExpiry },
-      { input: cardCvcInput, validator: LexValidation.validateCVC },
-    ];
-
-    if (!LexValidation.validateForm(fields)) {
-      const formCard = paymentForm.closest(".checkout-form");
-      if (formCard) {
-        formCard.classList.add("form-shake");
-        setTimeout(() => formCard.classList.remove("form-shake"), 450);
+    if (window.LexValidation) {
+      LexValidation.clearAllErrors(paymentForm);
+      const fields = [
+        { input: cardNameInput, validator: v => LexValidation.validateName(v, 'Cardholder name') },
+        { input: cardNumberInput, validator: LexValidation.validateCardNumber },
+        { input: cardExpiryInput, validator: LexValidation.validateExpiry },
+        { input: cardCvcInput, validator: LexValidation.validateCVC },
+      ];
+      if (!LexValidation.validateForm(fields)) {
+        const card = paymentForm.closest('.checkout-form');
+        if (card) {
+          card.classList.add('form-shake');
+          setTimeout(() => card.classList.remove('form-shake'), 450);
+        }
+        return;
       }
-      return;
     }
 
-    const submitButton = paymentForm.querySelector('button[type="submit"]');
-    submitButton.textContent = "Processing...";
-    submitButton.disabled = true;
+    // ── Loading state ─────────────────────────────────────────────────────────
+    const submitBtn = paymentForm.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Processing…';
 
-    setTimeout(() => {
-      const invoiceIndex = invoices.findIndex((invoice) => invoice.id === currentInvoice.id);
-      if (invoiceIndex !== -1) {
-        invoices[invoiceIndex].status = "Paid";
-      }
+    // Remove any previous error banner
+    document.getElementById('payError')?.remove();
 
-      const paymentDate = new Date().toISOString().split('T')[0];
+    try {
+      await recordPayment(invoiceId, 'Card');
 
-      const existingPaymentIndex = payments.findIndex((payment) => payment.invoiceId === currentInvoice.id);
-      const paymentRecord = {
-        id: existingPaymentIndex !== -1 ? payments[existingPaymentIndex].id : generatePaymentId(),
-        invoiceId: currentInvoice.id,
-        client: currentInvoice.client || "Client",
-        amount: currentInvoice.amount,
-        date: paymentDate,
-        method: "Credit Card",
-        status: "Completed",
-      };
-
-      if (existingPaymentIndex !== -1) {
-        payments[existingPaymentIndex] = paymentRecord;
-      } else {
-        payments.unshift(paymentRecord);
-      }
-
-      saveBillingToAllStores(invoices, payments);
-
-      paymentForm.style.display = "none";
-      paymentSuccess.style.display = "block";
+      paymentForm.style.display = 'none';
+      paymentSuccess.style.display = 'block';
 
       setTimeout(() => {
-        window.location.href = "client_billing.html";
+        window.location.href = 'client_billing.html';
       }, 3000);
-    }, 1500);
+
+    } catch (err) {
+      console.error('Payment failed:', err);
+
+      // Re-enable button
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+
+      // Inline error banner
+      const banner = document.createElement('p');
+      banner.id = 'payError';
+      banner.style.cssText = 'color:#ef4444; margin-top:12px; font-size:13px;';
+      banner.textContent = '⚠ Payment failed: ' + err.message;
+      paymentForm.appendChild(banner);
+    }
   });
 });

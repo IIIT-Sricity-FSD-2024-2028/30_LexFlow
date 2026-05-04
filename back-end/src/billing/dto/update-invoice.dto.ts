@@ -7,10 +7,12 @@ import {
   IsDateString,
   Min,
 } from 'class-validator';
+
 import { ApiProperty } from '@nestjs/swagger';
 import { InvoiceStatus } from './create-invoice.dto';
 
 export class UpdateInvoiceDto {
+
   @ApiProperty({ description: 'New client user ID', required: false })
   @IsOptional()
   @IsString()
@@ -36,7 +38,7 @@ export class UpdateInvoiceDto {
   @ApiProperty({ enum: InvoiceStatus, required: false })
   @IsOptional()
   @IsEnum(InvoiceStatus)
-  status?: string;
+  status?: InvoiceStatus;
 
   @ApiProperty({ required: false })
   @IsOptional()

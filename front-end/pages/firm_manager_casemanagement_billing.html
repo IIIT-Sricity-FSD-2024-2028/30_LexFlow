@@ -1,271 +1,295 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LexFlow – Law Firm Billing</title>
-<link rel="stylesheet" href="../styles/firm_manager_casemanagement_styles.css">
-<link rel="stylesheet" href="../styles/firm_lawyer_billing.css">
-<link rel="stylesheet" href="../styles/sidebar.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>LexFlow – Law Firm Billing</title>
+    <link rel="stylesheet" href="../styles/firm_manager_casemanagement_styles.css">
+    <link rel="stylesheet" href="../styles/firm_lawyer_billing.css">
+    <link rel="stylesheet" href="../styles/sidebar.css">
 </head>
+
 <body>
-<div id="sidebar-container"></div>
-<div class="content-with-sidebar" style="display: flex; flex-direction: column; overflow: hidden;">
-<div class="topbar">
-<div class="breadcrumb">
-<span class="current">Billing</span>
-</div>
-<div style="display: flex; gap: 12px; align-items: center;">
-      <button class="btn-create-invoice" onclick="openCreateModal()">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-        Create Invoice
-      </button>
-<button class="bell-btn">
-<span class="svg-icon-placeholder" data-icon="icon_33"></span>
-</button>
-</div>
-</div>
-<main class="billing-main">
-<div class="page-header">
-<h1>Billing Management</h1>
-<p>Manage invoices, track payments, and maintain transparent billing records for consultations and cases.</p>
-</div>
-<div class="summary-cards">
-<div class="summary-card">
-<label>Total Revenue</label>
-<div class="value text-blue" id="valTotalRevenue">---</div>
-</div>
-<div class="summary-card">
-<label>Pending Payments</label>
-<div class="value text-blue" id="valPending">---</div>
-</div>
-<div class="summary-card">
-<label>Paid Invoices</label>
-<div class="value text-blue" id="valPaidInvoices">---</div>
-</div>
-<div class="summary-card">
-<label>Overdue Invoices</label>
-<div class="value text-blue" id="valOverdueInvoices">---</div>
-</div>
-</div>
-<div class="card my-invoices-card">
-<div class="card-header-flex">
-<div class="search-bar billing-search" style="margin-bottom:0!important;width:300px">
-<span class="search-icon">
-<span class="svg-icon-placeholder" data-icon="icon_7"></span>
-</span>
-<input id="searchInvoiceInput" type="text" placeholder="Search Invoices...">
-</div>
-<div class="controls-right">
-<div class="filter-tabs">
-<button class="filter-btn active" data-filter="All">All</button>
-<button class="filter-btn" data-filter="Paid">Paid</button>
-<button class="filter-btn" data-filter="Pending">Pending</button>
-<button class="filter-btn" data-filter="Overdue">Overdue</button>
-</div>
-</div>
-</div>
-<table class="data-table">
-<thead>
-<tr>
-<th>INVOICE ID</th>
-<th>CLIENT</th>
-<th>CASE</th>
-<th>AMOUNT</th>
-<th>STATUS</th>
-<th>DUE DATE</th>
-<th>ACTIONS</th>
-</tr>
-</thead>
-<tbody id="invoicesList">
-</tbody>
-</table>
-</div>
-<div class="card payment-history-card">
-<h2 style="font-size:14px; font-weight:700; margin-bottom:20px;">Payment History</h2>
-<table class="data-table">
-<thead>
-<tr>
-<th>PAYMENT ID</th>
-<th>INVOICE ID</th>
-<th>CLIENT</th>
-<th>AMOUNT</th>
-<th>PAYMENT DATE</th>
-<th>METHOD</th>
-<th>STATUS</th>
-</tr>
-</thead>
-<tbody id="paymentHistoryList">
-</tbody>
-</table>
-</div>
-</main>
-</div>
+    <div id="sidebar-container"></div>
 
-<!-- View Invoice Modal -->
-<div class="modal-overlay" id="invoiceModal">
-    <div class="modal-container">
-        <div class="modal-header">
-            <h3>Invoice Details</h3>
-            <button class="btn-close-modal" onclick="closeInvoiceModal()">&times;</button>
-        </div>
-        <div class="modal-body" id="modalContent">
-        </div>
-        <div class="modal-footer">
-            <button class="btn-outline" onclick="closeInvoiceModal()" style="padding: 8px 16px; font-size: 13px;">Close</button>
-            <button class="btn-primary" id="printBtnView">Download PDF</button>
-        </div>
-    </div>
-</div>
-
-<!-- Create Invoice Modal -->
-<div class="modal-overlay" id="createInvoiceModal">
-    <div class="modal-container">
-        <div class="modal-header">
-            <h3>Create New Invoice</h3>
-            <button class="btn-close-modal" onclick="closeCreateModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <form id="createInvoiceForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Client Name</label>
-                        <input type="text" class="form-input" id="createInvClient" placeholder="e.g. Rahul Sharma" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Case Name</label>
-                        <input type="text" class="form-input" id="createInvCase" placeholder="e.g. Property Dispute vs. Urban Developers" required>
-                    </div>
-                </div>
-                <div class="form-row" style="display: flex; gap: 12px; margin-top: 12px;">
-                    <div class="form-group" style="flex: 1;">
-                        <label class="form-label">Amount (₹)</label>
-                        <input type="number" class="form-input" id="createInvAmount" step="0.01" placeholder="0.00" required>
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label class="form-label">Status</label>
-                        <select class="form-input" id="createInvStatus">
-                            <option value="Pending">Pending</option>
-                            <option value="Paid">Paid</option>
-                            <option value="Overdue">Overdue</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group" style="margin-top: 12px;">
-                    <label class="form-label">Due Date</label>
-                    <input type="text" class="form-input" id="createInvDueDate" placeholder="e.g., Oct 28, 2023" required>
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-outline" onclick="closeCreateModal()" style="padding: 8px 16px; font-size: 13px;">Cancel</button>
-            <button class="btn-primary" onclick="createNewInvoice()">Create Invoice</button>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Invoice Modal -->
-<div class="modal-overlay" id="editInvoiceModal">
-    <div class="modal-container">
-        <div class="modal-header">
-            <h3>Edit Invoice</h3>
-            <button class="btn-close-modal" onclick="closeEditModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <form id="editInvoiceForm">
-                <input type="hidden" id="editInvId">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Client Name</label>
-                        <input type="text" class="form-input" id="editInvClient" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Case Name</label>
-                        <input type="text" class="form-input" id="editInvCase" required>
-                    </div>
-                </div>
-                <div class="form-row" style="display: flex; gap: 12px; margin-top: 12px;">
-                    <div class="form-group" style="flex: 1;">
-                        <label class="form-label">Amount (₹)</label>
-                        <input type="number" class="form-input" id="editInvAmount" step="0.01" required>
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label class="form-label">Status</label>
-                        <select class="form-input" id="editInvStatus">
-                            <option value="Paid">Paid</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Overdue">Overdue</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group" style="margin-top: 12px;">
-                    <label class="form-label">Due Date</label>
-                    <input type="text" class="form-input" id="editInvDueDate" placeholder="e.g., Oct 28, 2023" required>
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-outline" onclick="closeEditModal()" style="padding: 8px 16px; font-size: 13px;">Cancel</button>
-            <button class="btn-primary" onclick="saveInvoiceChanges()">Save Changes</button>
-        </div>
-    </div>
-</div>
-
-<!-- Hidden Printable Template -->
-<div id="printableInvoice" style="display: none;">
-    <div class="print-container">
-        <div class="print-header">
-            <div class="print-logo">LexFlow</div>
-            <div class="print-title">OFFICIAL INVOICE</div>
-        </div>
-        <div class="print-details">
-            <div class="print-col">
-                <label>BILLED TO</label>
-                <div id="printClient" style="font-size: 16px; font-weight: 700;">---</div>
+    <div class="content-with-sidebar" style="display: flex; flex-direction: column; overflow: hidden;">
+        <div class="topbar">
+            <div class="breadcrumb">
+                <span class="current">Billing</span>
             </div>
-            <div class="print-col" style="text-align: right;">
-                <label>INVOICE ID</label>
-                <div id="printInvId" style="font-weight: 700;">---</div>
-                <label style="margin-top: 10px;">DATE</label>
-                <div id="printDate">---</div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <button class="btn-create-invoice" onclick="openCreateModal()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Create Invoice
+                </button>
+                <button class="bell-btn">
+                    <span class="svg-icon-placeholder" data-icon="icon_33"></span>
+                </button>
             </div>
         </div>
-        <table class="print-table">
-            <thead>
-                <tr>
-                    <th>Description</th>
-                    <th style="text-align: right;">Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>
-                        <div style="font-weight: 700;">Legal Services</div>
-                        <div id="printCase" style="font-size: 12px; color: #666;">---</div>
-                    </td>
-                    <td id="printAmount" style="text-align: right; font-weight: 600;">---</td>
-                </tr>
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td style="font-weight: 700; font-size: 16px;">TOTAL</td>
-                    <td id="printTotal" style="text-align: right; font-weight: 800; font-size: 18px; color: #1a2340;">---</td>
-                </tr>
-            </tfoot>
-        </table>
-        <div class="print-footer">
-            <p>Please make payment by the due date: <span id="printDue" style="font-weight: 700;">---</span></p>
-            <p style="margin-top: 20px; font-size: 10px; color: #999;">This is a computer-generated invoice and does not require a physical signature.</p>
+
+        <main class="billing-main">
+            <div class="page-header">
+                <h1>Billing Management</h1>
+                <p>Manage invoices, track payments, and maintain transparent billing records for consultations and
+                    cases.</p>
+            </div>
+
+            <div id="billingStatus"
+                style="display:none; margin: 0 0 16px; padding: 12px 16px; border-radius: 10px; font-size: 13px;"></div>
+
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <label>Total Revenue</label>
+                    <div class="value text-blue" id="valTotalRevenue">---</div>
+                </div>
+                <div class="summary-card">
+                    <label>Pending Payments</label>
+                    <div class="value text-blue" id="valPending">---</div>
+                </div>
+                <div class="summary-card">
+                    <label>Paid Invoices</label>
+                    <div class="value text-blue" id="valPaidInvoices">---</div>
+                </div>
+                <div class="summary-card">
+                    <label>Overdue Invoices</label>
+                    <div class="value text-blue" id="valOverdueInvoices">---</div>
+                </div>
+            </div>
+
+            <div class="card my-invoices-card">
+                <div class="card-header-flex">
+                    <div class="search-bar billing-search" style="margin-bottom:0!important;width:300px">
+                        <span class="search-icon">
+                            <span class="svg-icon-placeholder" data-icon="icon_7"></span>
+                        </span>
+                        <input id="searchInvoiceInput" type="text" placeholder="Search Invoices...">
+                    </div>
+                    <div class="controls-right">
+                        <div class="filter-tabs">
+                            <button class="filter-btn active" data-filter="All">All</button>
+                            <button class="filter-btn" data-filter="Paid">Paid</button>
+                            <button class="filter-btn" data-filter="Pending">Pending</button>
+                            <button class="filter-btn" data-filter="Overdue">Overdue</button>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>INVOICE ID</th>
+                            <th>CLIENT</th>
+                            <th>CASE</th>
+                            <th>AMOUNT</th>
+                            <th>STATUS</th>
+                            <th>DUE DATE</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoicesList"></tbody>
+                </table>
+            </div>
+
+            <div class="card payment-history-card">
+                <h2 style="font-size:14px; font-weight:700; margin-bottom:20px;">Payment History</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>PAYMENT ID</th>
+                            <th>INVOICE ID</th>
+                            <th>CLIENT</th>
+                            <th>AMOUNT</th>
+                            <th>PAYMENT DATE</th>
+                            <th>METHOD</th>
+                            <th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentHistoryList"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- View Invoice Modal -->
+    <div class="modal-overlay" id="invoiceModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Invoice Details</h3>
+                <button class="btn-close-modal" onclick="closeInvoiceModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalContent"></div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="closeInvoiceModal()"
+                    style="padding: 8px 16px; font-size: 13px;">Close</button>
+                <button class="btn-primary" id="printBtnView">Download PDF</button>
+            </div>
         </div>
     </div>
-</div>
 
-<script src="../scripts/auth.js"></script>
-<script>AuthService.requireAuth(['firmAdmin', 'lawyer', 'intern']);</script>
-<script src="../scripts/api.js"></script>
-<script src="../scripts/sidebar.js"></script>
-<script src="../scripts/billing-storage.js"></script>
-<script src="../scripts/firm_lawyer_billing.js"></script>
-<script src="../assets/icons.js"></script>
+    <!-- Create Invoice Modal -->
+    <div class="modal-overlay" id="createInvoiceModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Create New Invoice</h3>
+                <button class="btn-close-modal" onclick="closeCreateModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createInvoiceForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Client</label>
+                            <select class="form-input" id="createInvClient" required>
+                                <option value="">Loading clients...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Case Name</label>
+                            <input type="text" class="form-input" id="createInvCase"
+                                placeholder="e.g. Property Dispute vs. Urban Developers" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="display: flex; gap: 12px; margin-top: 12px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Amount (₹)</label>
+                            <input type="number" class="form-input" id="createInvAmount" step="0.01" min="1"
+                                placeholder="0.00" required>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Status</label>
+                            <select class="form-input" id="createInvStatus">
+                                <option value="Pending">Pending</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Overdue">Overdue</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" class="form-input" id="createInvDueDate" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="closeCreateModal()"
+                    style="padding: 8px 16px; font-size: 13px;">Cancel</button>
+                <button class="btn-primary" onclick="createNewInvoice()">Create Invoice</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Invoice Modal -->
+    <div class="modal-overlay" id="editInvoiceModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Edit Invoice</h3>
+                <button class="btn-close-modal" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editInvoiceForm">
+                    <input type="hidden" id="editInvId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Client</label>
+                            <select class="form-input" id="editInvClient" required>
+                                <option value="">Loading clients...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Case Name</label>
+                            <input type="text" class="form-input" id="editInvCase" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="display: flex; gap: 12px; margin-top: 12px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Amount (₹)</label>
+                            <input type="number" class="form-input" id="editInvAmount" step="0.01" min="1" required>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Status</label>
+                            <select class="form-input" id="editInvStatus">
+                                <option value="Paid">Paid</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Overdue">Overdue</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" class="form-input" id="editInvDueDate" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="closeEditModal()"
+                    style="padding: 8px 16px; font-size: 13px;">Cancel</button>
+                <button class="btn-primary" onclick="saveInvoiceChanges()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Printable Template -->
+    <div id="printableInvoice" style="display: none;">
+        <div class="print-container">
+            <div class="print-header">
+                <div class="print-logo">LexFlow</div>
+                <div class="print-title">OFFICIAL INVOICE</div>
+            </div>
+            <div class="print-details">
+                <div class="print-col">
+                    <label>BILLED TO</label>
+                    <div id="printClient" style="font-size: 16px; font-weight: 700;">---</div>
+                </div>
+                <div class="print-col" style="text-align: right;">
+                    <label>INVOICE ID</label>
+                    <div id="printInvId" style="font-weight: 700;">---</div>
+                    <label style="margin-top: 10px;">DATE</label>
+                    <div id="printDate">---</div>
+                </div>
+            </div>
+            <table class="print-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th style="text-align: right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div style="font-weight: 700;">Legal Services</div>
+                            <div id="printCase" style="font-size: 12px; color: #666;">---</div>
+                        </td>
+                        <td id="printAmount" style="text-align: right; font-weight: 600;">---</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td style="font-weight: 700; font-size: 16px;">TOTAL</td>
+                        <td id="printTotal"
+                            style="text-align: right; font-weight: 800; font-size: 18px; color: #1a2340;">---</td>
+                    </tr>
+                </tfoot>
+            </table>
+            <div class="print-footer">
+                <p>Please make payment by the due date: <span id="printDue" style="font-weight: 700;">---</span></p>
+                <p style="margin-top: 20px; font-size: 10px; color: #999;">This is a computer-generated invoice and does
+                    not require a physical signature.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="../scripts/sidebar.js"></script>
+    <script src="../scripts/billing-storage.js"></script>
+    <script src="../scripts/firm_lawyer_billing.js"></script>
+    <script src="../assets/icons.js"></script>
 </body>
+
 </html>
