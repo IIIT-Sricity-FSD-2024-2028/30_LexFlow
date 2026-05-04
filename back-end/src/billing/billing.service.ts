@@ -65,12 +65,30 @@ export class BillingService {
    * clients who have a consultation booked with this law firm
    * (pass callerId and cross-reference consultation records).
    */
-  getClients(): ClientEntry[] {
-    return this.usersService
-      .findAll(UserRole.CLIENT)
-      .map((u) => ({ id: u.id, fullName: u.fullName, email: u.email }));
-  }
+  getClients(callerId: string): ClientEntry[] {
+    const caller = this.usersService.findOne(callerId);
 
+    if (!caller) {
+      throw new NotFoundException('Caller not found');
+    }
+
+    // Get the firm using your helper
+    const firm = this.usersService.getUserFirm(callerId);
+
+    if (!firm) {
+      return [];
+    }
+
+    // ✅ Call the new service method we just created
+    const firmClients = this.usersService.getUsersByFirm(firm.id, UserRole.CLIENT);
+
+    // Map to the required return format
+    return firmClients.map((client) => ({
+      id: client.id,
+      fullName: client.fullName,
+      email: client.email,
+    }));
+  }
   // ── Resolve a client by ID ─────────────────────────────────────────────────
   private resolveClient(clientId: string): ClientEntry {
     const all = this.usersService.findAll(UserRole.CLIENT);

@@ -4,9 +4,9 @@ import { BillingService } from './billing.service';
 import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports:     [UsersModule],
+  imports: [UsersModule],
   controllers: [BillingController],
-  providers:   [BillingService],
-  exports:     [BillingService],
+  providers: [BillingService],
+  exports: [BillingService],
 })
-export class BillingModule {}
+export class BillingModule { }

@@ -1568,7 +1568,6 @@
     },
     "/billing/clients": {
       "get": {
-        "description": "Returns all registered clients.\n\n> **TODO:** Once ConsultationsModule is ready, this will be filtered to only clients who have a consultation with the calling law firm.",
         "operationId": "BillingController_getClients",
         "parameters": [
           {
@@ -1588,14 +1587,21 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "List of clients"
+            "description": ""
           }
         },
-        "summary": "Client dropdown for Create Invoice",
         "tags": [
           "Billing"
         ]

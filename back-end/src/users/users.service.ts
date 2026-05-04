@@ -107,7 +107,7 @@ export class UsersService {
 
       // Firm 5: Cyber Law Experts Hyderabad (firm-5)
       { id: 'user-8', fullName: 'Vikram Singh', email: 'vikram@cyber.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
-      { id: 'user-20', fullName: 'Lawyer Naveen', email: 'naveen@cyber.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
+      { id: 'user-20', fullName: 'Client Naveen', email: 'naveen@cyber.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
       { id: 'user-21', fullName: 'Lawyer Sneha', email: 'sneha@cyber.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
       { id: 'user-22', fullName: 'Lawyer Rohan', email: 'rohan@cyber.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
       { id: 'user-34', fullName: 'Intern Tushar', email: 'tushar@cyber.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
@@ -546,6 +546,13 @@ export class UsersService {
       return null;
     }
     return this.getFirmById(user.firmId);
+  }
+
+  
+  getUsersByFirm(firmId: string, role?: UserRole): User[] {
+    return this.users.filter(user =>
+      user.firmId === firmId && (!role || user.role === role)
+    );
   }
 
   /**

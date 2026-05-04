@@ -24,21 +24,18 @@ const ok = <T>(message: string, data: T): ApiWrapper<T> => ({ success: true, mes
 @UseGuards(RolesGuard)
 @Controller('billing')
 export class BillingController {
-  constructor(private readonly billingService: BillingService) {}
+  constructor(private readonly billingService: BillingService) { }
 
   // GET /billing/clients
   @Get('clients')
   @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.SUPERADMIN)
-  @ApiOperation({
-    summary: 'Client dropdown for Create Invoice',
-    description:
-      'Returns all registered clients.\n\n' +
-      '> **TODO:** Once ConsultationsModule is ready, this will be filtered ' +
-      'to only clients who have a consultation with the calling law firm.',
-  })
-  @ApiResponse({ status: 200, description: 'List of clients' })
-  getClients(): ApiWrapper<ClientEntry[]> {
-    return ok('Clients retrieved successfully', this.billingService.getClients());
+  getClients(
+    @Headers('x-user-id') callerId: string,
+  ): ApiWrapper<ClientEntry[]> {
+    return ok(
+      'Clients retrieved successfully',
+      this.billingService.getClients(callerId),
+    );
   }
 
   // POST /billing/invoices
