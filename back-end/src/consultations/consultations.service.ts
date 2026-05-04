@@ -10,6 +10,7 @@ import {
   ConsultationResponseDto,
   ConsultationStatus,
 } from './dto';
+import { UsersService } from '../users/users.service';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Internal data model (richer than the response DTO)
@@ -55,7 +56,7 @@ export class ConsultationsService {
   private workflowBookings: WorkflowBookingRecord[] = [];
   private idCounter = 1000;
 
-  constructor() {
+  constructor(private readonly usersService: UsersService) {
     this.seedData();
   }
 
@@ -600,6 +601,19 @@ export class ConsultationsService {
       throw new ForbiddenException(
         `Cannot update a consultation that is ${existing.status}`,
       );
+    }
+
+    // Logic for conversion: If status is being set to CONFIRMED (Accepted),
+    // convert the prospect into a client of this law firm.
+    if (dto.status === ConsultationStatus.CONFIRMED) {
+      try {
+        this.usersService.updateUser(existing.clientId, {
+          firmId: existing.firmId,
+        });
+        console.log(`[Backend] User ${existing.clientId} converted to Client of Firm ${existing.firmId}`);
+      } catch (err) {
+        console.warn(`[Backend] Failed to convert user ${existing.clientId} to client: ${err.message}`);
+      }
     }
 
     this.consultations[index] = {

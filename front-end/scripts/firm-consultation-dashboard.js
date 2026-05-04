@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── DOM refs ───────────────────────────────────────────────────────────────
   const requestsGrid    = document.querySelector('.requests-grid');
   const activeTableBody = document.querySelector('#active-consultations-table tbody');
-  const lawyersGrid     = document.querySelector('.lawyers-grid');
   const statPendingEl   = document.querySelector('#stat-pending .stat-card-value');
   const statActiveEl    = document.querySelector('#stat-active .stat-card-value');
   const statCompletedEl = document.querySelector('#stat-completed .stat-card-value');
@@ -81,54 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       </td></tr>`;
   }
 
-  // ── Lawyer availability (read from localStorage as before, no backend change) ─
-  function renderLawyerAvailability(lawyers) {
-    if (!lawyersGrid) return;
-    lawyersGrid.innerHTML = '';
 
-    if (!lawyers || lawyers.length === 0) {
-      lawyersGrid.innerHTML = `
-        <div class="no-data-notice" style="grid-column:1/-1;text-align:center;padding:40px;color:#6b7280;">
-          No lawyer data available.
-        </div>`;
-      return;
-    }
-
-    lawyers.forEach(l => {
-      const card = document.createElement('div');
-      card.className = 'lawyer-card';
-      const statusClass = l.capacity > 80 ? 'busy' : 'available';
-      card.innerHTML = `
-        <div class="lawyer-card-top">
-          <div class="lawyer-card-avatar">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" stroke-width="1.5">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-          </div>
-          <div class="lawyer-card-info">
-            <h3>${l.name}</h3>
-            <span class="lawyer-card-spec">${(l.specialties || []).join(' · ')}</span>
-          </div>
-          <span class="badge badge-${statusClass}">${statusClass.toUpperCase()}</span>
-        </div>
-        <div class="lawyer-workload">
-          <div class="workload-row">
-            <span class="workload-label">Active Cases</span>
-            <span class="workload-value">${l.activeCases}</span>
-          </div>
-          <div class="workload-row">
-            <span class="workload-label">Consultations Today</span>
-            <span class="workload-value">${l.consultationsToday}</span>
-          </div>
-          <div class="workload-bar-wrapper">
-            <div class="workload-bar ${l.capacity > 80 ? 'high' : ''}" style="width:${l.capacity}%;"></div>
-          </div>
-          <span class="workload-capacity">${l.capacity}% Capacity</span>
-        </div>`;
-      lawyersGrid.appendChild(card);
-    });
-  }
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   function updateStats(allConsultations) {
@@ -408,25 +360,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         ['SCHEDULED', 'CONFIRMED', 'IN PROGRESS'].includes(c.status)
       );
 
-      // Fetch real lawyers from backend instead of localStorage
+      // Fetch real lawyers from backend to populate assignment dropdowns
       let rawLawyers = await LexFlowAPI.users.getLawyers(firmId, userRole);
       rawLawyers = rawLawyers.filter(u => (u.role || '').toLowerCase() === 'lawyer');
       
-      // Map backend users to frontend expectations
       const lawyers = rawLawyers.map(l => ({
         id: l.id,
         name: l.fullName,
-        email: l.email,
-        specialties: ['General Law'], // Default for now
-        activeCases: 0,
-        consultationsToday: 0,
-        capacity: 10, // Default 10%
-        avatarColor: 'blue'
+        email: l.email
       }));
 
       renderIncomingRequests(pending, lawyers);
       renderActiveConsultations(active);
-      renderLawyerAvailability(lawyers);
+
 
     } catch (err) {
       console.error('[FirmDashboard] Load failed:', err);
