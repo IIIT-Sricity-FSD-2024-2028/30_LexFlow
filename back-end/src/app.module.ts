@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { ConsultationsModule } from './consultations/consultations.module';
 import { CasesModule } from './cases/cases.module';
@@ -20,6 +19,6 @@ import { LawFirmsModule } from './law-firms/law-firms.module';
     LawFirmsModule,
   ],
   controllers: [AppController],
-  providers:   [AppService],
+  providers:   [],
 })
 export class AppModule {}

@@ -80,12 +80,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // send step1 data to server
+        const { zip, ...restData } = data;
         const step1Res = await fetch(`http://localhost:3000/users/firm-onboarding/step1/${sessionId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
           body: JSON.stringify({
-            ...data,
-            pinCode: data.zip,
+            ...restData,
+            pinCode: zip,
           }),
         });
         if (!step1Res.ok) throw new Error(await step1Res.text());
@@ -152,13 +153,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       const sessionId = sessionStorage.getItem('firmOnboardingSessionId') || localStorage.getItem('firmOnboardingSessionId');
       if (sessionId) {
         try {
+          // Only send properties defined in FirmOnboardingDto
+          const step2Payload = {
+            primaryEmail: contactData.primaryEmail,
+            website: contactData.website,
+            phone: contactData.contactPhone // Map contactPhone back to phone
+          };
+
           const step2Res = await fetch(`http://localhost:3000/users/firm-onboarding/step2/${sessionId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
-            body: JSON.stringify({
-              ...contactData,
-              phone: contactData.contactPhone
-            }),
+            body: JSON.stringify(step2Payload),
           });
           if (!step2Res.ok) throw new Error(await step2Res.text());
         } catch (err) {

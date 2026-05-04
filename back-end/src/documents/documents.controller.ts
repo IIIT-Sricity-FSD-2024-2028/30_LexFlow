@@ -64,7 +64,7 @@ export class DocumentsController {
   // ─── Document Routes ─────────────────────────────────────────────────────
 
   @Post()
-  @Roles(UserRole.CLIENT, UserRole.LAWYER, 'lawfirm_admin' as any)
+  @Roles(UserRole.CLIENT, UserRole.LAWYER, UserRole.FIRMADMIN)
   @ApiOperation({ summary: 'Create a new document' })
   @ApiConsumes('multipart/form-data')
   @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
@@ -111,7 +111,7 @@ export class DocumentsController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.LAWYER, 'lawfirm_admin' as any, UserRole.INTERN)
+  @Roles(UserRole.LAWYER, UserRole.FIRMADMIN, UserRole.INTERN)
   @ApiOperation({ summary: 'Update a document' })
   @ApiConsumes('multipart/form-data')
   @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
@@ -139,7 +139,7 @@ export class DocumentsController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.LAWYER, 'lawfirm_admin' as any)
+  @Roles(UserRole.LAWYER, UserRole.FIRMADMIN)
   @ApiOperation({ summary: 'Delete a document' })
   @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
   @ApiResponse({ status: 200, description: 'The document has been successfully deleted.' })
