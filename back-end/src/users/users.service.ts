@@ -69,6 +69,15 @@ export class UsersService {
       { id: 'user-0', fullName: 'Super Admin', email: 'superadmin@lexflow.test', role: UserRole.SUPERADMIN, createdAt: now, password: 'superadminpass', accountStatus: 'active', availability: 'available' },
       { id: 'user-1', fullName: 'Firm Admin', email: 'firmadmin@lexflow.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
       { id: 'user-2', fullName: 'Client Alice', email: 'alice@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', phone: '+91-9000000001', accountStatus: 'active', availability: 'available' },
+      { id: 'user-200', fullName: 'Client Dave', email: 'dave@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', accountStatus: 'active', availability: 'available' },
+      { id: 'user-201', fullName: 'Client Eve', email: 'eve@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', accountStatus: 'active', availability: 'available' },
+      { id: 'user-202', fullName: 'Client Frank', email: 'frank@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', accountStatus: 'active', availability: 'available' },
+      { id: 'user-203', fullName: 'Client Grace', email: 'grace@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', accountStatus: 'active', availability: 'available' },
+      { id: 'user-204', fullName: 'Client Henry', email: 'henry@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', accountStatus: 'active', availability: 'available' },
+      { id: 'user-205', fullName: 'Client Irene', email: 'irene@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', accountStatus: 'active', availability: 'available' },
+      { id: 'user-206', fullName: 'Client Jake', email: 'jake@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', accountStatus: 'active', availability: 'available' },
+      { id: 'user-207', fullName: 'Client Laura', email: 'laura@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', accountStatus: 'active', availability: 'available' },
+      { id: 'user-208', fullName: 'Client Mark', email: 'mark@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', accountStatus: 'active', availability: 'available' },
       
       // Firm 1: Sharma & Associates (firm-1)
       { id: 'user-3', fullName: 'Lawyer Bob', email: 'bob@lawyer.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },

@@ -409,7 +409,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       );
 
       // Fetch real lawyers from backend instead of localStorage
-      const rawLawyers = await LexFlowAPI.users.getLawyers(firmId, userRole);
+      let rawLawyers = await LexFlowAPI.users.getLawyers(firmId, userRole);
+      rawLawyers = rawLawyers.filter(u => (u.role || '').toLowerCase() === 'lawyer');
       
       // Map backend users to frontend expectations
       const lawyers = rawLawyers.map(l => ({

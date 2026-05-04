@@ -503,6 +503,11 @@ function renderEditTeamList() {
           450,
         )
       );
+    const o = document.getElementById("newTaskAssignee").value;
+    const i = document.getElementById("newTaskPriority").value;
+    let currentUserData = {};
+    try { currentUserData = JSON.parse(localStorage.getItem('currentUser') || '{}'); } catch (e) {}
+
     const payload = {
         name: e.value.trim(),
         caseTitle: currentCase.case_type || 'N/A',
