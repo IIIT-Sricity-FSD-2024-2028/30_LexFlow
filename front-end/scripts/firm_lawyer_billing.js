@@ -20,11 +20,20 @@ function showSkeleton(tbodyId, cols) {
 
 document.addEventListener("DOMContentLoaded", async () => {
 
-  const API_BASE = "/billing";
+  const API_BASE = "http://localhost:3000/billing";
+
+  function getCallerId() {
+    try {
+      const user = JSON.parse(localStorage.getItem("currentUser"));
+      return (user && user.id) ? user.id : "";
+    } catch {
+      return "";
+    }
+  }
 
   async function fetchInvoices() {
     const res = await fetch(`${API_BASE}/invoices`, {
-      headers: { role: "firmadmin" }
+      headers: { role: "firmadmin", "x-user-id": getCallerId() }
     });
     const json = await res.json();
     return json.data || [];
@@ -32,7 +41,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function fetchPayments() {
     const res = await fetch(`${API_BASE}/payments`, {
-      headers: { role: "firmadmin" }
+      headers: { role: "firmadmin", "x-user-id": getCallerId() }
     });
     const json = await res.json();
     return json.data || [];
@@ -40,11 +49,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function fetchClients() {
     const res = await fetch(`${API_BASE}/clients`, {
-      headers: { role: "firmadmin" }
+      headers: { role: "firmadmin", "x-user-id": getCallerId() }
     });
-
     if (!res.ok) throw new Error("Failed to fetch clients");
-
     const json = await res.json();
     return json.data || [];
   }
@@ -54,15 +61,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        role: "firmadmin"
+        role: "firmadmin",
+        "x-user-id": getCallerId()
       },
       body: JSON.stringify(payload)
     });
-
     const json = await res.json();
-
     if (!res.ok) throw new Error(json.message || "Create invoice failed");
-
     return json.data;
   }
 
@@ -71,15 +76,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        role: "firmadmin"
+        role: "firmadmin",
+        "x-user-id": getCallerId()
       },
       body: JSON.stringify(payload)
     });
-
     const json = await res.json();
-
     if (!res.ok) throw new Error(json.message || "Update failed");
-
     return json.data;
   }
 
