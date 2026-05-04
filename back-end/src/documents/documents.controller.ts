@@ -15,6 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
+import { ActivityLogService, ActivityEntry } from './activity-log.service';
 import { DocumentsService, Document } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
@@ -34,39 +35,50 @@ import { UserRole } from '../users/dto';
 @Controller('documents')
 @UseGuards(RolesGuard)
 export class DocumentsController {
-  constructor(private readonly documentsService: DocumentsService) {}
+  constructor(
+    private readonly documentsService: DocumentsService,
+    private readonly activityLogService: ActivityLogService,
+  ) {}
+
+  // ─── Activity Log Routes ─────────────────────────────────────────────────
+
+  @Get('activity')
+  @ApiOperation({ summary: 'Get activity log, optionally filtered by caseId' })
+  @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
+  @ApiQuery({ name: 'caseId', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'Return activity log entries.' })
+  findActivity(@Query('caseId') caseId?: string): ActivityEntry[] {
+    return this.activityLogService.findAll(caseId);
+  }
+
+  @Post('activity')
+  @ApiOperation({ summary: 'Append a new activity entry' })
+  @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
+  @ApiResponse({ status: 201, description: 'Activity entry created.' })
+  createActivity(
+    @Body() dto: Omit<ActivityEntry, 'id' | 'date'>,
+  ): ActivityEntry {
+    return this.activityLogService.create(dto);
+  }
+
+  // ─── Document Routes ─────────────────────────────────────────────────────
 
   @Post()
   @Roles(UserRole.CLIENT, UserRole.LAWYER, 'lawfirm_admin' as any)
   @ApiOperation({ summary: 'Create a new document' })
   @ApiConsumes('multipart/form-data')
-  @ApiHeader({
-    name: 'role',
-    description: 'User role for RBAC',
-    required: true,
-  })
-  @ApiHeader({
-    name: 'x-user-email',
-    description: 'Uploader email',
-    required: false,
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'The document has been successfully created.',
-  })
+  @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
+  @ApiHeader({ name: 'x-user-email', description: 'Uploader email', required: false })
+  @ApiResponse({ status: 201, description: 'The document has been successfully created.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
         destination: join(__dirname, '..', '..', 'data', 'docs'),
         filename: (req, file, cb) => {
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           const ext = extname(file.originalname);
-          cb(
-            null,
-            `${file.originalname.replace(ext, '')}-${uniqueSuffix}${ext}`,
-          );
+          cb(null, `${file.originalname.replace(ext, '')}-${uniqueSuffix}${ext}`);
         },
       }),
     }),
@@ -82,11 +94,7 @@ export class DocumentsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all documents, optionally filter by caseId' })
-  @ApiHeader({
-    name: 'role',
-    description: 'User role for RBAC',
-    required: true,
-  })
+  @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
   @ApiQuery({ name: 'caseId', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Return all matching documents.' })
   findAll(@Query('caseId') caseId?: string): Document[] {
@@ -95,11 +103,7 @@ export class DocumentsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a document by id' })
-  @ApiHeader({
-    name: 'role',
-    description: 'User role for RBAC',
-    required: true,
-  })
+  @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
   @ApiResponse({ status: 200, description: 'Return the document.' })
   @ApiResponse({ status: 404, description: 'Document not found.' })
   findOne(@Param('id') id: string): Document {
@@ -110,15 +114,8 @@ export class DocumentsController {
   @Roles(UserRole.LAWYER, 'lawfirm_admin' as any, UserRole.INTERN)
   @ApiOperation({ summary: 'Update a document' })
   @ApiConsumes('multipart/form-data')
-  @ApiHeader({
-    name: 'role',
-    description: 'User role for RBAC',
-    required: true,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'The document has been successfully updated.',
-  })
+  @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
+  @ApiResponse({ status: 200, description: 'The document has been successfully updated.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'Document not found.' })
   @UseInterceptors(
@@ -126,13 +123,9 @@ export class DocumentsController {
       storage: diskStorage({
         destination: join(__dirname, '..', '..', 'data', 'docs'),
         filename: (req, file, cb) => {
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           const ext = extname(file.originalname);
-          cb(
-            null,
-            `${file.originalname.replace(ext, '')}-${uniqueSuffix}${ext}`,
-          );
+          cb(null, `${file.originalname.replace(ext, '')}-${uniqueSuffix}${ext}`);
         },
       }),
     }),
@@ -148,15 +141,8 @@ export class DocumentsController {
   @Delete(':id')
   @Roles(UserRole.LAWYER, 'lawfirm_admin' as any)
   @ApiOperation({ summary: 'Delete a document' })
-  @ApiHeader({
-    name: 'role',
-    description: 'User role for RBAC',
-    required: true,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'The document has been successfully deleted.',
-  })
+  @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
+  @ApiResponse({ status: 200, description: 'The document has been successfully deleted.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'Document not found.' })
   remove(@Param('id') id: string): void {

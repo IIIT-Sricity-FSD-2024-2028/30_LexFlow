@@ -1368,6 +1368,62 @@
         ]
       }
     },
+    "/documents/activity": {
+      "get": {
+        "operationId": "DocumentsController_findActivity",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return activity log entries."
+          }
+        },
+        "summary": "Get activity log, optionally filtered by caseId",
+        "tags": [
+          "documents"
+        ]
+      },
+      "post": {
+        "operationId": "DocumentsController_createActivity",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Activity entry created."
+          }
+        },
+        "summary": "Append a new activity entry",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
     "/documents": {
       "post": {
         "operationId": "DocumentsController_create",

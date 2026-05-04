@@ -24,7 +24,6 @@ function clearPersistedError() {
     const msg = sessionStorage.getItem('lexflow_last_error');
     if (msg) {
       clearPersistedError();
-      // Delay to let page render first
       setTimeout(() => {
         const el = document.createElement('div');
         el.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#be123c;color:#fff;padding:12px 24px;border-radius:8px;font-size:0.9rem;font-weight:600;z-index:999999;box-shadow:0 4px 16px rgba(0,0,0,0.3);max-width:90vw;word-break:break-word;';
@@ -44,21 +43,14 @@ const userRole =
 
 const CURRENT_USER_EMAIL = (currentUser && currentUser.email) || '';
 
-
-
-// FIX: Always read caseId from URL params first
 const urlParams = new URLSearchParams(window.location.search);
 const urlCaseId = urlParams.get('caseId');
-
 const CURRENT_CASE_ID = urlCaseId || '1';
-
 
 (function () {
   "use strict";
 
-
-
-  // In-memory activity log — not persisted to localStorage
+  // In-memory activity log — for side panel only (source of truth is backend)
   let activityLog = [];
 
   const styleEl = document.createElement("style");
@@ -169,7 +161,6 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     .file-preview button { background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 1rem; padding: 0 4px; }
     .file-preview button:hover { color: #be123c; }
 
-    /* FIX: Read-only modal inputs */
     .upload-modal__input[readonly],
     .upload-modal__input:disabled {
       background: #f8f9fb !important;
@@ -292,8 +283,6 @@ const CURRENT_CASE_ID = urlCaseId || '1';
   `;
   document.head.appendChild(styleEl);
 
-
-  // In-memory data storage (Replaces removed docs.json)
   const MEMORY_DB = {
     users: [
       { id: 'user-0', name: 'Super Admin', email: 'superadmin@lexflow.test', role: 'superAdmin' },
@@ -314,7 +303,6 @@ const CURRENT_CASE_ID = urlCaseId || '1';
 
   async function bootApp() {
     try {
-      // Merge the logged-in user from localStorage into our in-memory user list
       const users = [...MEMORY_DB.users];
       const localUser = safeParse(localStorage.getItem('currentUser'), null);
       if (localUser && localUser.email) {
@@ -333,7 +321,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       const db = {
         users,
         cases: MEMORY_DB.cases,
-        documents: [], 
+        documents: [],
         firms: MEMORY_DB.firms,
       };
 
@@ -344,11 +332,9 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     }
   }
 
-
   bootApp();
 
   async function init(db) {
-    // Resolve current user from localStorage auth only
     let CURRENT_USER = null;
     const localUser = safeParse(localStorage.getItem('currentUser'), null);
     if (localUser && localUser.email) {
@@ -357,7 +343,6 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     if (!CURRENT_USER) {
       CURRENT_USER = db.users.find(u => u.email === CURRENT_USER_EMAIL);
     }
-    // Fallback: construct from localStorage directly if not in docs.json
     if (!CURRENT_USER && localUser && localUser.email && localUser.role) {
       CURRENT_USER = {
         id: localUser.id || 'USR-UNKNOWN',
@@ -376,15 +361,13 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       toast(`User profile incomplete: missing role.`, "error");
       return;
     }
-    const ROLE = CURRENT_USER.role;
-      
+    const ROLE = (CURRENT_USER.role || '').toLowerCase();
 
     const CURRENT_FIRM = CURRENT_USER.firmId
-  ? (db.firms.find(f => f.id === CURRENT_USER.firmId) || { id: CURRENT_USER.firmId, name: CURRENT_USER.firmName || CURRENT_USER.firmId })
-  : null;  
+      ? (db.firms.find(f => f.id === CURRENT_USER.firmId) || { id: CURRENT_USER.firmId, name: CURRENT_USER.firmName || CURRENT_USER.firmId })
+      : null;
     const FIRM_NAME = CURRENT_FIRM ? CURRENT_FIRM.name : "Independent";
 
-    // FIX: Update breadcrumb and case header immediately with the correct CURRENT_CASE_ID
     const breadcrumb = document.querySelector(".breadcrumb");
     if (breadcrumb) {
       breadcrumb.innerHTML = `<a href="documents-main.html" style="color: inherit; text-decoration: none;">Documents</a> > <span>Loading... (${CURRENT_CASE_ID})</span>`;
@@ -397,7 +380,6 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       return;
     }
 
-    // FIX: Update case header with actual case title and ID from data
     if (breadcrumb) {
       breadcrumb.innerHTML = `<a href="documents-main.html" style="color: inherit; text-decoration: none;">Documents</a> > <span>${CURRENT_CASE.title} (${CURRENT_CASE_ID})</span>`;
     }
@@ -405,13 +387,11 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     if (caseTitle) {
       caseTitle.innerHTML = `${CURRENT_CASE.title} <span class="status">${CURRENT_CASE.status}</span>`;
     }
-    // FIX: Update the static case ID paragraph
     const caseIdParagraph = document.querySelector(".case-header p");
     if (caseIdParagraph) {
       caseIdParagraph.innerHTML = `Case ID: <strong>${CURRENT_CASE_ID}</strong>`;
     }
 
-    // Cross-firm guard
     const userHasExplicitCaseAccess = !!(
       CURRENT_USER.caseAccess && CURRENT_USER.caseAccess[CURRENT_CASE_ID]
     );
@@ -428,18 +408,21 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       }
     }
 
-    // ── Document access resolution ───────────────────────────────────────
-    // Check for explicit case access (either an array of IDs or an object mapping IDs to permissions)
     const caseAccess = CURRENT_USER.caseAccess || [];
-    const hasExplicitAccess = Array.isArray(caseAccess) 
+    const hasExplicitAccess = Array.isArray(caseAccess)
       ? caseAccess.includes(CURRENT_CASE_ID)
       : !!(caseAccess[CURRENT_CASE_ID]);
 
     const isFullAccess =
-      ROLE === "superAdmin" || 
-      (ROLE === "firmAdmin" && CURRENT_FIRM && CURRENT_CASE.firmId === CURRENT_FIRM.id);
+      ROLE === "superadmin" ||
+      (ROLE === "firmadmin" && CURRENT_FIRM && CURRENT_CASE.firmId === CURRENT_FIRM.id);
 
-    if (!isFullAccess && !hasExplicitAccess) {
+    const isPartyToCase =
+      (ROLE === "client" && CURRENT_CASE.clientId === CURRENT_USER.id) ||
+      (ROLE === "lawyer" && CURRENT_CASE.lawyerId === CURRENT_USER.id) ||
+      (ROLE === "intern" && CURRENT_CASE.firmId === CURRENT_USER.firmId);
+
+    if (!isFullAccess && !isPartyToCase && !hasExplicitAccess) {
       renderAccessDenied(
         `You do not have access to Case ${CURRENT_CASE_ID}. Contact your firm administrator to request access.`,
         "NO_DOC_ACCESS"
@@ -448,10 +431,9 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       return;
     }
 
-    const allowedIds = isFullAccess
-      ? null  // null = no filter
+    const allowedIds = (isFullAccess || isPartyToCase)
+      ? null
       : new Set(Array.isArray(caseAccess) ? [] : (caseAccess[CURRENT_CASE_ID] || []));
-
 
     let docsData = [];
     try {
@@ -475,25 +457,33 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       toast("Cannot reach backend — is the server running?", "error");
     }
 
-
+    // ── Load recent activity for side panel from backend ──────────────────
+    try {
+      const actResp = await fetch(`http://localhost:3000/documents/activity?caseId=${CURRENT_CASE_ID}`, {
+        headers: { 'role': ROLE, 'x-user-email': CURRENT_USER.email }
+      });
+      if (actResp.ok) {
+        activityLog = await actResp.json();
+      }
+    } catch (e) {
+      console.warn("[ActivityLog] Could not load activity from backend:", e);
+    }
 
     const PERMS = {
       canView: true,
       canDownload: true,
-      canUpload: ["client", "lawyer", "lawfirm_admin"].includes(ROLE),
-      canUpdate: ["lawyer", "lawfirm_admin", "intern"].includes(ROLE),
-      canDelete: ["lawyer", "lawfirm_admin"].includes(ROLE),
+      canUpload: ["client", "lawyer", "firmadmin", "lawfirm_admin"].includes(ROLE),
+      canUpdate: ["lawyer", "firmadmin", "lawfirm_admin", "intern"].includes(ROLE),
+      canDelete: ["lawyer", "firmadmin", "lawfirm_admin"].includes(ROLE),
     };
 
-    function logActivity(action, doc) {
+    // ── logActivity: posts to backend, keeps local copy for side panel ────
+    async function logActivity(action, doc) {
       const entry = {
-        id: "ACT-" + Date.now(),
-        date: new Date().toISOString(),
         user: CURRENT_USER.name,
         email: CURRENT_USER.email,
         role: ROLE,
         firmId: CURRENT_USER.firmId || null,
-        firmName: FIRM_NAME,
         caseId: CURRENT_CASE_ID,
         action,
         docId: doc.id,
@@ -501,9 +491,26 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         docType: doc.type,
         access: doc.access,
       };
-      activityLog.unshift(entry);
+
+      // Optimistically update local array so side panel reflects immediately
+      activityLog.unshift({ ...entry, id: "ACT-" + Date.now(), date: new Date().toISOString() });
       if (activityLog.length > 100) activityLog = activityLog.slice(0, 100);
       refreshSidePanelActivity();
+
+      // Persist to backend — no localStorage involved
+      try {
+        await fetch("http://localhost:3000/documents/activity", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "role": ROLE,
+            "x-user-email": CURRENT_USER.email,
+          },
+          body: JSON.stringify(entry),
+        });
+      } catch (e) {
+        console.warn("[ActivityLog] Failed to persist activity to backend:", e);
+      }
     }
 
     renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
@@ -525,7 +532,6 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       return;
     }
 
-    // Update case meta fields
     const metaDivs = document.querySelectorAll(".case-meta > div");
     if (metaDivs.length >= 4) {
       const caseLayer = db.users.find(u => u.id === CURRENT_CASE.lawyerId);
@@ -765,7 +771,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
           }
 
           if (doc.blobUrl) { try { URL.revokeObjectURL(doc.blobUrl); } catch (_) { } }
-          logActivity("deleted", doc);
+          await logActivity("deleted", doc);
           docsData.splice(idx, 1);
           render();
           toast(`🗑 ${doc.name} deleted`);
@@ -863,23 +869,12 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       });
     }
 
-    // function openUpdateModal(d) {
-    //   _updDoc = d; _updFile = null;
-    //   updPreview.style.display = "none"; updPreview.innerHTML = "";
-    //   updateOverlay.querySelector(".upd-name").value = d.name;
-    //   updateOverlay.querySelector(".upd-access").value = d.access || "PRIVATE";
-    //   updateOverlay.querySelector(".upd-version-label").textContent = `v${d.version ?? 1}`;
-    //   updateOverlay.classList.add("active");
-    //   document.body.style.overflow = "hidden";
-    // }
-
     function openUpdateModal(d) {
       _updDoc = d; _updFile = null;
       updPreview.style.display = "none"; updPreview.innerHTML = "";
       updateOverlay.querySelector(".upd-name").value = d.name;
       updateOverlay.querySelector(".upd-access").value = d.access || "PRIVATE";
       updateOverlay.querySelector(".upd-version-label").textContent = `v${d.version ?? 1}`;
-      // Reset dropzone error state
       updDZ.style.borderColor = "";
       updateOverlay.classList.add("active");
       document.body.style.overflow = "hidden";
@@ -890,6 +885,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       document.body.style.overflow = "";
       _updDoc = _updFile = null;
     }
+
     const updSaveBtn = updateOverlay.querySelector(".upd-save");
     updSaveBtn.setAttribute('type', 'button');
     updSaveBtn.addEventListener("click", async (e) => {
@@ -901,7 +897,6 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       const newAccess = updateOverlay.querySelector(".upd-access").value;
       if (!newName) { toast("Document name cannot be empty.", "error"); return; }
 
-      // FILE IS NOW REQUIRED
       if (!_updFile) {
         updDZ.style.borderColor = "#be123c";
         updDZ.style.background = "#fff1f2";
@@ -943,7 +938,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         updatedDoc.fileType = (_updFile.name.split(".").pop() || "BIN").toUpperCase().slice(0, 3);
 
         Object.assign(_updDoc, updatedDoc);
-        logActivity("updated", _updDoc);
+        await logActivity("updated", _updDoc);
         closeUpdateModal();
         render();
         toast(`✓ ${_updDoc.name} updated to v${_updDoc.version ?? 1}`);
@@ -954,6 +949,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         updSaveBtn.textContent = origText;
       }
     });
+
     // Sort Dropdown
     const sortOpts = [
       { key: "name", label: "File Name" },
@@ -964,7 +960,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     sortDD.innerHTML = `
       <div class="dd-head">Sort by</div>
       ${sortOpts.map(o =>
-      `<div class="dd-row sort-opt ${uiState.sortKey === o.key ? "on" : ""}" data-key="${o.key}">
+        `<div class="dd-row sort-opt ${uiState.sortKey === o.key ? "on" : ""}" data-key="${o.key}">
           ${o.label}<span class="dd-arrow">${uiState.sortKey === o.key ? (uiState.sortDir === "asc" ? "↑" : "↓") : ""}</span>
          </div>`).join("")}`;
     document.body.appendChild(sortDD);
@@ -990,8 +986,8 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     filterDD.innerHTML = `
       <div class="dd-head">Filter by Access</div>
       ${["PRIVATE", "SHARED"].map(s =>
-      `<label class="dd-row"><input type="checkbox" class="fcb" value="${s}"> ${s}</label>`
-    ).join("")}
+        `<label class="dd-row"><input type="checkbox" class="fcb" value="${s}"> ${s}</label>`
+      ).join("")}
       <div class="dd-foot">
         <button class="dd-clear">Clear</button>
         <button class="dd-apply">Apply</button>
@@ -1119,12 +1115,10 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     const dropzone = modal.querySelector(".upload-modal__dropzone");
     const dropText = modal.querySelector(".upload-modal__drop-text");
 
-    // FIX: Set read-only fields and update with current case/user data
     const caseClientEl = db.users.find(u => u.id === CURRENT_CASE.clientId);
     const clientNameInModal = modal.querySelectorAll('input[type="text"]')[0];
     const caseIdInModal = modal.querySelectorAll('input[type="text"]')[1];
 
-    // FIX: Populate with dynamic data from current case
     if (clientNameInModal) {
       clientNameInModal.value = caseClientEl ? caseClientEl.name : (CURRENT_USER.role === 'client' ? CURRENT_USER.name : '');
       clientNameInModal.readOnly = true;
@@ -1134,16 +1128,11 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       caseIdInModal.readOnly = true;
     }
 
-    // FIX: Make confidential level select read-only (disabled) — only type and description remain editable
     const allSelects = modal.querySelectorAll("select");
-    // allSelects[0] = Document Type (editable)
-    // allSelects[1] = Confidential Level (read-only, show PRIVATE always)
     if (allSelects[1]) {
       allSelects[1].disabled = true;
     }
 
-    // Add "Uploaded By" display (read-only)
-    // Find description field and inject uploader info above it
     const descField = modal.querySelector(".upload-modal__textarea");
     if (descField && descField.parentElement) {
       const uploaderInfo = document.createElement("div");
@@ -1234,7 +1223,6 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         formData.append('version', 1);
         formData.append('file', selectedFile);
 
-        // Disable button during upload to prevent double-click
         submitBtn.disabled = true;
         const origText = submitBtn.textContent;
         submitBtn.textContent = 'Uploading...';
@@ -1259,11 +1247,11 @@ const CURRENT_CASE_ID = urlCaseId || '1';
             return;
           }
           const createdDoc = await resp.json();
-          const uploadedFileName = selectedFile.name; // capture before closeModal() nulls selectedFile
+          const uploadedFileName = selectedFile.name;
           createdDoc.blobUrl = URL.createObjectURL(selectedFile);
 
           docsData.unshift(createdDoc);
-          logActivity("uploaded", createdDoc);
+          await logActivity("uploaded", createdDoc);
 
           closeModal();
           submitBtn.disabled = false;
@@ -1282,17 +1270,15 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       });
     }
 
-    // FIX: Activity side panel — dynamic, filtered by current case
+    // ── Activity side panel — reads from local activityLog (populated from backend on load) ──
     function refreshSidePanelActivity() {
       const cardEl = document.querySelector(".card");
       if (!cardEl) return;
 
-      // Remove all existing .activity elements
       cardEl.querySelectorAll(".activity").forEach(el => el.remove());
 
       const insertBefore = cardEl.querySelector(".btn-outline");
 
-      // Filter activity for THIS case only
       const latest = activityLog.filter(e =>
         e.caseId === CURRENT_CASE_ID &&
         (!e.firmId || !CURRENT_USER.firmId || e.firmId === CURRENT_USER.firmId)
@@ -1316,7 +1302,6 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         });
       }
 
-      // FIX: Hide "View All Activity" for clients
       if (ROLE === "client") {
         const viewAllBtn = cardEl.querySelector(".btn-outline");
         if (viewAllBtn) viewAllBtn.style.display = "none";

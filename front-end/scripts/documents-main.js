@@ -341,22 +341,39 @@
     console.log('[DocumentsMain] Loading cases from backend via casesStorage...');
     try {
       const casesStorage = window.LexFlowCasesStorage;
-      const [allCases, allUsers] = await Promise.all([
-        casesStorage.getCases(),
-        casesStorage.getUsers()
-      ]);
+
+      // Fetch cases — role-scoped automatically.
+      const allCases = await casesStorage.getCases();
+      if (!allCases || !allCases.length) {
+        casesData = [];
+        go();
+        return;
+      }
+
+      // Collect the unique user IDs we need to resolve (client + lawyer).
+      // GET /users/:id is open to all roles, so this works for everyone.
+      const userIds = [...new Set(
+        allCases.flatMap(c => [c.client_id, c.lawyer_id].filter(Boolean))
+      )];
 
       const uMap = {};
-      (allUsers || []).forEach(u => { uMap[u.id] = u.fullName || u.name; });
+      await Promise.allSettled(
+        userIds.map(uid =>
+          fetch(`http://localhost:3000/users/${uid}`, {
+            headers: { 'role': casesStorage.getRoleHeader() }
+          })
+          .then(r => r.ok ? r.json() : null)
+          .then(u => { if (u) uMap[u.id] = u.fullName || u.name || uid; })
+        )
+      );
 
-      casesData = (allCases || []).map(c => ({
+      casesData = allCases.map(c => ({
         id: String(c.id),
-        cnr: String(c.cnr || ''),
-        client: uMap[c.client_id] || 'Unknown Client',
+        client: uMap[c.client_id] || c.client_name || 'Unknown Client',
         type: 'INDIVIDUAL',
         status: mapStatus(c.status),
         caseType: c.case_type || c.title,
-        lawyer: uMap[c.lawyer_id] || 'Unknown Lawyer',
+        lawyer: uMap[c.lawyer_id] || c.lawyer_name || 'Unknown Lawyer',
         court: c.court || 'District Court',
       }));
 
@@ -367,6 +384,7 @@
       grid.innerHTML = `<p class="no-results">Error loading cases. Please try again.</p>`;
     }
   }
+
 
 
   loadCases();

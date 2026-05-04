@@ -7,7 +7,7 @@ import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 @ApiTags('cases')
 @Controller('cases')
 export class CasesController {
-  constructor(private readonly casesService: CasesService) {}
+  constructor(private readonly casesService: CasesService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a new case' })

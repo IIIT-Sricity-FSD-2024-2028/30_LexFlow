@@ -3,4 +3,4 @@
 *.log
 .env
 .env.*
-back-end/docs/swagger.json
+docs/swagger.json
