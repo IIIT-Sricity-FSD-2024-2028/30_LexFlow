@@ -67,7 +67,7 @@ export class UsersService {
     const now = new Date();
     const seed: User[] = [
       { id: 'user-0', fullName: 'Super Admin', email: 'superadmin@lexflow.test', role: UserRole.SUPERADMIN, createdAt: now, password: 'superadminpass', accountStatus: 'active', availability: 'available' },
-      { id: 'user-1', fullName: 'Firm Admin', email: 'firmadmin@lexflow.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
+      { id: 'user-1', fullName: 'Rajesh Sharma', email: 'firmadmin@lexflow.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
       { id: 'user-2', fullName: 'Client Alice', email: 'alice@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', phone: '+91-9000000001', accountStatus: 'active', availability: 'available' },
       { id: 'user-200', fullName: 'Client Dave', email: 'dave@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', accountStatus: 'active', availability: 'available' },
       { id: 'user-201', fullName: 'Client Eve', email: 'eve@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', accountStatus: 'active', availability: 'available' },
@@ -313,6 +313,7 @@ export class UsersService {
   }
 
   updateUser(id: string, updateUserDto: Partial<CreateUserDto>): UserResponseDto {
+    console.log(`[Backend] Updating user ${id}:`, JSON.stringify(updateUserDto, null, 2));
     const userIndex = this.users.findIndex((u) => u.id === id);
     if (userIndex === -1) {
       throw new NotFoundException('User not found');

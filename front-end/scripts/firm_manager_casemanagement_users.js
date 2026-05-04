@@ -22,7 +22,6 @@
     const ROLE_CLASSES = {
         firmadmin: 'users-badge users-badge--manager',
         lawyer: 'users-badge users-badge--lawyer',
-        // user: 'users-badge users-badge--client',
         client: 'users-badge users-badge--client',
         intern: 'users-badge users-badge--lawyer',
         superadmin: 'users-badge users-badge--manager'
@@ -201,6 +200,12 @@
         document.getElementById('userFormPhone').value = user.phone || '';
         document.getElementById('userFormBadgeRole').value = user.role;
         
+        // Only show "Firm Admin" in dropdown if editing an actual Firm Admin
+        const adminOption = document.getElementById('roleOptionAdmin');
+        if (adminOption) {
+            adminOption.hidden = (user.role !== 'firmadmin');
+        }
+        
         formAccountStatus = user.accountStatus || 'active';
         formAvailability = user.availability || 'available';
         
@@ -215,6 +220,13 @@
         editingUserId = null;
         document.getElementById('userForm').reset();
         document.getElementById('userFormId').value = '';
+        
+        // Never allow creating new "Firm Admin" accounts from here
+        const adminOption = document.getElementById('roleOptionAdmin');
+        if (adminOption) {
+            adminOption.hidden = true;
+        }
+        
         formAccountStatus = 'active';
         formAvailability = 'available';
         _updateToggles();
@@ -225,6 +237,9 @@
     }
 
     async function handleFormSubmit() {
+        const submitBtn = document.getElementById('userFormSubmit');
+        const originalText = submitBtn.textContent;
+        
         const fullName = document.getElementById('userFormName').value.trim();
         const email = document.getElementById('userFormEmail').value.trim();
         const phone = document.getElementById('userFormPhone').value.trim();
@@ -247,6 +262,9 @@
         };
 
         try {
+            submitBtn.disabled = true;
+            submitBtn.textContent = editingUserId ? 'Saving...' : 'Creating...';
+
             let response;
             const authRole = localStorage.getItem('userRole') || 'firmadmin';
 
@@ -260,7 +278,6 @@
                     body: JSON.stringify(payload)
                 });
             } else {
-                // Add a default password for new users
                 payload.password = 'changeme123';
                 response = await fetch(`${API_BASE}/users`, {
                     method: 'POST',
@@ -277,12 +294,16 @@
                 throw new Error(errData.message || 'Failed to save user');
             }
 
-            _showToast(editingUserId ? 'User updated' : 'User created');
+            _showToast(editingUserId ? 'User updated successfully' : 'User created successfully');
             closeModal();
             await fetchUsers();
         } catch (error) {
             console.error('Error saving user:', error);
-            _showToast(error.message, 'error');
+            const msg = error.message || 'Something went wrong';
+            _showToast(Array.isArray(msg) ? msg.join(', ') : msg, 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
         }
     }
 
@@ -290,8 +311,9 @@
         const user = allUsers.find(u => u.id === id);
         if (!confirm(`Are you sure you want to remove ${user.fullName}?`)) return;
 
+        const authRole = localStorage.getItem('userRole') || 'firmadmin';
+
         try {
-            const authRole = localStorage.getItem('userRole') || 'firmadmin';
             const response = await fetch(`${API_BASE}/users/${id}`, {
                 method: 'DELETE',
                 headers: { 'role': authRole }
