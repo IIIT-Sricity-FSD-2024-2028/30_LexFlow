@@ -51,6 +51,10 @@ export class UsersController {
     description: 'List of users for the firm',
     type: [UserResponseDto],
   })
+  @ApiResponse({
+    status: 404,
+    description: 'Firm not found or has no users',
+  })
   getUsersByFirm(@Param('firmId') firmId: string): UserResponseDto[] {
     return this.usersService.findUsersByFirm(firmId);
   }
@@ -228,6 +232,14 @@ export class UsersController {
     status: 200,
     description: 'User updated successfully',
     type: UserResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data or email already registered',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found',
   })
   updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): UserResponseDto {
     return this.usersService.updateUser(id, updateUserDto);

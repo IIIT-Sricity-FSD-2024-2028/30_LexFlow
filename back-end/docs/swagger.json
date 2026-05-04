@@ -60,6 +60,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Firm not found or has no users"
           }
         },
         "summary": "Get users by firm",
@@ -452,6 +455,12 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid input data or email already registered"
+          },
+          "404": {
+            "description": "User not found"
           }
         },
         "summary": "Update a user",
