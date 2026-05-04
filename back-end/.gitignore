@@ -4,3 +4,4 @@
 .env
 .env.*
 docs/swagger.json
+.vscode/
