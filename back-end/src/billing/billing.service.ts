@@ -55,16 +55,9 @@ export class BillingService {
   private invoices: InvoiceRecord[] = [];
   private payments: PaymentRecord[] = [];
 
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   // ── Client dropdown ───────────────────────────────────────────────────────
-  /**
-   * Returns all users with role=CLIENT for the Create Invoice dropdown.
-   *
-   * TODO (future): once ConsultationsModule is ready, filter by
-   * clients who have a consultation booked with this law firm
-   * (pass callerId and cross-reference consultation records).
-   */
   getClients(callerId: string): ClientEntry[] {
     const caller = this.usersService.findOne(callerId);
 
@@ -72,23 +65,28 @@ export class BillingService {
       throw new NotFoundException('Caller not found');
     }
 
-    // Get the firm using your helper
-    const firm = this.usersService.getUserFirm(callerId);
-
-    if (!firm) {
-      return [];
+    // SUPERADMIN → all clients across all firms
+    if (caller.role === UserRole.SUPERADMIN) {
+      return this.usersService.getAllClients().map((client) => ({
+        id: client.id,
+        fullName: client.fullName,
+        email: client.email,
+      }));
     }
 
-    // ✅ Call the new service method we just created
-    const firmClients = this.usersService.getUsersByFirm(firm.id, UserRole.CLIENT);
+    // FIRMADMIN / LAWYER → only clients belonging to their firm
+    const firm = this.usersService.getUserFirm(callerId);
+    if (!firm) return [];
 
-    // Map to the required return format
-    return firmClients.map((client) => ({
-      id: client.id,
-      fullName: client.fullName,
-      email: client.email,
-    }));
+    return this.usersService
+      .getUsersByFirm(firm.id, UserRole.CLIENT)
+      .map((client) => ({
+        id: client.id,
+        fullName: client.fullName,
+        email: client.email,
+      }));
   }
+
   // ── Resolve a client by ID ─────────────────────────────────────────────────
   private resolveClient(clientId: string): ClientEntry {
     const all = this.usersService.findAll(UserRole.CLIENT);
@@ -105,16 +103,16 @@ export class BillingService {
   createInvoice(dto: CreateInvoiceDto): InvoiceRecord {
     const client = this.resolveClient(dto.clientId);
     const invoice: InvoiceRecord = {
-      id:           generateId('INV'),
-      clientId:     client.id,
-      clientName:   client.fullName,
-      clientEmail:  client.email,
-      caseName:     dto.caseName,
+      id: generateId('INV'),
+      clientId: client.id,
+      clientName: client.fullName,
+      clientEmail: client.email,
+      caseName: dto.caseName,
       advocateName: dto.advocateName || 'Awaiting Assignment',
-      amount:       dto.amount,
-      status:       deriveStatus(dto.status, dto.dueDate),
-      dueDate:      dto.dueDate,
-      createdAt:    new Date().toISOString(),
+      amount: dto.amount,
+      status: deriveStatus(dto.status, dto.dueDate),
+      dueDate: dto.dueDate,
+      createdAt: new Date().toISOString(),
     };
     this.invoices.unshift(invoice);
     return invoice;
@@ -126,15 +124,28 @@ export class BillingService {
     callerName?: string,
   ): InvoiceRecord[] {
     const r = (role || '').toUpperCase().trim();
+
     if (r === 'CLIENT' && callerId) {
       return this.invoices.filter((inv) => inv.clientId === callerId);
     }
+
     if (r === 'LAWYER' && callerName) {
       const n = callerName.trim().toLowerCase();
       return this.invoices.filter(
         (inv) => inv.advocateName.toLowerCase() === n,
       );
     }
+
+    if (r === 'FIRMADMIN' && callerId) {
+      const firm = this.usersService.getUserFirm(callerId);
+      if (!firm) return [];
+      const firmClientIds = this.usersService
+        .getUsersByFirm(firm.id, UserRole.CLIENT)
+        .map((c) => c.id);
+      return this.invoices.filter((inv) => firmClientIds.includes(inv.clientId));
+    }
+
+    // SUPERADMIN → all invoices
     return this.invoices;
   }
 
@@ -149,15 +160,15 @@ export class BillingService {
     if (idx === -1) throw new NotFoundException(`Invoice ${id} not found`);
     const existing = this.invoices[idx];
 
-    let clientId    = existing.clientId;
-    let clientName  = existing.clientName;
+    let clientId = existing.clientId;
+    let clientName = existing.clientName;
     let clientEmail = existing.clientEmail;
 
     if (dto.clientId && dto.clientId !== existing.clientId) {
       const client = this.resolveClient(dto.clientId);
-      clientId     = client.id;
-      clientName   = client.fullName;
-      clientEmail  = client.email;
+      clientId = client.id;
+      clientName = client.fullName;
+      clientEmail = client.email;
     }
 
     const updated: InvoiceRecord = {
@@ -165,12 +176,12 @@ export class BillingService {
       clientId,
       clientName,
       clientEmail,
-      ...(dto.caseName     !== undefined && { caseName:     dto.caseName }),
+      ...(dto.caseName !== undefined && { caseName: dto.caseName }),
       ...(dto.advocateName !== undefined && { advocateName: dto.advocateName }),
-      ...(dto.amount       !== undefined && { amount:       dto.amount }),
-      ...(dto.dueDate      !== undefined && { dueDate:      dto.dueDate }),
+      ...(dto.amount !== undefined && { amount: dto.amount }),
+      ...(dto.dueDate !== undefined && { dueDate: dto.dueDate }),
       status: deriveStatus(
-        dto.status  ?? existing.status,
+        dto.status ?? existing.status,
         dto.dueDate ?? existing.dueDate,
       ),
     };
@@ -188,10 +199,10 @@ export class BillingService {
   getSummary(role: string, callerId?: string, callerName?: string) {
     const scoped = this.findAllInvoices(role, callerId, callerName);
     let totalBilled = 0, totalPaid = 0, pendingAmount = 0,
-        overdueAmount = 0, paidCount = 0, overdueCount = 0;
+      overdueAmount = 0, paidCount = 0, overdueCount = 0;
     scoped.forEach((inv) => {
       totalBilled += inv.amount;
-      if (inv.status === 'Paid')         { totalPaid     += inv.amount; paidCount++; }
+      if (inv.status === 'Paid') { totalPaid += inv.amount; paidCount++; }
       else if (inv.status === 'Pending') { pendingAmount += inv.amount; }
       else if (inv.status === 'Overdue') { overdueAmount += inv.amount; overdueCount++; }
     });
@@ -201,9 +212,21 @@ export class BillingService {
   // ── Payments ──────────────────────────────────────────────────────────────
   findAllPayments(role: string, callerId?: string): PaymentRecord[] {
     const r = (role || '').toUpperCase().trim();
+
     if (r === 'CLIENT' && callerId) {
       return this.payments.filter((p) => p.clientId === callerId);
     }
+
+    if (r === 'FIRMADMIN' && callerId) {
+      const firm = this.usersService.getUserFirm(callerId);
+      if (!firm) return [];
+      const firmClientIds = this.usersService
+        .getUsersByFirm(firm.id, UserRole.CLIENT)
+        .map((c) => c.id);
+      return this.payments.filter((p) => firmClientIds.includes(p.clientId));
+    }
+
+    // SUPERADMIN / LAWYER → all payments
     return this.payments;
   }
 
@@ -215,14 +238,14 @@ export class BillingService {
     const inv = this.findOneInvoice(invoiceId);
     const existing = this.payments.find((p) => p.invoiceId === invoiceId);
     const record: PaymentRecord = {
-      id:            existing?.id ?? generateId('PAY'),
-      invoiceId:     inv.id,
-      clientId:      inv.clientId,
-      clientName:    inv.clientName,
-      amount:        inv.amount,
-      paymentDate:   new Date().toISOString().split('T')[0],
+      id: existing?.id ?? generateId('PAY'),
+      invoiceId: inv.id,
+      clientId: inv.clientId,
+      clientName: inv.clientName,
+      amount: inv.amount,
+      paymentDate: new Date().toISOString().split('T')[0],
       paymentMethod: paymentMethod || 'Credit Card',
-      status:        'Completed',
+      status: 'Completed',
     };
     if (existing) {
       this.payments[this.payments.indexOf(existing)] = record;

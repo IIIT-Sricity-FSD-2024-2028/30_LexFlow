@@ -536,6 +536,9 @@ export class UsersService {
   getAllFirms(): Firm[] {
     return this.firms;
   }
+  getAllClients(): User[] {
+    return this.users.filter(u => u.role === UserRole.CLIENT);
+  }
 
   /**
    * Get firm for a user
