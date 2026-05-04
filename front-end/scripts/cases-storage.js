@@ -142,14 +142,17 @@ window.LexFlowCasesStorage = (function () {
 
   // ── Tasks & Users (Stubs for future API migration) ──────────────────────────
   
-  async function getTasks() {
+  async function getTasks(extraFilters = {}) {
     try {
       const user = getCurrentUser();
       const role = getRoleHeader();
-      const filters = {};
-      if (user && user.firmId) filters.firmId = user.firmId;
+      const filters = { ...extraFilters };
+      if (user && user.firmId && !filters.firmId) filters.firmId = user.firmId;
+
+      const api = window.LexFlowAPI;
+      if (!api || !api.tasks) throw new Error('LexFlowAPI not available');
       
-      return await LexFlowAPI.tasks.getAll(filters, role);
+      return await api.tasks.getAll(filters, role);
     } catch (err) {
       console.error('[LexFlowCasesStorage] getTasks failed:', err);
       return [];

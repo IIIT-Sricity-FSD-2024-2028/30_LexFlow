@@ -69,16 +69,50 @@ export class UsersService {
       { id: 'user-0', fullName: 'Super Admin', email: 'superadmin@lexflow.test', role: UserRole.SUPERADMIN, createdAt: now, password: 'superadminpass', accountStatus: 'active', availability: 'available' },
       { id: 'user-1', fullName: 'Firm Admin', email: 'firmadmin@lexflow.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
       { id: 'user-2', fullName: 'Client Alice', email: 'alice@client.test', role: UserRole.CLIENT, createdAt: now, password: 'clientpass', phone: '+91-9000000001', accountStatus: 'active', availability: 'available' },
+      
+      // Firm 1: Sharma & Associates (firm-1)
       { id: 'user-3', fullName: 'Lawyer Bob', email: 'bob@lawyer.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
-      { id: 'user-4', fullName: 'Intern Charlie', email: 'charlie@intern.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
-      // New Admins (Ensuring 1:1 relation with firms)
+      { id: 'user-4', fullName: 'Lawyer Amit', email: 'amit@sharma.law', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
+      { id: 'user-11', fullName: 'Lawyer Sunita', email: 'sunita@sharma.law', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
+      { id: 'user-12', fullName: 'Intern Charlie', email: 'charlie@intern.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
+      { id: 'user-23', fullName: 'Intern Aman', email: 'aman@sharma.law', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
+      { id: 'user-24', fullName: 'Intern Riya', email: 'riya@sharma.law', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-1', accountStatus: 'active', availability: 'available' },
+
+      // Firm 2: Khanna & Co (firm-2)
       { id: 'user-5', fullName: 'Ananya Khanna', email: 'ananya@khanna.law', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-2', accountStatus: 'active', availability: 'available' },
+      { id: 'user-13', fullName: 'Lawyer Rahul', email: 'rahul@khanna.law', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-2', accountStatus: 'active', availability: 'available' },
+      { id: 'user-14', fullName: 'Lawyer Priya', email: 'priya@khanna.law', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-2', accountStatus: 'active', availability: 'available' },
+      { id: 'user-15', fullName: 'Lawyer Vikram', email: 'vikram@khanna.law', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-2', accountStatus: 'active', availability: 'available' },
+      { id: 'user-25', fullName: 'Intern Karan', email: 'karan@khanna.law', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-2', accountStatus: 'active', availability: 'available' },
+      { id: 'user-26', fullName: 'Intern Ishita', email: 'ishita@khanna.law', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-2', accountStatus: 'active', availability: 'available' },
+      { id: 'user-27', fullName: 'Intern Sameer', email: 'sameer@khanna.law', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-2', accountStatus: 'active', availability: 'available' },
+
+      // Firm 3: Tech Legal Bangalore (firm-3)
       { id: 'user-6', fullName: 'Siddharth Reddy', email: 'siddharth@techlegal.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-3', accountStatus: 'active', availability: 'available' },
-      { id: 'user-7', fullName: 'Meenakshi Iyer', email: 'meenakshi@coastal.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-4', accountStatus: 'active', availability: 'available' },
-      { id: 'user-8', fullName: 'Vikram Singh', email: 'vikram@cyber.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
-      // New Lawyers
       { id: 'user-9', fullName: 'Lawyer David', email: 'david@techlegal.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-3', accountStatus: 'active', availability: 'available' },
+      { id: 'user-16', fullName: 'Lawyer Suman', email: 'suman@techlegal.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-3', accountStatus: 'active', availability: 'available' },
+      { id: 'user-17', fullName: 'Lawyer Karthik', email: 'karthik@techlegal.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-3', accountStatus: 'active', availability: 'available' },
+      { id: 'user-28', fullName: 'Intern Arjun', email: 'arjun@techlegal.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-3', accountStatus: 'active', availability: 'available' },
+      { id: 'user-29', fullName: 'Intern Kavya', email: 'kavya@techlegal.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-3', accountStatus: 'active', availability: 'available' },
+      { id: 'user-30', fullName: 'Intern Manish', email: 'manish@techlegal.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-3', accountStatus: 'active', availability: 'available' },
+
+      // Firm 4: Coastal Legal Chennai (firm-4)
+      { id: 'user-7', fullName: 'Meenakshi Iyer', email: 'meenakshi@coastal.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-4', accountStatus: 'active', availability: 'available' },
       { id: 'user-10', fullName: 'Lawyer Elena', email: 'elena@coastal.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-4', accountStatus: 'active', availability: 'available' },
+      { id: 'user-18', fullName: 'Lawyer Arjun', email: 'arjun@coastal.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-4', accountStatus: 'active', availability: 'available' },
+      { id: 'user-19', fullName: 'Lawyer Divya', email: 'divya@coastal.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-4', accountStatus: 'active', availability: 'available' },
+      { id: 'user-31', fullName: 'Intern Pooja', email: 'pooja@coastal.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-4', accountStatus: 'active', availability: 'available' },
+      { id: 'user-32', fullName: 'Intern Surya', email: 'surya@coastal.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-4', accountStatus: 'active', availability: 'available' },
+      { id: 'user-33', fullName: 'Intern Lakshmi', email: 'lakshmi@coastal.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-4', accountStatus: 'active', availability: 'available' },
+
+      // Firm 5: Cyber Law Experts Hyderabad (firm-5)
+      { id: 'user-8', fullName: 'Vikram Singh', email: 'vikram@cyber.test', role: UserRole.FIRMADMIN, createdAt: now, password: 'firmadminpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
+      { id: 'user-20', fullName: 'Lawyer Naveen', email: 'naveen@cyber.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
+      { id: 'user-21', fullName: 'Lawyer Sneha', email: 'sneha@cyber.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
+      { id: 'user-22', fullName: 'Lawyer Rohan', email: 'rohan@cyber.test', role: UserRole.LAWYER, createdAt: now, password: 'lawyerpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
+      { id: 'user-34', fullName: 'Intern Tushar', email: 'tushar@cyber.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
+      { id: 'user-35', fullName: 'Intern Neha', email: 'neha@cyber.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
+      { id: 'user-36', fullName: 'Intern Sahil', email: 'sahil@cyber.test', role: UserRole.INTERN, createdAt: now, password: 'internpass', firmId: 'firm-5', accountStatus: 'active', availability: 'available' },
     ];
 
     const seedFirms: Firm[] = [
@@ -211,7 +245,7 @@ export class UsersService {
 
     this.users = seed.slice();
     this.firms = seedFirms.slice();
-    this.idCounter = 11;
+    this.idCounter = 23;
     this.firmIdCounter = 6;
   }
 
@@ -513,4 +547,22 @@ export class UsersService {
     }
     return this.getFirmById(user.firmId);
   }
+
+  /**
+   * Get lawyers belonging to a specific firm.
+   * firmadmin: pass their own firmId — only gets lawyers in that firm.
+   * superadmin: pass undefined — gets all lawyers across all firms.
+   */
+  getLawyersByFirmId(firmId?: string): UserResponseDto[] {
+    let results = this.users.filter(
+      (u) => 
+        u.role === UserRole.LAWYER || 
+        u.role === UserRole.INTERN
+    );
+    if (firmId) {
+      results = results.filter((u) => u.firmId === firmId);
+    }
+    return results.map(u => this.mapToResponse(u));
+  }
 }
+

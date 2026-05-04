@@ -8,6 +8,11 @@ export interface Case {
   case_type: string;
   brief_description: string;
   status: string;
+  progress?: number;
+  timeline?: any[];
+  documents?: any[];
+  client?: any;
+  team?: any[];
   filed_date?: string;
   created_at?: string;
 }

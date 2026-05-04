@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsArray } from 'class-validator';
 
 export class CreateCaseDto {
   @IsOptional()
@@ -32,6 +32,25 @@ export class CreateCaseDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @IsOptional()
+  @IsNumber()
+  progress?: number;
+
+  @IsOptional()
+  @IsArray()
+  timeline?: any[];
+
+  @IsOptional()
+  @IsArray()
+  documents?: any[];
+
+  @IsOptional()
+  client?: any;
+
+  @IsOptional()
+  @IsArray()
+  team?: any[];
 
   @IsOptional()
   @IsString()

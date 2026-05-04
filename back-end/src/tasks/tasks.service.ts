@@ -11,6 +11,7 @@ export class TasksService {
   }
 
   private seedTasks() {
+    this.idCounter = 5;
     this.tasks = [
       {
         id: 'T-001',
@@ -38,25 +39,40 @@ export class TasksService {
       },
       {
         id: 'T-003',
+        name: 'Property Inspection',
+        caseTitle: 'Sharma vs Gupta',
+        assignedUser: 'Lawyer Bob',
+        priority: TaskPriority.LOW,
+        dueDate: '2026-05-20',
+        status: TaskStatus.PENDING,
+        description: 'Visit the disputed property site for inspection.',
+        caseId: '2',
+        firmId: 'firm-1',
+      },
+      {
+        id: 'T-004',
         name: 'Client Briefing',
-        caseTitle: 'General Task',
+        caseTitle: 'State vs John Doe',
         assignedUser: 'Firm Admin',
         priority: TaskPriority.LOW,
         dueDate: '2026-05-05',
         status: TaskStatus.COMPLETED,
         description: 'Introductory session for the new case onboarding.',
+        caseId: '1',
         firmId: 'firm-1',
       },
     ];
   }
 
   findAll(filters: { firmId?: string; caseId?: string; status?: TaskStatus }): Task[] {
+    console.log('[TasksService] findAll filters:', filters);
     let filtered = [...this.tasks];
+
     if (filters.firmId) {
-      filtered = filtered.filter((t) => t.firmId === filters.firmId);
+      filtered = filtered.filter((t) => String(t.firmId) === String(filters.firmId));
     }
     if (filters.caseId) {
-      filtered = filtered.filter((t) => t.caseId === filters.caseId);
+      filtered = filtered.filter((t) => String(t.caseId) === String(filters.caseId));
     }
     if (filters.status) {
       filtered = filtered.filter((t) => t.status === filters.status);

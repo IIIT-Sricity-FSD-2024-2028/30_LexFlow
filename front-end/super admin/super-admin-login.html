@@ -27,7 +27,7 @@
   </style>
 </head>
 <body>
-  <a class="logo" href="landing_page.html">LexFlow</a>
+  <a class="logo" href="../index.html">LexFlow</a>
 
   <main class="page page-centered">
     <div class="card card-signin">
@@ -47,7 +47,7 @@
         </div>
 
         <div class="btn-row">
-          <button type="button" class="btn btn-ghost" onclick="location.href='../pages/landing_page.html'">Cancel</button>
+          <button type="button" class="btn btn-ghost" onclick="location.href='../pages/../index.html'">Cancel</button>
           <button type="submit" class="btn btn-primary">Sign In &rarr;</button>
         </div>
       </form>
@@ -59,6 +59,7 @@
   </main>
 
   <script src="../scripts/storageService.js"></script>
+  <script src="../scripts/api.js"></script>
   <script src="../scripts/auth.js"></script>
   <script src="../scripts/superadmin-auth.js"></script>
   <script>
@@ -66,7 +67,7 @@
       'use strict';
 
       // Seed data if not already done
-      await StorageService.seed('../data/initialData.json');
+      
 
       const signInForm = document.querySelector('form');
       const emailInput = document.getElementById('email');
@@ -88,17 +89,15 @@
           // Show loading state
           loginBtn.classList.add('btn-loading');
 
-          // Simulate small delay for better UX
-          setTimeout(() => {
-            const result = AuthService.login(email, password);
+          try {
+            const result = await AuthService.login(email, password, 'superadmin');
 
             if (result.success) {
-              // Check if user is superAdmin
-              if (result.user.role !== 'superAdmin') {
+              // Check if user is superAdmin (backend returns normalized role)
+              const userRole = (result.user.role || '').toLowerCase();
+              if (userRole !== 'superadmin') {
                 loginBtn.classList.remove('btn-loading');
                 _showToast('Access denied. SuperAdmin credentials required.', 'error');
-                emailInput.value = '';
-                passwordInput.value = '';
                 return;
               }
 
@@ -111,7 +110,10 @@
               loginBtn.classList.remove('btn-loading');
               _showToast(result.error, 'error');
             }
-          }, 500);
+          } catch (err) {
+            loginBtn.classList.remove('btn-loading');
+            _showToast('An error occurred during login.', 'error');
+          }
         });
       }
 

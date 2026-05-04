@@ -88,7 +88,9 @@ const LexFlowAPI = (() => {
      */
     getAll(filters = {}, role) {
       const qs = new URLSearchParams();
-      Object.entries(filters).forEach(([k, v]) => { if (v) qs.set(k, v); });
+      Object.entries(filters).forEach(([k, v]) => { 
+        if (v !== undefined && v !== null) qs.set(k, v); 
+      });
       const query = qs.toString() ? `?${qs.toString()}` : '';
       return request('GET', `/consultations${query}`, { role });
     },
@@ -148,7 +150,9 @@ const LexFlowAPI = (() => {
   const users = {
     getAll(filters = {}, role) {
       const qs = new URLSearchParams();
-      Object.entries(filters).forEach(([k, v]) => { if (v) qs.set(k, v); });
+      Object.entries(filters).forEach(([k, v]) => { 
+        if (v !== undefined && v !== null) qs.set(k, v); 
+      });
       const query = qs.toString() ? `?${qs.toString()}` : '';
       return request('GET', `/users${query}`, { role });
     },
@@ -158,13 +162,21 @@ const LexFlowAPI = (() => {
     getById(id, role) {
       return request('GET', `/users/${id}`, { role });
     },
+    getLawyers(firmId, role) {
+      const query = firmId ? `?firmId=${firmId}` : '';
+      return request('GET', `/users/lawyers${query}`, { role });
+    },
   };
+
+
 
   // ── Cases namespace ──────────────────────────────────────────────────────────
   const cases = {
     getAll(filters = {}, role) {
       const qs = new URLSearchParams();
-      Object.entries(filters).forEach(([k, v]) => { if (v) qs.set(k, v); });
+      Object.entries(filters).forEach(([k, v]) => { 
+        if (v !== undefined && v !== null) qs.set(k, v); 
+      });
       const query = qs.toString() ? `?${qs.toString()}` : '';
       return request('GET', `/cases${query}`, { role });
     },
@@ -186,7 +198,9 @@ const LexFlowAPI = (() => {
   const tasks = {
     getAll(filters = {}, role) {
       const qs = new URLSearchParams();
-      Object.entries(filters).forEach(([k, v]) => { if (v) qs.set(k, v); });
+      Object.entries(filters).forEach(([k, v]) => { 
+        if (v !== undefined && v !== null) qs.set(k, v); 
+      });
       const query = qs.toString() ? `?${qs.toString()}` : '';
       return request('GET', `/tasks${query}`, { role });
     },
@@ -204,9 +218,46 @@ const LexFlowAPI = (() => {
     },
   };
 
+  // ── Law Firms namespace ───────────────────────────────────────────────────
+  const lawFirms = {
+    /**
+     * GET /law-firms
+     * Client: search/filter law firms
+     * @param {{ keyword?, location?, practiceArea?, sortBy? }} filters
+     * @param {string} role - should be "client"
+     */
+    getAll(filters = {}, role) {
+      const qs = new URLSearchParams();
+      Object.entries(filters).forEach(([k, v]) => { 
+        if (v !== undefined && v !== null) qs.set(k, v); 
+      });
+      const query = qs.toString() ? `?${qs.toString()}` : '';
+      return request('GET', `/law-firms${query}`, { role });
+    },
+
+    /**
+     * GET /law-firms/:id
+     * Client: get full profile of a single firm
+     * @param {string} id - firm ID e.g. 'firm-001'
+     * @param {string} role
+     */
+    getById(id, role) {
+      return request('GET', `/law-firms/${id}`, { role });
+    },
+  };
+
+  // ── Auth namespace ──────────────────────────────────────────────────────────
+  const auth = {
+    login(email, password, role) {
+      return request('POST', '/users/login', { body: { email, password, role } });
+    },
+  };
+
   // Public interface
-  return { consultations, users, cases, tasks, getCurrentUser, getRole, BASE_URL };
+  return { auth, consultations, users, cases, tasks, lawFirms, getCurrentUser, getRole, BASE_URL };
+
 })();
 
 // Make globally available
 window.LexFlowAPI = LexFlowAPI;
+

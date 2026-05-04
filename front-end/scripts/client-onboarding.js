@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   'use strict';
 
-  await StorageService.seed('../data/initialData.json');
+  
 
   const DRAFT_KEY = 'clientDraft';
 

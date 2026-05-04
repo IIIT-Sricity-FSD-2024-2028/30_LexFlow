@@ -188,6 +188,7 @@
       data = data.filter(c =>
         c.client.toLowerCase().includes(q) ||
         c.id.toLowerCase().includes(q) ||
+        (c.cnr && c.cnr.toLowerCase().includes(q)) ||
         c.caseType.toLowerCase().includes(q) ||
         c.lawyer.toLowerCase().includes(q) ||
         c.court.toLowerCase().includes(q)
