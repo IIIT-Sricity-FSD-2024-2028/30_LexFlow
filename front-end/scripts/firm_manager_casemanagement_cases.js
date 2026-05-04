@@ -19,13 +19,14 @@ async function initCases() {
     
     // Fetch only lawyers belonging to this firm
     if (firmId && window.LexFlowAPI) {
-      allLawyers = await window.LexFlowAPI.users.getLawyers(firmId, role);
+      const users = await window.LexFlowAPI.users.getLawyers(firmId, role);
+      allLawyers = users.filter(u => (u.role || '').toLowerCase() === 'lawyer');
     } else {
       // Fallback for superadmin or missing firmId
       allLawyers = ((await casesStorage.getUsers()) || []).filter(
         (u) => {
           const r = (u.role || '').toLowerCase();
-          return r === "firmadmin" || r === "lawyer";
+          return r === "lawyer";
         }
       );
     }
