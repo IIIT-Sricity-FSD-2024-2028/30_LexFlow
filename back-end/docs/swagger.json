@@ -1302,6 +1302,62 @@
         ]
       }
     },
+    "/documents/activity": {
+      "get": {
+        "operationId": "DocumentsController_findActivity",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return activity log entries."
+          }
+        },
+        "summary": "Get activity log, optionally filtered by caseId",
+        "tags": [
+          "documents"
+        ]
+      },
+      "post": {
+        "operationId": "DocumentsController_createActivity",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role for RBAC",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Activity entry created."
+          }
+        },
+        "summary": "Append a new activity entry",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
     "/documents": {
       "post": {
         "operationId": "DocumentsController_create",
@@ -1510,14 +1566,6 @@
             "in": "header",
             "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
             "required": false,
-    "/tasks": {
-      "get": {
-        "operationId": "TasksController_findAll",
-        "parameters": [
-          {
-            "name": "firmId",
-            "required": true,
-            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -1527,17 +1575,6 @@
             "in": "header",
             "description": "client | lawyer | intern | firmadmin | superadmin",
             "required": true,
-            "name": "caseId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "required": true,
-            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -1739,31 +1776,6 @@
             }
           },
           {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Tasks"
-        ]
-      },
-      "post": {
-        "operationId": "TasksController_create",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/tasks/{id}": {
-      "get": {
-        "operationId": "TasksController_findOne",
-        "parameters": [
-          {
             "name": "id",
             "required": true,
             "in": "path",
@@ -1804,18 +1816,6 @@
               "type": "string"
             }
           },
-          {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Tasks"
-        ]
-      },
-      "patch": {
-        "operationId": "TasksController_update",
-        "parameters": [
           {
             "name": "id",
             "required": true,
@@ -1867,14 +1867,6 @@
               "type": "string"
             }
           },
-          {
-        "tags": [
-          "Tasks"
-        ]
-      },
-      "delete": {
-        "operationId": "TasksController_remove",
-        "parameters": [
           {
             "name": "id",
             "required": true,
@@ -2039,6 +2031,120 @@
         "summary": "Record a payment — CLIENT only",
         "tags": [
           "Billing"
+        ]
+      }
+    },
+    "/tasks": {
+      "get": {
+        "operationId": "TasksController_findAll",
+        "parameters": [
+          {
+            "name": "firmId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      },
+      "post": {
+        "operationId": "TasksController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}": {
+      "get": {
+        "operationId": "TasksController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      },
+      "patch": {
+        "operationId": "TasksController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      },
+      "delete": {
+        "operationId": "TasksController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
         "tags": [
           "Tasks"
         ]
