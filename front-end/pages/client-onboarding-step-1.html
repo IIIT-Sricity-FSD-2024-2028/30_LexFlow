@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Complete Your Profile — LexFlow</title>
+  <meta name="description" content="Step 1 of 3: Complete your legal profile to get started with LexFlow." />
+  <link rel="stylesheet" href="../styles/global-devashish.css" />
+  <link rel="stylesheet" href="../styles/client-onboarding-step-1.css" />
+</head>
+<body>
+  <a class="logo" href="../index.html">LexFlow</a>
+
+  <main class="page">
+    <!-- Step indicator -->
+    <nav class="stepper" aria-label="Onboarding steps">
+      <div class="step">
+        <div class="step-circle step-active" aria-current="step">1</div>
+        <span class="step-label">Profile</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step">
+        <div class="step-circle step-inactive">2</div>
+        <span class="step-label step-label-inactive">Case Details</span>
+      </div>
+    </nav>
+
+    <!-- Form card -->
+    <div class="card" style="max-width:720px;">
+      <h1 class="card-heading" style="margin-bottom:4px;">Complete Your Profile</h1>
+      <p class="card-subtitle">Help us set up your legal profile.</p>
+
+      <div id="profile-alert" class="form-alert"></div>
+
+      <form id="profile-form" action="client-onboarding-step-2.html" novalidate>
+        <div class="form-grid-2">
+          <div class="form-field">
+            <label for="full-name">Full Name</label>
+            <input type="text" id="full-name" placeholder="John Doe" autocomplete="name" required />
+          </div>
+          <div class="form-field">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" placeholder="john@example.com" autocomplete="username email" required />
+          </div>
+          <div class="form-field">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" placeholder="+91 98765 43210" autocomplete="tel" inputmode="tel" maxlength="15" required />
+          </div>
+
+          <div class="form-field col-span-2">
+            <label for="street">Street Address</label>
+            <input type="text" id="street" placeholder="123 Legal Way" autocomplete="street-address" required />
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-field">
+            <label for="city">City</label>
+            <input type="text" id="city" placeholder="San Francisco" autocomplete="address-level2" required />
+          </div>
+          <div class="form-field">
+            <label for="state">State</label>
+            <input type="text" id="state" placeholder="California" autocomplete="address-level1" required />
+          </div>
+          <div class="form-field">
+            <label for="zip">PIN / Zip Code</label>
+            <input type="text" id="zip" placeholder="560001" autocomplete="postal-code" inputmode="numeric" maxlength="6" required />
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-top:8px;">
+          <div class="form-field">
+            <label for="password">Password</label>
+            <div class="password-wrap">
+              <input
+                type="password"
+                id="password"
+                placeholder="Create a strong password"
+                autocomplete="new-password"
+                required
+              />
+              <!-- <button type="button" class="pwd-toggle" aria-label="Show password" data-target="password">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button> -->
+            </div>
+            <div class="strength-bar" id="strength-bar" aria-hidden="true">
+              <div class="strength-fill" id="strength-fill"></div>
+            </div>
+            <span class="strength-label" id="strength-label"></span>
+          </div>
+          <div class="form-field">
+            <label for="confirm-password">Confirm Password</label>
+            <div class="password-wrap">
+              <input
+                type="password"
+                id="confirm-password"
+                placeholder="Re-enter your password"
+                autocomplete="new-password"
+                required
+              />
+              <!-- <button type="button" class="pwd-toggle" aria-label="Show confirm password" data-target="confirm-password">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button> -->
+            </div>
+          </div>
+        </div>
+
+        <ul class="pwd-rules" id="pwd-rules" aria-live="polite">
+          <li id="rule-len" class="rule">At least 8 characters</li>
+          <li id="rule-upper" class="rule">At least one uppercase letter (A-Z)</li>
+          <li id="rule-lower" class="rule">At least one lowercase letter (a-z)</li>
+          <li id="rule-digit" class="rule">At least one number (0-9)</li>
+          <li id="rule-sym" class="rule">At least one special character (!@#$%^&amp;*...)</li>
+        </ul>
+
+        <div class="btn-row">
+          <button type="button" class="btn btn-ghost" onclick="location.href='sign-in.html'">Cancel</button>
+          <button type="submit" class="btn btn-primary">Continue &rarr;</button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+
+  <script src="../scripts/storage-service.js"></script>
+  <script src="../scripts/client-onboarding.js"></script>
+</body>
+</html>

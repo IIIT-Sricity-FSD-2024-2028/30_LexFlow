@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LexFlow – User Management</title>
+<link rel="stylesheet" href="../styles/firm-cases.css">
+<link rel="stylesheet" href="../styles/shared-form-validation.css">
+<link rel="stylesheet" href="../styles/sidebar.css">
+</head>
+<body>
+<div id="sidebar-container"></div>
+<div class="content-with-sidebar" style="display: flex; flex-direction: column; overflow: hidden;">
+
+<main class="cases-main users-main">
+<div class="page-header users-page-header">
+<div>
+<h1>User Management</h1>
+<p>Invite and manage firm members, roles, and availability.</p>
+</div>
+</div>
+<div class="users-toolbar">
+<div class="search-bar users-search-bar">
+<span class="search-icon">
+<span class="svg-icon-placeholder" data-icon="icon_34"></span>
+</span>
+<input id="userSearchInput" type="search" placeholder="Search users, roles, or status..." autocomplete="off">
+</div>
+<button type="button" class="btn-primary" id="addUserBtn" data-rbac-allow="super-user, firm-admin">
+<span class="svg-icon-placeholder" data-icon="icon_41"></span>
+Add New User
+</button>
+</div>
+<div class="users-stats-row">
+<div class="users-stat-card">
+<div class="users-stat-icon users-stat-icon--users">
+<span class="svg-icon-placeholder" data-icon="icon_42"></span>
+</div>
+<div class="users-stat-text">
+<span class="users-stat-label">Total Users</span>
+<strong class="users-stat-value" id="statTotal">0</strong>
+</div>
+</div>
+<div class="users-stat-card">
+<div class="users-stat-icon users-stat-icon--lawyers">
+<span class="svg-icon-placeholder" data-icon="icon_43"></span>
+</div>
+<div class="users-stat-text">
+<span class="users-stat-label">Active Lawyers</span>
+<strong class="users-stat-value" id="statLawyers">0</strong>
+</div>
+</div>
+<div class="users-stat-card">
+<div class="users-stat-icon users-stat-icon--clients">
+<span class="svg-icon-placeholder" data-icon="icon_44"></span>
+</div>
+<div class="users-stat-text">
+<span class="users-stat-label">Active Clients</span>
+<strong class="users-stat-value" id="statClients">0</strong>
+</div>
+</div>
+</div>
+<div class="users-table-wrap card">
+<div class="users-table-header">
+<h2>All Users</h2>
+<div class="users-table-actions">
+<label class="users-filter-label" for="roleFilterSelect">Role</label>
+<select id="roleFilterSelect" class="form-input users-filter-select">
+<option value="all">All roles</option>
+<option value="firmadmin">Firm Admin</option>
+<option value="lawyer">Lawyer</option>
+
+<option value="client">Client</option>
+<option value="intern">Intern</option>
+</select>
+<button type="button" class="users-icon-btn" id="exportUsersBtn" title="Export users JSON">
+<span class="svg-icon-placeholder" data-icon="icon_45"></span>
+</button>
+</div>
+</div>
+<div class="users-table-scroll">
+<table class="users-table">
+<thead>
+<tr>
+<th>Name</th>
+<th>Email address</th>
+<th>Role</th>
+<th>Status</th>
+<th class="users-th-actions">Actions</th>
+</tr>
+</thead>
+<tbody id="usersTableBody"></tbody>
+</table>
+</div>
+<div id="usersNoResults" class="users-no-results" style="display:none;">No users match your filters.</div>
+<div class="pagination users-pagination">
+<div class="info" id="usersPaginationInfo"></div>
+<div class="pages users-pages" id="usersPaginationPages"></div>
+</div>
+</div>
+</main>
+</div>
+<div class="modal-backdrop" id="userModal" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
+<div class="modal-content users-modal-content">
+<div class="modal-header">
+<div>
+<h2 id="userModalTitle">Add New User</h2>
+<p class="users-modal-sub">Fill in the details to invite a new firm member.</p>
+</div>
+<button type="button" class="modal-close" id="userModalClose" aria-label="Close">&times;</button>
+</div>
+<div class="modal-body">
+<form id="userForm">
+<input type="hidden" id="userFormId" value="">
+<div class="form-group">
+<label class="form-label" for="userFormName">Full name</label>
+<input class="form-input" id="userFormName" type="text" required placeholder="e.g. Michael Ross" maxlength="80" autocomplete="name" pattern="[a-zA-Z\s'.,\-]{2,80}" title="Letters, spaces, and common punctuation only">
+</div>
+<div class="form-group">
+<label class="form-label" for="userFormEmail">Email address</label>
+<input class="form-input" id="userFormEmail" type="email" required placeholder="michael@lexflow.com" maxlength="120" autocomplete="email">
+</div>
+<div class="form-group">
+<label class="form-label" for="userFormPhone">Phone number</label>
+<input class="form-input" id="userFormPhone" type="tel" placeholder="+91 98765 43210" maxlength="16" autocomplete="tel" pattern="(\+91[\-\s]?)?[6-9][0-9]{9}" title="Enter a valid Indian mobile number (e.g. +91 98765 43210)">
+</div>
+<div class="form-group">
+<label class="form-label" for="userFormBadgeRole">Role</label>
+                                <select class="form-input" id="userFormBadgeRole" required>
+                                    <option value="">Select role</option>
+                                    <option value="firmadmin" id="roleOptionAdmin">Firm Admin</option>
+                                    <option value="lawyer">Lawyer</option>
+                                    <option value="client">Client</option>
+                                    <option value="intern">Intern</option>
+                                </select>
+</div>
+<div class="form-group">
+<span class="form-label">Account status</span>
+<div class="users-status-toggles">
+<button type="button" class="users-toggle-btn active" data-field="accountStatus" data-value="active" id="toggleAccountActive">
+<span class="svg-icon-placeholder" data-icon="icon_46"></span>
+Active
+</button>
+<button type="button" class="users-toggle-btn" data-field="accountStatus" data-value="inactive" id="toggleAccountInactive">
+<span class="svg-icon-placeholder" data-icon="icon_47"></span>
+Inactive
+</button>
+</div>
+</div>
+<div class="form-group">
+<span class="form-label">Availability</span>
+<div class="users-status-toggles">
+<button type="button" class="users-toggle-btn active" data-field="availability" data-value="available" id="toggleAvailYes">
+<span class="svg-icon-placeholder" data-icon="icon_46"></span>
+Available
+</button>
+<button type="button" class="users-toggle-btn" data-field="availability" data-value="unavailable" id="toggleAvailNo">
+<span class="svg-icon-placeholder" data-icon="icon_48"></span>
+Not available
+</button>
+</div>
+</div>
+</form>
+</div>
+<div class="modal-footer">
+<button type="button" class="btn-outline" id="userFormCancel">Cancel</button>
+<button type="button" class="btn-primary" id="userFormSubmit">Create User</button>
+</div>
+</div>
+</div>
+
+<script src="../scripts/auth.js"></script>
+<script>AuthService.requireAuth(['firmAdmin', 'lawyer', 'intern']);</script>
+<script src="../scripts/api.js"></script>
+<script src="../scripts/shared-form-validation.js"></script>
+<script src="../scripts/sidebar.js"></script>
+<script src="../scripts/firm-user-management.js"></script>
+<script src="../assets/icons.js"></script>
+</body>
+</html>
