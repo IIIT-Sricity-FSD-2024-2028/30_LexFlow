@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SuperAdmin Login — LexFlow</title>
+  <link rel="stylesheet" href="../styles/global-devashish.css" />
+  <link rel="stylesheet" href="../styles/signin.css" />
+  <style>
+    .superadmin-badge {
+      display: inline-block;
+      background: #223657;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .card-subtitle-admin {
+      font-size: 13px;
+      color: #6B7280;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <a class="logo" href="../index.html">LexFlow</a>
+
+  <main class="page page-centered">
+    <div class="card card-signin">
+      <h1 class="card-heading">SuperAdmin Login</h1>
+      <p class="card-subtitle-admin">Only authorized system administrators can access this panel.</p>
+      <span class="superadmin-badge">Admin Only</span>
+
+      <form action="#">
+        <div class="form-field" style="margin-bottom:16px; margin-top: 24px;">
+          <label for="email">Admin Email Address</label>
+          <input type="email" id="email" placeholder="admin@lexflow.legal" required />
+        </div>
+
+        <div class="form-field">
+          <label for="password">Administrator Password</label>
+          <input type="password" id="password" placeholder="" required />
+        </div>
+
+        <div class="btn-row">
+          <button type="button" class="btn btn-ghost" onclick="location.href='../pages/../index.html'">Cancel</button>
+          <button type="submit" class="btn btn-primary">Sign In &rarr;</button>
+        </div>
+      </form>
+
+      <p class="signup-note" style="text-align: center; margin-top: 16px; color: #6B7280; font-size: 12px;">
+        Contact your system administrator if you need access.
+      </p>
+    </div>
+  </main>
+
+  <script src="../scripts/storage-service.js"></script>
+  <script src="../scripts/api.js"></script>
+  <script src="../scripts/auth.js"></script>
+  <script src="../scripts/superadmin-auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      'use strict';
+
+      // Seed data if not already done
+      
+
+      const signInForm = document.querySelector('form');
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const loginBtn = document.querySelector('button[type="submit"]');
+
+      if (signInForm) {
+        signInForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+
+          const email = emailInput.value.trim();
+          const password = passwordInput.value.trim();
+
+          if (!email || !password) {
+            _showToast('Please enter both email and password.', 'error');
+            return;
+          }
+
+          // Show loading state
+          loginBtn.classList.add('btn-loading');
+
+          try {
+            const result = await AuthService.login(email, password, 'superadmin');
+
+            if (result.success) {
+              // Check if user is superAdmin (backend returns normalized role)
+              const userRole = (result.user.role || '').toLowerCase();
+              if (userRole !== 'superadmin') {
+                loginBtn.classList.remove('btn-loading');
+                _showToast('Access denied. SuperAdmin credentials required.', 'error');
+                return;
+              }
+
+              _showToast('Welcome, SuperAdmin ' + result.user.fullName + '!');
+              
+              setTimeout(() => {
+                window.location.href = 'index.html';
+              }, 800);
+            } else {
+              loginBtn.classList.remove('btn-loading');
+              _showToast(result.error, 'error');
+            }
+          } catch (err) {
+            loginBtn.classList.remove('btn-loading');
+            _showToast('An error occurred during login.', 'error');
+          }
+        });
+      }
+
+      function _showToast(msg, type = 'success') {
+        const existing = document.querySelector('.lexflow-toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'lexflow-toast' + (type === 'error' ? ' toast-error' : '');
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+
+        requestAnimationFrame(() => toast.classList.add('show'));
+        setTimeout(() => {
+          toast.classList.remove('show');
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+    });
+  </script>
+</body>
+</html>
