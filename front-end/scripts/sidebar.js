@@ -42,30 +42,36 @@
     'client-consultation-dashboard.html': 'nav-consultations',
     'firm-consultation-dashboard.html':   'nav-consultations',
     'documents-main.html':                'nav-documents',
-    'client_casemanagement_cases.html':   'nav-cases',
-    'firm_manager_casemanagement_cases.html': 'nav-cases',
-    'firm_manager_casemanagement_case-details.html': 'nav-cases',
-    'firm_manager_casemanagement_tasks.html': 'nav-cases',
-    'documents.html':                     'nav-documents',
     'case-documents.html':                'nav-documents',
-    'billing.html':                       'nav-billing',
-    'client_billing.html':                'nav-billing',
-    'client_billing_pay-now.html':        'nav-billing',
-    'client_billing_view-all-transactions.html': 'nav-billing',
-    'lawyer_casemanagement_billing.html': 'nav-billing',
-    'firm_manager_casemanagement_billing.html': 'nav-billing',
-    'client-law_firm-search.html':        'nav-search',
-    'firm_manager_casemanagement_users.html': 'nav-usermanagement',
+    'client-cases.html':   'nav-cases',
+    'client-case-details.html': 'nav-cases',
+    'client-case-details-expanded.html': 'nav-cases',
+    'client-case-advocate-profile.html': 'nav-cases',
+    'firm-cases.html': 'nav-cases',
+    'firm-case-details.html': 'nav-cases',
+    'firm-tasks.html': 'nav-cases',
+    'lawyer-cases.html':   'nav-cases',
+    'lawyer-case-details.html': 'nav-cases',
+    'lawyer-tasks.html':   'nav-cases',
+    'client-billing.html':                'nav-billing',
+    'client-billing-pay-now.html':        'nav-billing',
+    'client-billing-transactions.html': 'nav-billing',
+    'lawyer-billing.html': 'nav-billing',
+    'firm-billing.html': 'nav-billing',
+    'client-lawfirm-search.html':        'nav-search',
+    'firm-user-management.html': 'nav-usermanagement',
+    'schedule-management.html':            'nav-consultations',
   };
 
   // Maps nav item ID → relative page path (for link resolution)
   // Add entries here as new pages are built
   const NAV_TO_PAGE = {
     'nav-consultations': 'client-consultation-dashboard.html',
-    'nav-cases':         'client_casemanagement_cases.html',
-    'nav-search':        'client-law_firm-search.html',
+    'nav-cases':         'client-cases.html',
+    'nav-billing':       'client-billing.html',
+    'nav-search':        'client-lawfirm-search.html',
     'nav-documents':     'documents-main.html',
-    'nav-usermanagement': 'firm_manager_casemanagement_users.html',
+    'nav-usermanagement': 'firm-user-management.html',
   };
 
   async function loadComponent(selector, url) {
@@ -138,19 +144,19 @@
         const casesLink = document.getElementById('nav-cases');
         if (casesLink) {
           // If role is lawyer, we could optionally point to a different cases list, 
-          // but for now firm_manager_casemanagement_cases.html seems intended for staff.
-          casesLink.href = 'firm_manager_casemanagement_cases.html';
+          // but for now firm-cases.html seems intended for staff.
+          casesLink.href = 'firm-cases.html';
         }
 
         const billingLink = document.getElementById('nav-billing');
-        if (billingLink) billingLink.href = 'firm_manager_casemanagement_billing.html';
+        if (billingLink) billingLink.href = 'firm-billing.html';
 
         // Show and link User Management for firmAdmin only (or decide if lawyers can see it)
         const userMgmtLink = document.getElementById('nav-usermanagement');
         if (userMgmtLink) {
           if (userRole === 'firmAdmin') {
             userMgmtLink.closest('a').style.display = 'flex';
-            userMgmtLink.href = 'firm_manager_casemanagement_users.html';
+            userMgmtLink.href = 'firm-user-management.html';
           } else {
             userMgmtLink.closest('a').style.display = 'none';
           }
@@ -162,10 +168,10 @@
         if (consultLink) consultLink.href = 'client-consultation-dashboard.html';
 
         const casesLink = document.getElementById('nav-cases');
-        if (casesLink) casesLink.href = 'client_casemanagement_cases.html';
+        if (casesLink) casesLink.href = 'client-cases.html';
 
         const billingLink = document.getElementById('nav-billing');
-        if (billingLink) billingLink.href = 'client_billing.html';
+        if (billingLink) billingLink.href = 'client-billing.html';
 
         // Hide User Management for client
         const userMgmtLink = document.getElementById('nav-usermanagement');

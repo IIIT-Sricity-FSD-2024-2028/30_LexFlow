@@ -142,7 +142,7 @@ table {
     padding: 0 12px;
 }
 
-.nav-item {
+.sidebar .nav-item {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -154,24 +154,24 @@ table {
     transition: all var(--transition-fast);
 }
 
-.nav-item:hover {
+.sidebar .nav-item:hover {
     background: var(--sidebar-hover);
     color: var(--text-sidebar-active);
 }
 
-.nav-item.active {
+.sidebar .nav-item.active {
     background: var(--sidebar-active);
     color: var(--text-sidebar-active);
     font-weight: 600;
 }
 
-.nav-item svg {
+.sidebar .nav-item svg {
     flex-shrink: 0;
     opacity: 0.8;
 }
 
-.nav-item.active svg,
-.nav-item:hover svg {
+.sidebar .nav-item.active svg,
+.sidebar .nav-item:hover svg {
     opacity: 1;
 }
 
@@ -338,7 +338,7 @@ table {
         padding: 0 8px;
     }
 
-    .nav-item {
+    .sidebar .nav-item {
         justify-content: center;
         padding: 12px;
     }

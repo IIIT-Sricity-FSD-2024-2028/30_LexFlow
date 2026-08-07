@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const created = await res.json();
         _showToast('Profile created! Moving to case details…');
 
-        const nextStep = profileForm.getAttribute('action') || 'Client Onboarding step2.html';
+        const nextStep = profileForm.getAttribute('action') || 'client-onboarding-step-2.html';
         setTimeout(() => { window.location.href = nextStep; }, 600);
       } catch (err) {
         setAlert('Network error while creating account. Please try again.');

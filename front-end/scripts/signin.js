@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userRole = _normalizeRole(rawRole);
 
     if (signUpLink) {
-        signUpLink.href = (userRole === 'client') ? 'Client%20Onboarding%20step1.html' : 'LawFirmOnboardingStep1.html';
+        signUpLink.href = (userRole === 'client') ? 'client-onboarding-step-1.html' : 'lawfirm-onboarding-step-1.html';
     }
 
     if (signInForm) {
@@ -112,9 +112,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             firmadmin: 'firm-consultation-dashboard.html',
             lawyer: 'firm-consultation-dashboard.html',
             intern: 'firm-consultation-dashboard.html',
-            superadmin: '../super admin/index.html',
+            superadmin: '../super-admin/index.html',
         };
-        return roleRedirects[roleLower] || 'SignIn.html';
+        return roleRedirects[roleLower] || 'sign-in.html';
     }
 
     async function _postJSON(url, body, opts = {}) {

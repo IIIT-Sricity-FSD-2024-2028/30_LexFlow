@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       _showToast('Firm info saved!');
 
       setTimeout(() => {
-        window.location.href = 'Lawfirmonboardingstep2.html';
+        window.location.href = 'lawfirm-onboarding-step-2.html';
       }, 600);
     });
   }
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       _showToast('Contact info saved!');
 
       setTimeout(() => {
-        window.location.href = 'lawfirmonboardingstep3.html';
+        window.location.href = 'lawfirm-onboarding-step-3.html';
       }, 600);
     });
   }

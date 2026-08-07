@@ -3,9 +3,9 @@ const AuthService = (() => {
 
   function getSignInPath() {
     const pathname = (window.location && window.location.pathname) || '';
-    if (pathname.includes('/super admin/') || pathname.includes('/super%20admin/')) return 'super-admin-login.html';
-    if (pathname.includes('/pages/')) return 'SignIn.html';
-    return 'pages/SignIn.html';
+    if (pathname.includes('/super-admin/') || pathname.includes('/super admin/') || pathname.includes('/super%20admin/')) return 'super-admin-login.html';
+    if (pathname.includes('/pages/')) return 'sign-in.html';
+    return 'pages/sign-in.html';
   }
 
   return {
