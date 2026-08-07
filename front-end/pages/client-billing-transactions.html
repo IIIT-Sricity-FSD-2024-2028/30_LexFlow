@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LexFlow – All Transactions</title>
+<link rel="stylesheet" href="../styles/client-cases.css">
+<link rel="stylesheet" href="../styles/client-billing.css">
+<link rel="stylesheet" href="../styles/sidebar.css">
+</head>
+<body>
+<div id="sidebar-container"></div>
+<main class="billing-main content-with-sidebar">
+<div class="page-header" style="display: flex; gap: 16px; align-items: center;">
+<a href="client-billing.html" style="color: #6b7280; text-decoration: none;">
+<span class="svg-icon-placeholder" data-icon="icon_8"></span>
+</a>
+<div>
+<h1>All Transactions</h1>
+<p>A complete history of your payments and records.</p>
+</div>
+</div>
+<div class="card payment-history-card">
+<table class="data-table">
+<thead>
+<tr>
+<th>PAYMENT ID</th>
+<th>INVOICE ID</th>
+<th>AMOUNT PAID</th>
+<th>PAYMENT DATE</th>
+<th>PAYMENT METHOD</th>
+<th>STATUS</th>
+</tr>
+</thead>
+<tbody id="allTransactionsList">
+</tbody>
+</table>
+</div>
+</main>
+<script src="../scripts/sidebar.js"></script>
+<script src="../scripts/billing-storage.js"></script>
+<script src="../scripts/client-billing-transactions.js"></script>
+<script src="../assets/icons.js"></script>
+</body>
+</html>

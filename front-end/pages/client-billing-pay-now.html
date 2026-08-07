@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>LexFlow – Pay Invoice</title>
+    <link rel="stylesheet" href="../styles/client-cases.css">
+    <link rel="stylesheet" href="../styles/client-billing.css">
+    <link rel="stylesheet" href="../styles/client-billing-pay-now.css">
+    <link rel="stylesheet" href="../styles/shared-form-validation.css">
+    <link rel="stylesheet" href="../styles/sidebar.css">
+</head>
+
+<body>
+    <div id="sidebar-container"></div>
+    <main class="billing-main content-with-sidebar">
+        <div class="page-header" style="display: flex; gap: 16px; align-items: center; margin-bottom: 30px;">
+            <a href="client-billing.html" style="color: #6b7280; text-decoration: none;">
+                <span class="svg-icon-placeholder" data-icon="icon_8"></span>
+            </a>
+            <div>
+                <h1>Complete Payment</h1>
+                <p>Review invoice details and process your payment method safely.</p>
+            </div>
+        </div>
+        <div class="checkout-container">
+            <div class="card checkout-summary">
+                <h2>Invoice Summary <span id="summaryId"
+                        style="color:#6b7280; font-size:14px; font-weight:500; margin-left:12px;"></span></h2>
+                <div class="summary-details">
+                    <div class="s-row">
+                        <span class="s-label">Case Name</span>
+                        <span class="s-val" id="summaryCaseName">Loading...</span>
+                    </div>
+                    <div class="s-row">
+                        <span class="s-label">Advocate Name</span>
+                        <span class="s-val" id="summaryLawFirm">Loading...</span>
+                    </div>
+                    <div class="s-row">
+                        <span class="s-label">Due Date</span>
+                        <span class="s-val" id="summaryDueDate">Loading...</span>
+                    </div>
+                </div>
+                <div class="total-bar">
+                    <span class="t-label">Total Amount</span>
+                    <span class="t-val" id="summaryAmount">$0.00</span>
+                </div>
+            </div>
+            <div class="card checkout-form">
+                <h2>Payment Details</h2>
+                <form id="paymentForm">
+
+                    <!-- Cardholder Name: letters, spaces and common punctuation only -->
+                    <div class="input-group">
+                        <label>Cardholder Name</label>
+                        <input type="text" id="cardName" placeholder="Name on card" required maxlength="80"
+                            autocomplete="cc-name" pattern="[a-zA-Z\s'.,\-]+"
+                            title="Letters, spaces and common punctuation only"
+                            oninput="this.value = this.value.replace(/[^a-zA-Z\s'.,\-]/g, '')">
+                    </div>
+
+                    <!-- Card Number: digits only, formatted as groups of 4 -->
+                    <div class="input-group">
+                        <label>Card Number</label>
+                        <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" maxlength="19" required
+                            inputmode="numeric" autocomplete="cc-number" pattern="\d{4}\s\d{4}\s\d{4}\s\d{4}"
+                            title="16-digit card number" oninput="
+        let v = this.value.replace(/\D/g, '').slice(0, 16);
+        this.value = v.length ? v.match(/.{1,4}/g).join(' ') : '';
+      ">
+                    </div>
+
+                    <div class="form-row">
+                        <!-- Expiry: MM/YY digits only -->
+                        <div class="input-group">
+                            <label>Expiry Date</label>
+                            <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" required
+                                inputmode="numeric" autocomplete="cc-exp" pattern="(0[1-9]|1[0-2])\/\d{2}"
+                                title="Expiry in MM/YY format" oninput="
+          let v = this.value.replace(/[^\d]/g, '').slice(0, 4);
+          if (v.length >= 2) v = v.slice(0,2) + '/' + v.slice(2);
+          this.value = v;
+        ">
+                        </div>
+
+                        <!-- CVC: digits only, 3-4 chars -->
+                        <div class="input-group">
+                            <label>CVC</label>
+                            <input type="password" id="cardCVC" placeholder="***" maxlength="4" minlength="3" required
+                                inputmode="numeric" autocomplete="cc-csc" pattern="\d{3,4}"
+                                title="3 or 4 digit security code"
+                                oninput="this.value = this.value.replace(/\D/g, '').slice(0, 4)">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit-pay">
+                        <span class="svg-icon-placeholder" data-icon="icon_9"></span>
+                        Pay <span id="btnPayAmount"></span> securely
+                    </button>
+                </form>
+                <div id="paymentSuccess" style="display:none;" class="success-msg">
+                    <span class="svg-icon-placeholder" data-icon="icon_10"></span>
+                    <h3>Payment Successful!</h3>
+                    <p>Your payment has been processed and your invoice is now paid. You will be redirected shortly.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="../scripts/storage-service.js"></script>
+    <script src="../scripts/auth.js"></script>
+    <script>AuthService.requireAuth(['client']);</script>
+    <script src="../scripts/shared-form-validation.js"></script>
+    <script src="../scripts/sidebar.js"></script>
+    <script src="../scripts/billing-storage.js"></script>
+    <script src="../scripts/client-billing-pay-now.js"></script>
+    <script src="../assets/icons.js"></script>
+</body>
+
+</html>

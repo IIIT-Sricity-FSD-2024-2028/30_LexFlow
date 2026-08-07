@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Case Details — LexFlow</title>
+  <meta name="description" content="Step 2 of 3: Provide your case details so LexFlow can match you with the right legal expert." />
+  <link rel="stylesheet" href="../styles/global-devashish.css" />
+  <link rel="stylesheet" href="../styles/client-onboarding-step-2.css" />
+</head>
+<body>
+  <a class="logo" href="../index.html">LexFlow</a>
+
+  <main class="page">
+    <!-- Step indicator -->
+    <nav class="stepper" aria-label="Onboarding steps">
+      <div class="step">
+        <div class="step-circle step-done" title="Completed">&#10003;</div>
+        <span class="step-label">Profile</span>
+      </div>
+      <div class="step-line step-line-done"></div>
+      <div class="step">
+        <div class="step-circle step-active" aria-current="step">2</div>
+        <span class="step-label">Case Details</span>
+      </div>
+    </nav>
+
+    
+
+    <!-- Page heading row with skip -->
+    <div class="page-title-row">
+      <div>
+        <h1 class="page-heading">Tell us about your case</h1>
+        <p class="page-subtitle">Provide the necessary details to help us match you with the right legal expert.</p>
+      </div>
+      <button type="button" id="skip-btn" class="btn btn-primary" style="flex-shrink:0;">Skip &rarr;</button>
+    </div>
+
+    <div id="case-alert" class="form-alert"></div>
+
+    <form id="case-form" action="client-consultation-dashboard.html">
+
+    <!-- Case details card -->
+    <section class="section-card">
+      <div class="form-grid-2">
+        <div class="form-field">
+          <label for="case-type">Case Type</label>
+          <select id="case-type">
+            <option value="" disabled selected>Select Case Category</option>
+            <option value="civil">Civil</option>
+            <option value="criminal">Criminal</option>
+            <option value="family">Family</option>
+            <option value="property">Property</option>
+            <option value="corporate">Corporate</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="court-name">Court Name</label>
+          <input type="text" id="court-name" placeholder="e.g. High Court of Mumbai" />
+        </div>
+        <div class="form-field col-span-2">
+          <label for="cnr">CNR Number (Optional)</label>
+          <input type="text" id="cnr" placeholder="Enter 16-digit CNR Number" maxlength="16" />
+        </div>
+        <div class="form-field col-span-2">
+          <label for="description">Brief Description</label>
+          <textarea id="description" placeholder="Briefly describe the nature of your legal matter..." rows="4"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Preferred expertise card -->
+    
+    <!-- Supporting documents card -->
+    
+    <!-- Bottom actions -->
+    <div class="bottom-row">
+      <button type="button" class="btn btn-outline" onclick="location.href='client-onboarding-step-1.html'">&larr; Back</button>
+      <button type="submit" class="btn btn-primary">Submit Case Info &rarr;</button>
+    </div>
+    </form>
+  </main>
+
+
+  <script src="../scripts/storage-service.js"></script>
+  <script src="../scripts/client-onboarding.js"></script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select invoice to change | LexFlow Super Admin</title>
+    <link rel="stylesheet" href="super-admin-global.css">
+    <script src="../scripts/storage-service.js"></script>
+    <script src="../scripts/auth.js"></script>
+    <script src="../scripts/superadmin-auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            SuperAdminAuth.requireSuperAdmin();
+        });
+        function logoutSuperAdmin() {
+            if (confirm('Are you sure you want to logout?')) SuperAdminAuth.logout();
+        }
+    </script>
+</head>
+
+<body class="change-list">
+
+    <div id="container">
+
+        <!-- Header -->
+        <div id="header">
+            <div id="branding">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="margin-right: 8px;">
+                    <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)" />
+                    <path d="M7 6h2v12H7V6zm4 4h2v8h-2v-8zm4-2h2v10h-2V8z" fill="#fff" />
+                </svg>
+                <h1 id="site-name"><a href="index.html">LexFlow Super Admin</a></h1>
+            </div>
+            <div id="user-tools">
+                WELCOME, <strong>SUPERADMIN</strong>.
+                <a href="../pages/../index.html">VIEW SITE</a> /
+                <a href="super-admin-login.html" onclick="logoutSuperAdmin(); return false;">LOG OUT</a>
+            </div>
+        </div>
+
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs">
+            <a href="index.html">Home</a> &rsaquo;
+            <a href="#">LexFlow Platform</a> &rsaquo;
+            Invoices
+        </div>
+
+        <!-- Main Content Layout -->
+        <div id="content" class="flex-column">
+
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <h1>Select invoice to change</h1>
+                <ul class="object-tools">
+                 <!--   <li><a href="invoice-edit.html" class="addlink-btn">Add invoice</a></li> -->
+                </ul>
+            </div>
+
+            <div id="content-main">
+                <div class="module" id="changelist">
+
+                    <div class="action-row">
+                        <label>Action:
+                            <select name="action" id="action-select-dropdown">
+                                <option value="" selected>---------</option>
+                                <option value="payout_selected">Mark payout as complete (→ Paid)</option>
+                                <option value="refund_selected">Mark as Overdue (issue refund)</option>
+                            </select>
+                        </label>
+                        <button type="button" class="button" id="run-action-btn"
+                            title="Run the selected action">Go</button>
+                        <span class="action-counter" id="selectionCount"
+                            style="color:var(--text-muted); font-size:12px; margin-left:10px;">0 selected</span>
+                    </div>
+
+                    <div class="results">
+                        <table id="result_list">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="action-checkbox-column" style="width: 40px;">
+                                        <div class="text"><span><input type="checkbox" id="action-toggle"></span></div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text">INVOICE ID</div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text">CLIENT</div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text">CASE</div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text">TOTAL</div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text">LEXFLOW FEE (10%)</div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text">FIRM PAYOUT</div>
+                                    </th>
+                                    <th scope="col" class="column-title">
+                                        <div class="text">STATUS</div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoiceTableBody">
+                                <tr>
+                                    <td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">
+                                        Loading invoices...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p class="paginator" id="invoiceCount">Loading...</p>
+
+                </div>
+            </div>
+
+        </div> <!-- /content -->
+
+    </div> <!-- /container -->
+
+    <script src="../scripts/billing-storage.js"></script>
+    <script src="superadmin-storage.js"></script>
+    <script src="superadmin.js"></script>
+</body>
+
+</html>
