@@ -24,7 +24,8 @@ export class RolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const rawRole = request.headers['role'];
-    const userRole = typeof rawRole === 'string' ? rawRole.toLowerCase() : undefined;
+    const userRole =
+      typeof rawRole === 'string' ? rawRole.toLowerCase() : undefined;
 
     if (!userRole) {
       throw new ForbiddenException('Role header is required');
