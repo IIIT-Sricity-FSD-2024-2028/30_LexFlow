@@ -71,13 +71,17 @@ window.LexFlowCasesStorage = (function () {
 
   async function apiFetch(path, options = {}) {
     const url = `${API_BASE_URL}${path}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      'role': getRoleHeader(),
-      ...(options.headers || {}),
-    };
+    const method = (options.method || 'GET').toUpperCase();
 
-    const res = await fetch(url, { ...options, headers });
+    const res = await window.LexFlowAPI.secureFetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'role': getRoleHeader(),
+        ...(options.headers || {}),
+      },
+      body: options.body,
+    });
 
     if (!res.ok) {
       let msg = `HTTP ${res.status}`;

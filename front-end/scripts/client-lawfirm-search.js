@@ -161,9 +161,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // ── Dynamic filter options, built from the firms the API can return ───────
+  const PRACTICE_LABELS = {
+    corporate: 'Corporate Law', family: 'Family Law', ip: 'Intellectual Property',
+    criminal: 'Criminal Law', civil: 'Civil Law', technology: 'Technology Law',
+    cyber: 'Cyber Law', immigration: 'Immigration Law',
+  };
+
+  async function populateFilterOptions() {
+    if (!locationSelect && !practiceSelect) return;
+    try {
+      const allFirms = await LexFlowAPI.lawFirms.getAll({}, role);
+
+      if (locationSelect) {
+        const locations = new Map();
+        allFirms.forEach(f => {
+          if (f.location) locations.set(f.location, f.locationLabel || f.location);
+        });
+        const current = locationSelect.value;
+        locationSelect.innerHTML = '<option value="">Any Location</option>' +
+          [...locations.entries()].map(([v, label]) => `<option value="${v}">${label}</option>`).join('');
+        if ([...locationSelect.options].some(o => o.value === current)) locationSelect.value = current;
+      }
+
+      if (practiceSelect) {
+        const areas = new Set();
+        allFirms.forEach(f => { if (f.practiceArea) areas.add(f.practiceArea); });
+        const current = practiceSelect.value;
+        practiceSelect.innerHTML = '<option value="">Any Practice Area</option>' +
+          [...areas].map(v => `<option value="${v}">${PRACTICE_LABELS[v] || v}</option>`).join('');
+        if ([...practiceSelect.options].some(o => o.value === current)) practiceSelect.value = current;
+      }
+    } catch (err) {
+      console.error('[LawFirmSearch] Filter options load failed:', err);
+    }
+  }
+
   // ── Fetch & render (main action) ───────────────────────────────────────────
   async function loadFirms() {
     showGridLoading();
+    populateFilterOptions();
     try {
       const filters = {
         keyword:      (keywordInput ? keywordInput.value.trim() : '') || undefined,

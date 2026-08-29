@@ -54,43 +54,64 @@ export class LawFirmsService implements OnModuleInit {
     // Pull every firm registered via onboarding and add it to the searchable list.
     // This guarantees firm-1 (Sharma & Associates) always appears in search results.
     const realFirms = this.usersService.getAllFirms();
-    const realFirmEntries: LawFirm[] = realFirms.map((f) => ({
-      id: f.id,                   // e.g. 'firm-1' — MUST match firmId used in consultations
-      name: f.name,               // 'Sharma & Associates'
-      subtitle: `Corporate & Civil Law • ${f.city}, ${f.state}`,
-      description:
-        `${f.name} is a full-service law firm based in ${f.city}, ${f.state}. ` +
-        `Offering expert legal counsel across corporate, civil, and litigation matters. ` +
-        `Verified and registered on the LexFlow platform.`,
-      location: f.city.toLowerCase().replace(/\s+/g, '-'),
-      locationLabel: `${f.city}, ${f.state}`,
-      practiceArea: 'corporate',
-      availability: 'AVAILABLE',
-      rating: 4.8,
-      reviews: 97,
-      price: 180,
-      experience: '10+ Years',
-      bio:
-        `${f.name} is a leading law firm headquartered at ${f.street}, ${f.city}. ` +
-        `The firm provides comprehensive legal services to individuals and businesses, ` +
-        `covering corporate advisory, dispute resolution, contract law, and compliance. ` +
-        `All consultations can be booked directly through the LexFlow platform. ` +
-        `Contact: ${f.email || f.primaryEmail || ''} | ${f.phone || ''}`,
-      practiceAreas: [
-        'Corporate Law', 'Contract Disputes', 'Commercial Litigation',
-        'Compliance & Regulatory', 'Civil Law',
-      ],
-      languages: ['English (Fluent)', 'Hindi (Fluent)'],
-      education: [
-        { school: 'National Law School of India', degree: 'B.A. LL.B. (Hons)' },
-        { school: 'Bar Council of India', degree: 'Enrolled Advocate' },
-      ],
-      avatarColor: 'indigo',
-      email:   f.primaryEmail || f.email,
-      phone:   f.phone,
-      address: `${f.street}, ${f.city}, ${f.state} - ${f.pinCode}`,
-      website: f.website,
-    }));
+
+    // Normalise a firm's practiceArea into the filter key used by the client
+    // search dropdown ('corporate' | 'family' | 'ip' | 'criminal' | ...).
+    const toFilterKey = (pa?: string): string => {
+      const v = (pa || '').toLowerCase().trim();
+      if (v === 'intellectual property') return 'ip';
+      return v;
+    };
+
+    // Display tags per practice-area key, so each firm advertises its own
+    // specialty instead of a shared hardcoded list.
+    const PRACTICE_AREA_TAGS: Record<string, string[]> = {
+      corporate:  ['Corporate Law', 'Commercial Litigation', 'Contract Disputes', 'Compliance & Regulatory'],
+      family:     ['Family Law', 'Divorce & Custody', 'Succession & Inheritance'],
+      ip:         ['Intellectual Property', 'Patent Filings', 'Trademark Disputes', 'Technology Transfer'],
+      criminal:   ['Criminal Law', 'Criminal Defense', 'Bail & Trial Matters'],
+      civil:      ['Civil Law', 'Property Disputes', 'Litigation'],
+      technology: ['Technology Law', 'IT & Startup Advisory', 'SaaS Agreements', 'Data Privacy'],
+      cyber:      ['Cyber Law', 'Cybercrime Defense', 'Digital Forensics', 'Data Breach Response'],
+      immigration:['Immigration Law', 'Visa & Citizenship Matters'],
+    };
+
+    const realFirmEntries: LawFirm[] = realFirms.map((f) => {
+      const paKey = toFilterKey(f.practiceArea) || 'civil';
+      return {
+        id: f.id,                   // e.g. 'firm-1' — MUST match firmId used in consultations
+        name: f.name,               // 'Sharma & Associates'
+        subtitle: f.subtitle || `Legal Services • ${f.city}, ${f.state}`,
+        description:
+          f.description ||
+          `${f.name} is a law firm based in ${f.city}, ${f.state}. ` +
+          `Verified and registered on the LexFlow platform.`,
+        location: (f.location || f.city.toLowerCase().replace(/\s+/g, '-')).toLowerCase(),
+        locationLabel: `${f.city}, ${f.state}`,
+        practiceArea: paKey,
+        availability: (f.availability || 'Available').toUpperCase(),
+        rating: f.rating ?? 4.5,
+        reviews: f.reviews ?? 0,
+        price: f.price ?? 200,
+        experience: f.experience || '10+ Years',
+        bio:
+          f.bio ||
+          `${f.name} is a law firm headquartered at ${f.street}, ${f.city}. ` +
+          `All consultations can be booked directly through the LexFlow platform. ` +
+          `Contact: ${f.email || f.primaryEmail || ''} | ${f.phone || ''}`,
+        practiceAreas: PRACTICE_AREA_TAGS[paKey] || [f.practiceArea || 'Civil Law'],
+        languages: ['English (Fluent)', 'Hindi (Fluent)'],
+        education: [
+          { school: 'National Law School of India', degree: 'B.A. LL.B. (Hons)' },
+          { school: 'Bar Council of India', degree: 'Enrolled Advocate' },
+        ],
+        avatarColor: 'indigo',
+        email:   f.primaryEmail || f.email,
+        phone:   f.phone,
+        address: `${f.street}, ${f.city}, ${f.state} - ${f.pinCode}`,
+        website: f.website,
+      };
+    });
 
     this.firms = realFirmEntries;
   }

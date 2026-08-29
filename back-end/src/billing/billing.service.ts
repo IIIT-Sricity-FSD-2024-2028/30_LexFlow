@@ -27,6 +27,8 @@ export interface PaymentRecord {
   paymentDate: string;
   paymentMethod: string;
   status: 'Completed';
+  /** Stored at payment creation so history persists even if client user is deleted. */
+  firmId?: string;
 }
 
 export interface ClientEntry {
@@ -220,10 +222,10 @@ export class BillingService {
     if (r === 'FIRMADMIN' && callerId) {
       const firm = this.usersService.getUserFirm(callerId);
       if (!firm) return [];
-      const firmClientIds = this.usersService
-        .getUsersByFirm(firm.id, UserRole.CLIENT)
-        .map((c) => c.id);
-      return this.payments.filter((p) => firmClientIds.includes(p.clientId));
+      // Filter by the firmId stored on the payment record at creation time.
+      // This means payment history is preserved even if the client user is
+      // later deleted by a firm admin — the records are never lost.
+      return this.payments.filter((p) => p.firmId === firm.id);
     }
 
     // SUPERADMIN / LAWYER → all payments
@@ -237,6 +239,11 @@ export class BillingService {
   recordPayment(invoiceId: string, paymentMethod: string): PaymentRecord {
     const inv = this.findOneInvoice(invoiceId);
     const existing = this.payments.find((p) => p.invoiceId === invoiceId);
+
+    // Resolve the firm that owns this invoice via the client it belongs to.
+    // Stored on the record so payment history persists after client deletion.
+    const clientFirm = this.usersService.getUserFirm(inv.clientId);
+
     const record: PaymentRecord = {
       id: existing?.id ?? generateId('PAY'),
       invoiceId: inv.id,
@@ -246,6 +253,7 @@ export class BillingService {
       paymentDate: new Date().toISOString().split('T')[0],
       paymentMethod: paymentMethod || 'Credit Card',
       status: 'Completed',
+      firmId: clientFirm?.id,
     };
     if (existing) {
       this.payments[this.payments.indexOf(existing)] = record;

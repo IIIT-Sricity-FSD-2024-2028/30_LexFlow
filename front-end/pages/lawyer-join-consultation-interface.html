@@ -1,119 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LexFlow — Consultation Room (Firm)</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../styles/lawyer-join-consultation-interface.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LexFlow — Feature Removed</title>
+  <style>
+    body { font-family: Inter, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9fafb; }
+    .card { background: #fff; border-radius: 16px; padding: 48px 40px; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,.08); max-width: 420px; }
+    h1 { font-size: 1.4rem; font-weight: 700; color: #1a2340; margin-bottom: 8px; }
+    p  { color: #6b7280; font-size: 0.95rem; margin-bottom: 24px; }
+    a  { display: inline-block; padding: 10px 24px; background: #1e2a4a; color: #fff; border-radius: 8px; text-decoration: none; font-size: 0.9rem; font-weight: 600; }
+    a:hover { background: #2d3f6a; }
+  </style>
 </head>
-<body class="light-theme">
-
-    <div class="app-layout">
-        
-        <!-- LEFT SIDEBAR (Client Contacts) -->
-        <aside class="chat-sidebar">
-            <!-- Sidebar Header -->
-            <header class="sidebar-header">
-                <div class="brand">
-                    <svg class="brand-icon" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                        <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)"/>
-                        <path d="M7 6h2v12H7V6zm4 4h2v8h-2v-8zm4-2h2v10h-2V8z" fill="#1e2a4a"/>
-                    </svg>
-                    <span class="brand-text">Client Chats</span>
-                </div>
-                <button class="btn-icon" aria-label="New Chat">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                </button>
-            </header>
-
-            <!-- Search Bar -->
-            <div class="sidebar-search">
-                <div class="search-input-wrapper">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="sidebar-search" placeholder="Search or start new chat">
-                </div>
-            </div>
-
-            <!-- Chat List (Populated via JS) -->
-            <div class="chat-list"></div>
-        </aside>
-
-        <!-- RIGHT MAIN AREA (Active Chat) -->
-        <main class="chat-main-area">
-
-            <!-- Active Chat Header -->
-            <header class="active-chat-header">
-                <div class="active-chat-info">
-                    <div class="chat-avatar">
-                        <img src="https://ui-avatars.com/api/?name=John+Doe&background=4f8ef7&color=fff" alt="John">
-                    </div>
-                    <div class="active-chat-text">
-                        <h2>John Doe (Client)</h2>
-                        <span class="status">Online</span>
-                    </div>
-                    <span class="encryption-badge" style="margin-left: 12px;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                        End-to-End Encrypted
-                    </span>
-                </div>
-                
-                <div class="header-right-actions">
-                    <button class="btn btn-danger btn-leave" id="btn-leave">End Consultation</button>
-                    <!-- Return to Dashboard Button -->
-                    <a href="firm-consultation-dashboard.html" class="btn-icon" aria-label="Exit Chat" style="margin-left:8px; text-decoration:none;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </a>
-                </div>
-            </header>
-
-            <!-- Chat Messages Flow -->
-            <div class="chat-messages bg-pattern" id="chat-messages">
-                <!-- Timestamp divider -->
-                <div class="chat-divider">
-                    <span>Today</span>
-                </div>
-
-                <div class="message outgoing">
-                    <div class="msg-bubble">
-                        Hello John. Let's discuss the property dispute clauses before we review the contract. Do you have the document handy?
-                        <span class="msg-time">10:30 AM</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Chat Input Footer -->
-            <footer class="chat-input-area">
-                <button type="button" class="btn-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                </button>
-                <form id="chat-form" class="chat-form">
-                    <input type="text" id="chat-input" placeholder="Type a message to John..." autocomplete="off">
-                </form>
-                <button type="button" class="btn-icon btn-send" id="btn-send-msg" aria-label="Send Message">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
-            </footer>
-
-        </main>
-    </div>
-
-    <script src="../scripts/storage.js"></script>
-    <script>
-        // Initialize storage on load
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!localStorage.getItem('lexflow_consultations')) {
-                initStorage().then(() => {
-                    console.log('[Chat] Storage initialized');
-                });
-            }
-        });
-    </script>
-    <script src="../scripts/lawyer-join-consultation-interface.js"></script>
+<body>
+  <div class="card">
+    <h1>Chat Feature Removed</h1>
+    <p>The chat and video consultation interface has been discontinued. Please use the Consultations dashboard to manage your consultations.</p>
+    <a href="firm-consultation-dashboard.html">Go to Consultations Dashboard</a>
+  </div>
+  <script>
+    // Auto-redirect after 3 seconds
+    setTimeout(() => { window.location.href = 'firm-consultation-dashboard.html'; }, 3000);
+  </script>
 </body>
 </html>

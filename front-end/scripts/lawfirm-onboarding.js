@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let sessionId = sessionStorage.getItem('firmOnboardingSessionId') || localStorage.getItem('firmOnboardingSessionId');
         
         if (!sessionId) {
-          const startRes = await fetch(`http://localhost:3000/users/firm-onboarding/start`, {
+          const startRes = await window.LexFlowAPI.secureFetch(`http://localhost:3000/users/firm-onboarding/start`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
           });
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // send step1 data to server
         const { zip, ...restData } = data;
-        const step1Res = await fetch(`http://localhost:3000/users/firm-onboarding/step1/${sessionId}`, {
+        const step1Res = await window.LexFlowAPI.secureFetch(`http://localhost:3000/users/firm-onboarding/step1/${sessionId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
           body: JSON.stringify({
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             phone: contactData.contactPhone // Map contactPhone back to phone
           };
 
-          const step2Res = await fetch(`http://localhost:3000/users/firm-onboarding/step2/${sessionId}`, {
+          const step2Res = await window.LexFlowAPI.secureFetch(`http://localhost:3000/users/firm-onboarding/step2/${sessionId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
             body: JSON.stringify(step2Payload),
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             confirmPassword: _val('confirm-password'),
           };
 
-          const step3Res = await fetch(`http://localhost:3000/users/firm-onboarding/step3/${sessionId}`, {
+          const step3Res = await window.LexFlowAPI.secureFetch(`http://localhost:3000/users/firm-onboarding/step3/${sessionId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', role: 'firmadmin' },
             body: JSON.stringify(step3Payload),
@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         pinCode: draft.zip || undefined,
       };
 
-      fetch('http://localhost:3000/users', {
+      window.LexFlowAPI.secureFetch('http://localhost:3000/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

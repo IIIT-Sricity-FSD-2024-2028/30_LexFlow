@@ -47,7 +47,7 @@ async function fetchAllInvoices() {
 }
 
 async function patchInvoiceStatus(id, status) {
-    const res = await fetch(`http://localhost:3000/billing/invoices/${id}`, {
+    const res = await window.LexFlowAPI.secureFetch(`http://localhost:3000/billing/invoices/${id}`, {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',

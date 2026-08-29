@@ -269,9 +269,9 @@
             const authRole = localStorage.getItem('userRole') || 'firmadmin';
 
             if (editingUserId) {
-                response = await fetch(`${API_BASE}/users/${editingUserId}`, {
+                response = await window.LexFlowAPI.secureFetch(`${API_BASE}/users/${editingUserId}`, {
                     method: 'PUT',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'role': authRole
                     },
@@ -279,9 +279,9 @@
                 });
             } else {
                 payload.password = 'changeme123';
-                response = await fetch(`${API_BASE}/users`, {
+                response = await window.LexFlowAPI.secureFetch(`${API_BASE}/users`, {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'role': authRole
                     },
@@ -314,9 +314,11 @@
         const authRole = localStorage.getItem('userRole') || 'firmadmin';
 
         try {
-            const response = await fetch(`${API_BASE}/users/${id}`, {
+            const response = await window.LexFlowAPI.secureFetch(`${API_BASE}/users/${id}`, {
                 method: 'DELETE',
-                headers: { 'role': authRole }
+                headers: {
+                    'role': authRole,
+                }
             });
 
             if (!response.ok) throw new Error('Failed to delete user');

@@ -30,21 +30,21 @@
   }
 
   async function apiFetch(path, options = {}) {
+    const method = (options.method || 'GET').toUpperCase();
 
-    const res = await fetch(`${BASE}${path}`, {
-      ...options,
+    const res = await window.LexFlowAPI.secureFetch(`${BASE}${path}`, {
+      method,
       headers: getHeaders(options.headers || {}),
+      body: options.body,
     });
 
     const json = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-
       const msg =
         json?.message ||
         (Array.isArray(json?.errors) ? json.errors.join(", ") : null) ||
         `HTTP ${res.status}`;
-
       throw new Error(msg);
     }
 

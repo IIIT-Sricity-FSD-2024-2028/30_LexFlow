@@ -25,10 +25,7 @@
                     </svg>
                     Create Invoice
                 </button>
-                <button class="bell-btn">
-                    <span class="svg-icon-placeholder" data-icon="icon_33"></span>
-                </button>
-            </div>
+        </div>
         </div>
 
         <main class="billing-main">
@@ -292,11 +289,15 @@
     <script src="../scripts/storage-service.js"></script>
     <script src="../scripts/auth.js"></script>
     <script>
-        // RBAC: Only firmAdmin and lawyer can access billing — interns are blocked
-        const currentUser = AuthService.requireAuth(['firmAdmin', 'firmadmin', 'lawyer']);
+        // RBAC: Only firmAdmin and lawyer can access billing.
+        // Interns are authenticated but not allowed — redirect them to dashboard
+        // instead of signing them out so their session is preserved.
+        const currentUser = AuthService.requireAuthWithFallback(
+            ['firmAdmin', 'firmadmin', 'lawyer'],
+            'firm-consultation-dashboard.html'
+        );
         if (!currentUser) {
-            // requireAuth already redirects to sign-in, but stop script execution
-            throw new Error('Access denied');
+            throw new Error('Access denied — redirecting');
         }
     </script>
     <script src="../scripts/sidebar.js"></script>

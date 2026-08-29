@@ -138,7 +138,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
         <div class="card-actions">
-          <button class="btn btn-primary btn-join" data-id="${cons.id}" id="btn-join-${cons.id}">Consultation</button>
           <button class="btn btn-outline btn-view-details" data-id="${cons.id}" id="btn-details-${cons.id}">View Details</button>
           <button class="btn btn-cancel-text btn-cancel" data-id="${cons.id}" id="btn-cancel-${cons.id}">Cancel</button>
         </div>`;
@@ -245,7 +244,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('det-status').innerHTML = '—';
     document.getElementById('det-desc').textContent = '—';
     document.getElementById('det-notes-row').style.display = 'none';
-    document.getElementById('det-join-btn').style.display = 'none';
     detailsOverlay.classList.add('active');
     document.body.style.overflow = 'hidden';
 
@@ -269,14 +267,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('det-notes').textContent = cons.notes;
         document.getElementById('det-notes-row').style.display = 'flex';
       }
-      if (isJoinable) {
-        const joinBtn = document.getElementById('det-join-btn');
-        joinBtn.style.display = 'inline-flex';
-        joinBtn.onclick = () => {
-          sessionStorage.setItem('active_cons_id', cons.id);
-          window.location.href = 'client-join-consultation-interface.html';
-        };
-      }
+      // Join consultation chat feature has been removed.
+      // The det-join-btn remains hidden (display:none) in all cases.
     } catch (err) {
       document.getElementById('det-lawyer').textContent = `Error: ${err.message}`;
     }
@@ -284,16 +276,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Global click delegation ────────────────────────────────────────────────
   document.addEventListener('click', async (e) => {
-    const btnJoin    = e.target.closest('.btn-join');
     const btnDetails = e.target.closest('.btn-view-details');
     const btnCancel  = e.target.closest('.btn-cancel');
     const linkAction = e.target.closest('.link-action, .link-id');
 
-    if (btnJoin) {
-      const id = btnJoin.dataset.id;
-      sessionStorage.setItem('active_cons_id', id);
-      window.location.href = 'client-join-consultation-interface.html';
-    }
 
     if (btnDetails) {
       e.preventDefault();

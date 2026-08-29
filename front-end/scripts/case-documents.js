@@ -499,7 +499,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
 
       // Persist to backend — no localStorage involved
       try {
-        await fetch("http://localhost:3000/documents/activity", {
+        await window.LexFlowAPI.secureFetch("http://localhost:3000/documents/activity", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -757,11 +757,11 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         }
 
         try {
-          const resp = await fetch(`http://localhost:3000/documents/${doc.id}`, {
+          const resp = await window.LexFlowAPI.secureFetch(`http://localhost:3000/documents/${doc.id}`, {
             method: "DELETE",
             headers: {
               "role": ROLE,
-              "x-user-email": CURRENT_USER_EMAIL
+              "x-user-email": CURRENT_USER_EMAIL,
             }
           });
 
@@ -916,11 +916,11 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       updSaveBtn.textContent = 'Saving...';
 
       try {
-        const resp = await fetch(`http://localhost:3000/documents/${_updDoc.id}`, {
+        const resp = await window.LexFlowAPI.secureFetch(`http://localhost:3000/documents/${_updDoc.id}`, {
           method: "PATCH",
           headers: {
             "role": ROLE,
-            "x-user-email": CURRENT_USER_EMAIL
+            "x-user-email": CURRENT_USER_EMAIL,
           },
           body: patchFormData
         });
@@ -1228,7 +1228,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         submitBtn.textContent = 'Uploading...';
 
         try {
-          const resp = await fetch("http://localhost:3000/documents", {
+          const resp = await window.LexFlowAPI.secureFetch("http://localhost:3000/documents", {
             method: "POST",
             headers: {
               "role": ROLE,

@@ -8,6 +8,12 @@ const AuthService = (() => {
     return 'pages/sign-in.html';
   }
 
+  function getDashboardPath() {
+    const pathname = (window.location && window.location.pathname) || '';
+    if (pathname.includes('/pages/')) return 'firm-consultation-dashboard.html';
+    return 'pages/firm-consultation-dashboard.html';
+  }
+
   return {
     getCurrentUser() {
       try {
@@ -71,6 +77,37 @@ const AuthService = (() => {
         
         if (!allowedLower.includes(userRoleLower)) {
           window.location.href = getSignInPath();
+          return null;
+        }
+      }
+
+      return user;
+    },
+
+    /**
+     * Like requireAuth but, when the user IS authenticated yet has an
+     * insufficient role, redirects to `fallbackUrl` instead of sign-in.
+     * This keeps the session alive for roles that simply shouldn't see a page.
+     *
+     * @param {string[]} allowedRoles  - Roles that may access the page.
+     * @param {string}   fallbackUrl  - Where to send ineligible (but logged-in) users.
+     */
+    requireAuthWithFallback(allowedRoles, fallbackUrl) {
+      const user = this.getCurrentUser();
+
+      if (!user) {
+        // Not logged in at all → go to sign-in
+        window.location.href = getSignInPath();
+        return null;
+      }
+
+      if (allowedRoles && allowedRoles.length > 0) {
+        const userRoleLower = (user.role || '').toLowerCase();
+        const allowedLower = allowedRoles.map(r => r.toLowerCase());
+
+        if (!allowedLower.includes(userRoleLower)) {
+          // Logged in but wrong role → redirect to fallback (e.g. dashboard)
+          window.location.href = fallbackUrl || getDashboardPath();
           return null;
         }
       }

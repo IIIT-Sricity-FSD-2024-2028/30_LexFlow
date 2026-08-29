@@ -9,6 +9,11 @@ import { Request, Response } from 'express';
 import { MulterError } from 'multer';
 import { AppLoggerService } from '../logger/logger.service';
 
+/** Shape of errors thrown by the `csurf` package. */
+interface CsurfError extends Error {
+  code: string;
+}
+
 /**
  * Global error handling middleware (exception filter).
  *
@@ -61,6 +66,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
         return { status, body: { statusCode: status, message: payload } };
       }
       return { status, body: payload as Record<string, unknown> };
+    }
+
+    // CSRF token validation failure (thrown by the `csurf` package)
+    // csurf throws a plain Error (not an HttpException) with code='EBADCSRFTOKEN'
+    if (
+      exception instanceof Error &&
+      (exception as CsurfError).code === 'EBADCSRFTOKEN'
+    ) {
+      return {
+        status: HttpStatus.FORBIDDEN,
+        body: {
+          statusCode: HttpStatus.FORBIDDEN,
+          message: 'invalid csrf token',
+          error: 'Forbidden',
+        },
+      };
     }
 
     // File upload middleware (multer) failures → meaningful client errors

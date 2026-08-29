@@ -41,69 +41,57 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  async function fetchInvoices() {
-    const res = await fetch(`${API_BASE}/invoices`, {
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
+  async function apiFetch(path, options = {}) {
+    const method = (options.method || 'GET').toUpperCase();
+
+    const res = await window.LexFlowAPI.secureFetch(`${API_BASE}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        role: "firmadmin",
+        "x-user-id": getCallerId(),
+        ...(options.headers || {}),
+      },
+      body: options.body,
     });
-    const json = await res.json();
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.message || `HTTP ${res.status}`);
+    return json;
+  }
+
+  async function fetchInvoices() {
+    const json = await apiFetch("/invoices");
     return json.data || [];
   }
 
   async function fetchPayments() {
-    const res = await fetch(`${API_BASE}/payments`, {
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
-    });
-    const json = await res.json();
+    const json = await apiFetch("/payments");
     return json.data || [];
   }
 
   async function fetchClients() {
-    const res = await fetch(`${API_BASE}/clients`, {
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
-    });
-    if (!res.ok) throw new Error("Failed to fetch clients");
-    const json = await res.json();
+    const json = await apiFetch("/clients");
     return json.data || [];
   }
 
   async function createInvoice(payload) {
-    const res = await fetch(`${API_BASE}/invoices`, {
+    const json = await apiFetch("/invoices", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        role: "firmadmin",
-        "x-user-id": getCallerId()
-      },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.message || "Create invoice failed");
     return json.data;
   }
 
   async function updateInvoice(id, payload) {
-    const res = await fetch(`${API_BASE}/invoices/${id}`, {
+    const json = await apiFetch(`/invoices/${id}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        role: "firmadmin",
-        "x-user-id": getCallerId()
-      },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.message || "Update failed");
     return json.data;
   }
 
   async function deleteInvoice(id) {
-    const res = await fetch(`${API_BASE}/invoices/${id}`, {
-      method: "DELETE",
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.message || "Delete failed");
-    return json;
+    return apiFetch(`/invoices/${id}`, { method: "DELETE" });
   }
 
   let invoices = [];

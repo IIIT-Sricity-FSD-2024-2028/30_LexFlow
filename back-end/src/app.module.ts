@@ -10,7 +10,6 @@ import { TasksModule } from './tasks/tasks.module';
 import { LawFirmsModule } from './law-firms/law-firms.module';
 import { AppLoggerService } from './common/logger/logger.service';
 import { LoggingMiddleware } from './common/middleware/logging.middleware';
-import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 @Module({
@@ -26,7 +25,9 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
   controllers: [AppController],
   providers: [
     AppLoggerService,
-    // Global error handling middleware (exception filter)
+    // ── Global error-handling middleware (exception filter) ──────────────────
+    // Catches all unhandled exceptions, logs them via AppLoggerService, and
+    // returns a consistent JSON error shape to API consumers.
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
@@ -34,8 +35,10 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
   ],
 })
 export class AppModule implements NestModule {
-  // ── Router-level middleware, applied to every route of every controller ────
+  // ── Router-level middleware ────────────────────────────────────────────────
+  // LoggingMiddleware logs method, URL, status code, duration, and caller IP
+  // for every incoming request. Security headers are handled by Helmet (main.ts).
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(SecurityHeadersMiddleware, LoggingMiddleware).forRoutes('*');
+    consumer.apply(LoggingMiddleware).forRoutes('*');
   }
 }
