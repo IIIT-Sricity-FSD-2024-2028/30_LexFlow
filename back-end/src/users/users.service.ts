@@ -337,7 +337,12 @@ export class UsersService {
     if (userIndex === -1) {
       throw new NotFoundException('User not found');
     }
-    this.users.splice(userIndex, 1);
+    const user = this.users[userIndex];
+    if (user.role === UserRole.CLIENT) {
+      user.firmId = undefined;
+    } else {
+      this.users.splice(userIndex, 1);
+    }
   }
 
   login(loginUserDto: LoginUserDto): UserResponseDto {

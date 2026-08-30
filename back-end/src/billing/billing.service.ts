@@ -10,6 +10,7 @@ export interface InvoiceRecord {
   clientId: string;
   clientName: string;
   clientEmail: string;
+  firmId?: string;
   caseName: string;
   advocateName: string;
   amount: number;
@@ -23,6 +24,7 @@ export interface PaymentRecord {
   invoiceId: string;
   clientId: string;
   clientName: string;
+  firmId?: string;
   amount: number;
   paymentDate: string;
   paymentMethod: string;
@@ -102,11 +104,13 @@ export class BillingService {
   // ── Invoices ──────────────────────────────────────────────────────────────
   createInvoice(dto: CreateInvoiceDto): InvoiceRecord {
     const client = this.resolveClient(dto.clientId);
+    const firm = this.usersService.getUserFirm(client.id);
     const invoice: InvoiceRecord = {
       id: generateId('INV'),
       clientId: client.id,
       clientName: client.fullName,
       clientEmail: client.email,
+      firmId: firm?.id,
       caseName: dto.caseName,
       advocateName: dto.advocateName || 'Awaiting Assignment',
       amount: dto.amount,
@@ -223,7 +227,7 @@ export class BillingService {
       const firmClientIds = this.usersService
         .getUsersByFirm(firm.id, UserRole.CLIENT)
         .map((c) => c.id);
-      return this.payments.filter((p) => firmClientIds.includes(p.clientId));
+      return this.payments.filter((p) => p.firmId === firm.id || firmClientIds.includes(p.clientId));
     }
 
     // SUPERADMIN / LAWYER → all payments
@@ -242,6 +246,7 @@ export class BillingService {
       invoiceId: inv.id,
       clientId: inv.clientId,
       clientName: inv.clientName,
+      firmId: inv.firmId,
       amount: inv.amount,
       paymentDate: new Date().toISOString().split('T')[0],
       paymentMethod: paymentMethod || 'Credit Card',
