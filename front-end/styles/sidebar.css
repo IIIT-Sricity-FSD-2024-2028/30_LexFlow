@@ -357,3 +357,37 @@ table {
         margin-left: 64px;
     }
 }
+/* ---------- Firm tier badge (sidebar bottom) ---------- */
+.tier-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 16px 10px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-sidebar-active, #ffffff);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.tier-badge[hidden] {
+    display: none;
+}
+
+.tier-badge[data-tier="Starter"] {
+    background: rgba(59, 130, 246, 0.18);
+    border-color: rgba(59, 130, 246, 0.45);
+}
+
+.tier-badge[data-tier="Growth"] {
+    background: rgba(16, 185, 129, 0.18);
+    border-color: rgba(16, 185, 129, 0.45);
+}
+
+.tier-badge[data-tier="Enterprise"] {
+    background: rgba(200, 169, 81, 0.22);
+    border-color: rgba(200, 169, 81, 0.55);
+}

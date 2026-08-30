@@ -16,8 +16,18 @@ interface User {
   availability?: 'available' | 'unavailable';
 }
 
+export type FirmTier = 'Starter' | 'Growth' | 'Enterprise';
+
+/** Hard seat caps per tier. Enterprise is capped at 10,000 (treated as unlimited). */
+export const TIER_LIMITS: Record<FirmTier, { lawyers: number; interns: number }> = {
+  Starter: { lawyers: 3, interns: 2 },
+  Growth: { lawyers: 25, interns: 10000 },
+  Enterprise: { lawyers: 10000, interns: 10000 },
+};
+
 interface Firm {
   id: string;
+  tier: FirmTier;
   name: string;
   email: string;
   phone: string;
@@ -127,6 +137,7 @@ export class UsersService {
     const seedFirms: Firm[] = [
       {
         id: 'firm-1',
+        tier: 'Growth',
         name: 'Sharma & Associates',
         email: 'contact@sharma.law',
         phone: '9876543210',
@@ -152,6 +163,7 @@ export class UsersService {
       },
       {
         id: 'firm-2',
+        tier: 'Growth',
         name: 'Khanna & Co',
         email: 'info@khanna.law',
         phone: '9988776655',
@@ -177,6 +189,7 @@ export class UsersService {
       },
       {
         id: 'firm-3',
+        tier: 'Growth',
         name: 'Tech Legal Bangalore',
         email: 'blr@techlegal.test',
         phone: '8877665544',
@@ -202,6 +215,7 @@ export class UsersService {
       },
       {
         id: 'firm-4',
+        tier: 'Growth',
         name: 'Coastal Legal Chennai',
         email: 'chennai@coastal.test',
         phone: '7766554433',
@@ -227,6 +241,7 @@ export class UsersService {
       },
       {
         id: 'firm-5',
+        tier: 'Growth',
         name: 'Cyber Law Experts Hyderabad',
         email: 'hyd@cyber.test',
         phone: '6655443322',
@@ -270,6 +285,12 @@ export class UsersService {
 
     if (existingUser) {
       throw new ConflictException('Email is already registered');
+    }
+
+    // Enforce tier seat caps for firm members (lawyers / interns).
+    // Only ACTIVE members count toward the cap.
+    if (createUserDto.firmId && (createUserDto.role === UserRole.LAWYER || createUserDto.role === UserRole.INTERN)) {
+      this.assertSeatAvailable(createUserDto.firmId, createUserDto.role);
     }
 
     const user: User = {
@@ -319,17 +340,62 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    if (updateUserDto.email && updateUserDto.email !== this.users[userIndex].email) {
-      const existingUser = this.users.find((u) => u.email.toLowerCase() === updateUserDto.email!.toLowerCase());
+    if (updateUserDto.email) {
+      const existingUser = this.users.find(
+        (u) => u.id !== id && u.email.toLowerCase() === updateUserDto.email!.toLowerCase()
+      );
       if (existingUser) {
         throw new ConflictException('Email is already registered');
       }
     }
 
     const updatedUser = { ...this.users[userIndex], ...updateUserDto };
+
+    // Enforce tier seat caps when the update would ADD an active lawyer/intern
+    // (new membership, role change, reactivation, or move from another firm).
+    const previous = this.users[userIndex];
+    const becomesActiveMember =
+      updatedUser.accountStatus === 'active' &&
+      (updatedUser.role === UserRole.LAWYER || updatedUser.role === UserRole.INTERN) &&
+      !!updatedUser.firmId &&
+      (previous.accountStatus !== 'active' ||
+        previous.role !== updatedUser.role ||
+        previous.firmId !== updatedUser.firmId);
+
+    if (becomesActiveMember) {
+      this.assertSeatAvailable(updatedUser.firmId!, updatedUser.role, updatedUser.id);
+    }
+
     this.users[userIndex] = updatedUser;
 
     return this.mapToResponse(updatedUser);
+  }
+
+  /**
+   * Throws BadRequestException if the firm's tier has no free seat for the
+   * given role. Only ACTIVE members count toward the cap.
+   * `excludeUserId` lets an existing user keep the seat they already occupy.
+   */
+  private assertSeatAvailable(firmId: string, role: UserRole, excludeUserId?: string): void {
+    const firm = this.firms.find((f) => f.id === firmId);
+    if (!firm) {
+      throw new BadRequestException('Firm not found for the provided firmId');
+    }
+    const limits = TIER_LIMITS[firm.tier];
+    const roleLabel = role === UserRole.LAWYER ? 'lawyer' : 'intern';
+    const limit = role === UserRole.LAWYER ? limits.lawyers : limits.interns;
+    const currentCount = this.users.filter(
+      (u) => u.id !== excludeUserId &&
+        u.firmId === firmId &&
+        u.role === role &&
+        u.accountStatus === 'active',
+    ).length;
+
+    if (currentCount >= limit) {
+      throw new BadRequestException(
+        `Seat limit reached for this tier: ${firm.tier} allows a maximum of ${limit} ${roleLabel}s per firm. Upgrade the firm's tier to add more.`,
+      );
+    }
   }
 
   deleteUser(id: string): void {
@@ -490,9 +556,11 @@ export class UsersService {
 
     const data = session.data;
 
-    // Create the Firm
+    // Create the Firm (tier defaults to Starter unless explicitly provided during onboarding)
+    const tier: FirmTier = data.tier && TIER_LIMITS[data.tier] ? data.tier : 'Starter';
     const firm: Firm = {
       id: `firm-${this.firmIdCounter++}`,
+      tier,
       name: data.fullName!,
       email: data.email!,
       phone: data.phone!,
@@ -525,6 +593,7 @@ export class UsersService {
 
     return {
       firmId: firm.id,
+      tier: firm.tier,
       name: firm.name,
       primaryEmail: firm.primaryEmail || firm.email,
       adminUserId: firmAdminUser.id,
@@ -551,6 +620,23 @@ export class UsersService {
   getAllFirms(): Firm[] {
     return this.firms;
   }
+
+  /**
+   * Superadmin: change the pricing tier of any law firm at any time.
+   */
+  updateFirmTier(firmId: string, tier: FirmTier): Firm {
+    const firm = this.firms.find((f) => f.id === firmId);
+    if (!firm) {
+      throw new NotFoundException('Firm not found');
+    }
+    if (!TIER_LIMITS[tier]) {
+      throw new BadRequestException('Invalid tier. Allowed values: Starter, Growth, Enterprise');
+    }
+    firm.tier = tier;
+    firm.updatedAt = new Date();
+    return firm;
+  }
+
   getAllClients(): User[] {
     return this.users.filter(u => u.role === UserRole.CLIENT);
   }

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsEmail, IsOptional, IsUrl, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, IsEmail, IsOptional, IsUrl, MinLength, IsIn } from 'class-validator';
 
 export class FirmOnboardingDto {
   // ===== Step 1: Firm Info (Required) =====
@@ -130,4 +130,14 @@ export class FirmOnboardingDto {
   @IsOptional()
   @IsString()
   confirmPassword?: string;
+
+  // ===== Optional: Pricing tier =====
+  @ApiProperty({
+    description: 'Pricing tier selected during onboarding. Defaults to Starter.',
+    enum: ['Starter', 'Growth', 'Enterprise'],
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(['Starter', 'Growth', 'Enterprise'])
+  tier?: 'Starter' | 'Growth' | 'Enterprise';
 }

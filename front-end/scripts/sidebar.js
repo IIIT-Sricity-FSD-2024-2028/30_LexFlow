@@ -184,6 +184,28 @@
         if (userMgmtLink) userMgmtLink.closest('a').style.display = 'none';
       }
 
+      // Firm tier badge (firmAdmin / lawyer / intern only)
+      const API_BASE = window.__API_BASE__ || 'http://localhost:3000';
+      const tierBadge = container.querySelector('#tier-badge');
+      if (isFirmStaff && tierBadge && currentUser && currentUser.firmId) {
+        try {
+          const res = await fetch(`${API_BASE}/users/firms/all`, {
+            headers: { 'role': userRole.toLowerCase() }
+          });
+          if (res.ok) {
+            const firms = await res.json();
+            const firm = (firms || []).find((f) => f.id === currentUser.firmId);
+            if (firm && firm.tier) {
+              tierBadge.textContent = `Tier: ${firm.tier}`;
+              tierBadge.dataset.tier = firm.tier;
+              tierBadge.hidden = false;
+            }
+          }
+        } catch (err) {
+          console.warn('[sidebar.js] Could not load firm tier:', err);
+        }
+      }
+
       // Shared logout behavior for all pages using the common sidebar
       const logoutBtn = document.getElementById('logout-btn');
       if (logoutBtn) {

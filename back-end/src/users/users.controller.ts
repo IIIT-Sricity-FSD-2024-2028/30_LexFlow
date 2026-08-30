@@ -17,6 +17,7 @@ import {
   ApiResponse,
   ApiQuery,
   ApiHeader,
+  ApiParam,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto, UpdateUserDto } from './dto';
@@ -153,6 +154,32 @@ export class UsersController {
   })
   getAllFirms(): any {
     return this.usersService.getAllFirms();
+  }
+
+  /**
+   * Superadmin: change the pricing tier of a law firm
+   * PUT /users/firms/:firmId/tier
+   */
+  @Put('firms/:firmId/tier')
+  @Roles(UserRole.SUPERADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Update a firm tier (superadmin only)',
+    description: 'Change the pricing tier (Starter, Growth, Enterprise) of any law firm at any time.',
+  })
+  @ApiParam({ name: 'firmId', example: 'firm-1', description: 'Law firm ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tier updated successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid tier value' })
+  @ApiResponse({ status: 403, description: 'Forbidden - superadmin only' })
+  @ApiResponse({ status: 404, description: 'Firm not found' })
+  updateFirmTier(
+    @Param('firmId') firmId: string,
+    @Body() body: { tier: 'Starter' | 'Growth' | 'Enterprise' },
+  ): any {
+    return this.usersService.updateFirmTier(firmId, body.tier);
   }
 
 

@@ -76,6 +76,22 @@ window.LexFlowSuperAdminStorage = (() => {
         }
     };
 
+    const updateFirmTier = async (firmId, tier) => {
+        try {
+            const res = await fetch(`http://localhost:3000/users/firms/${firmId}/tier`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', role: _getRole() },
+                body: JSON.stringify({ tier })
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(json.message || 'Failed to update tier');
+            return json;
+        } catch (err) {
+            alert('Failed to update firm tier: ' + err.message);
+            return null;
+        }
+    };
+
     const deleteFirm = async (firmId) => {
         try {
             await window.LexFlowAPI.users.remove(firmId, _getRole());
@@ -187,7 +203,7 @@ window.LexFlowSuperAdminStorage = (() => {
     // --- Public API ---
     return {
         ensureStorage,
-        getFirms, getFirmById, addFirm, updateFirm, deleteFirm, saveFirms,
+        getFirms, getFirmById, addFirm, updateFirm, updateFirmTier, deleteFirm, saveFirms,
         getLawyers, getLawyerById, saveLawyers,
         getUsers, getUserById, saveUsers,
         getConsultations,

@@ -172,6 +172,8 @@ async function initFirmEdit(db) {
             document.getElementById('id_admin_user').value = firm.admin || '';
             document.getElementById('id_description').value = firm.description || '';
             document.getElementById('id_reg_no').value = firm.reg_no || '';
+            const tierSelect = document.getElementById('id_tier');
+            if (tierSelect) tierSelect.value = firm.tier || 'Starter';
         }
     }
 
@@ -185,7 +187,11 @@ async function initFirmEdit(db) {
             reg_no: document.getElementById('id_reg_no')?.value || ''
         };
         if (isNew) await SA_Storage.addFirm(firmData);
-        else await SA_Storage.updateFirm(firmId, firmData);
+        else {
+            await SA_Storage.updateFirm(firmId, firmData);
+            const tierSelect = document.getElementById('id_tier');
+            if (tierSelect && tierSelect.value) await SA_Storage.updateFirmTier(firmId, tierSelect.value);
+        }
         alert('Firm saved successfully.');
         if (action === '_save') window.location.href = 'firm-list.html';
         else window.location.reload();

@@ -8,6 +8,12 @@ export class FirmOnboardingResponseDto {
   firmId!: string;
 
   @ApiProperty({
+    description: 'Pricing tier of the firm',
+    example: 'Starter',
+  })
+  tier!: 'Starter' | 'Growth' | 'Enterprise';
+
+  @ApiProperty({
     description: 'Firm name',
     example: 'Sharma & Associates',
   })

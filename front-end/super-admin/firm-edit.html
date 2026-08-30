@@ -73,6 +73,20 @@
 
                     <div class="form-row">
                         <div>
+                            <label class="required" for="id_tier">Pricing tier:</label>
+                            <div class="field-box">
+                                <select name="tier" id="id_tier" style="max-width:200px;">
+                                    <option value="Starter">Starter (3 lawyers / 2 interns)</option>
+                                    <option value="Growth">Growth (25 lawyers / unlimited interns)</option>
+                                    <option value="Enterprise">Enterprise (custom, up to 10,000 seats)</option>
+                                </select>
+                                <span class="help">Seat limits for this firm are enforced by its tier. Changing the tier takes effect immediately.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
                             <label class="required" for="id_admin_user">Admin user:</label>
                             <div class="field-box">
                                 <div class="foreign-key-widget">
