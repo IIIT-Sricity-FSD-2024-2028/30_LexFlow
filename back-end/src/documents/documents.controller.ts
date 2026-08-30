@@ -13,8 +13,6 @@ import {
   UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
 import { ActivityLogService, ActivityEntry } from './activity-log.service';
 import { DocumentsService, Document } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
@@ -30,6 +28,8 @@ import {
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../users/dto';
+import { AppLoggerService } from '../common/logger/logger.service';
+import { documentUploadOptions, MAX_UPLOAD_BYTES } from '../common/multer/document-upload.options';
 
 @ApiTags('documents')
 @Controller('documents')
@@ -38,6 +38,7 @@ export class DocumentsController {
   constructor(
     private readonly documentsService: DocumentsService,
     private readonly activityLogService: ActivityLogService,
+    private readonly logger: AppLoggerService,
   ) {}
 
   // ─── Activity Log Routes ─────────────────────────────────────────────────
@@ -52,6 +53,7 @@ export class DocumentsController {
   }
 
   @Post('activity')
+  // Any authenticated role may post activity — clients log "viewed" too.
   @ApiOperation({ summary: 'Append a new activity entry' })
   @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
   @ApiResponse({ status: 201, description: 'Activity entry created.' })
@@ -71,24 +73,20 @@ export class DocumentsController {
   @ApiHeader({ name: 'x-user-email', description: 'Uploader email', required: false })
   @ApiResponse({ status: 201, description: 'The document has been successfully created.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: join(__dirname, '..', '..', 'data', 'docs'),
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          cb(null, `${file.originalname.replace(ext, '')}-${uniqueSuffix}${ext}`);
-        },
-      }),
-    }),
-  )
+  @UseInterceptors(FileInterceptor('file', documentUploadOptions()))
   create(
     @Body() createDocumentDto: CreateDocumentDto,
     @Headers('x-user-email') email?: string,
     @UploadedFile() file?: Express.Multer.File,
   ): Document {
     const uploaderEmail = email || 'unknown@lexflow.in';
+    this.logger.upload('Document uploaded', {
+      uploader: uploaderEmail,
+      caseId: createDocumentDto.caseId,
+      filename: file?.originalname,
+      size: file?.size,
+      maxAllowed: MAX_UPLOAD_BYTES,
+    });
     return this.documentsService.create(createDocumentDto, uploaderEmail, file);
   }
 
@@ -118,23 +116,21 @@ export class DocumentsController {
   @ApiResponse({ status: 200, description: 'The document has been successfully updated.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'Document not found.' })
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: join(__dirname, '..', '..', 'data', 'docs'),
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          cb(null, `${file.originalname.replace(ext, '')}-${uniqueSuffix}${ext}`);
-        },
-      }),
-    }),
-  )
+  @UseInterceptors(FileInterceptor('file', documentUploadOptions()))
   update(
     @Param('id') id: string,
     @Body() updateDocumentDto: UpdateDocumentDto,
+    @Headers('x-user-email') email?: string,
     @UploadedFile() file?: Express.Multer.File,
   ): Document {
+    if (file) {
+      this.logger.upload('Document file replaced', {
+        documentId: id,
+        by: email || 'unknown@lexflow.in',
+        filename: file.originalname,
+        size: file.size,
+      });
+    }
     return this.documentsService.update(id, updateDocumentDto, file);
   }
 

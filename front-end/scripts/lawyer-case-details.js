@@ -66,6 +66,13 @@ async function initCaseDetails() {
     renderClientInfo();
     renderPendingTasks();
     renderTimeline();
+    // Load this case's documents from the backend
+    try {
+      const resp = await fetch(`http://localhost:3000/documents?caseId=${currentCase.id}`, {
+        headers: { role: currentUser.role },
+      });
+      if (resp.ok) currentCase.documents = await resp.json();
+    } catch (e) { console.warn("Could not load case documents:", e); }
     renderDocuments();
     renderPendingBanner();
   } catch (e) {

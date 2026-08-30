@@ -91,16 +91,19 @@
   const requestConsultationBtn = document.getElementById('request-consultation-btn');
   if (requestConsultationBtn) {
     requestConsultationBtn.addEventListener('click', function () {
-      const currentUser = localStorage.getItem('currentUser');
-      if (currentUser) {
+      const currentUserStr = localStorage.getItem('currentUser');
+      let currentUser = null;
+      if (currentUserStr) {
+        try { currentUser = JSON.parse(currentUserStr); } catch (e) {}
+      }
+
+      if (currentUser && currentUser.role && currentUser.role.toLowerCase() === 'client') {
         window.location.href = './pages/client-consultation-dashboard.html';
         return;
       }
 
-      const shouldLogin = window.confirm('Please login first to request a consultation. Go to Sign In now?');
-      if (shouldLogin) {
-        window.location.href = getSignInPath();
-      }
+      localStorage.setItem('loginRole', 'client');
+      window.location.href = getSignInPath();
     });
   }
 

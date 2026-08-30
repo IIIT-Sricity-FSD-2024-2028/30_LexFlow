@@ -67,6 +67,13 @@ async function initCaseDetails() {
     allData.users = users;
 
     if (!currentCase.timeline) currentCase.timeline = [];
+    // Load this case's documents from the backend
+    try {
+      const resp = await fetch(`http://localhost:3000/documents?caseId=${currentCase.id}`, {
+        headers: { role },
+      });
+      if (resp.ok) currentCase.documents = await resp.json();
+    } catch (e) { console.warn("Could not load case documents:", e); }
     if (!currentCase.documents) currentCase.documents = [];
     if (!currentCase.client || !currentCase.client.contact || currentCase.client.contact === "Data Pending") {
       if (currentCase.client_id && window.LexFlowAPI) {

@@ -3,12 +3,31 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { AppModule } from './app.module';
+import helmet from 'helmet';
 import * as fs from 'fs';
 import * as path from 'path';
+import { AppModule } from './app.module';
+import { AppLoggerService } from './common/logger/logger.service';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { csrfMiddleware } from './common/middleware/csrf.middleware';
+import { staticFilesMiddleware } from './common/middleware/static-files.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const logger = app.get(AppLoggerService);
+
+  // ── Security: Helmet HTTP headers ──────────────────────────────────────────
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // static docs are loaded cross-origin by the frontend
+  }));
+
+  // ── Security: CSRF (double-submit cookie; enforced only when a session cookie exists) ──
+  app.use(csrfMiddleware);
+
+  // ── Logging + Error Handling (global) ──────────────────────────────────────
+  app.useGlobalInterceptors(new LoggingInterceptor(logger));
+  app.useGlobalFilters(new AllExceptionsFilter(logger));
 
   // ── Global Validation Pipe ─────────────────────────────────────────────────
   app.useGlobalPipes(
@@ -47,7 +66,8 @@ async function bootstrap() {
     ],
   });
 
-  // Serve static files from the data/docs directory
+  // Serve static files from the data/docs directory (with access logging + 404 handling)
+  app.use('/data/docs', staticFilesMiddleware(logger));
   app.useStaticAssets(path.join(__dirname, '..', 'data', 'docs'), {
     prefix: '/data/docs/',
   });

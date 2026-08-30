@@ -283,6 +283,60 @@
         ]
       }
     },
+    "/users/firms/{firmId}/tier": {
+      "put": {
+        "description": "Change the pricing tier (Starter, Growth, Enterprise) of any law firm at any time.",
+        "operationId": "UsersController_updateFirmTier",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin",
+                "user"
+              ]
+            }
+          },
+          {
+            "name": "firmId",
+            "required": true,
+            "in": "path",
+            "description": "Law firm ID",
+            "schema": {
+              "example": "firm-1",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tier updated successfully"
+          },
+          "400": {
+            "description": "Invalid tier value"
+          },
+          "403": {
+            "description": "Forbidden - superadmin only"
+          },
+          "404": {
+            "description": "Firm not found"
+          }
+        },
+        "summary": "Update a firm tier (superadmin only)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/users/lawyers": {
       "get": {
         "description": "Returns all lawyers belonging to the given firm. firmadmin must pass their firmId via x-firm-id header — only lawyers with a matching firmId are returned. superadmin can omit the header to get all lawyers.",
@@ -1558,6 +1612,14 @@
             }
           },
           {
+            "name": "x-user-email",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "role",
             "in": "header",
             "description": "User role for RBAC",
@@ -2692,6 +2754,15 @@
             "type": "string",
             "description": "Confirm password",
             "example": "SecurePass@123"
+          },
+          "tier": {
+            "type": "string",
+            "description": "Pricing tier selected during onboarding. Defaults to Starter.",
+            "enum": [
+              "Starter",
+              "Growth",
+              "Enterprise"
+            ]
           }
         }
       },
@@ -2702,6 +2773,11 @@
             "type": "string",
             "description": "Firm ID",
             "example": "firm-1"
+          },
+          "tier": {
+            "type": "string",
+            "description": "Pricing tier of the firm",
+            "example": "Starter"
           },
           "name": {
             "type": "string",
@@ -2737,6 +2813,7 @@
         },
         "required": [
           "firmId",
+          "tier",
           "name",
           "primaryEmail",
           "adminUserId",

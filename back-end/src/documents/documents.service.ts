@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export class Document {
   id: string;
@@ -192,10 +194,39 @@ const SEED_DOCUMENTS: Document[] = [
   },
 ];
 
+const STORE_FILE = path.join(__dirname, '..', '..', 'data', 'documents.json');
+
 @Injectable()
 export class DocumentsService {
-  private documents: Document[] = [...SEED_DOCUMENTS];
+  private documents: Document[];
   private idCounter = 215; // next DOC id after seed
+
+  constructor() {
+    // Survive restarts: hydrate from data/documents.json when present,
+    // fall back to seeds on first run.
+    this.documents = [...SEED_DOCUMENTS];
+    try {
+      const raw = JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'));
+      if (Array.isArray(raw) && raw.length) {
+        this.documents = raw;
+        const maxId = Math.max(
+          0,
+          ...raw.map((d: Document) => Number(String(d.id).replace('DOC-', '')) || 0),
+        );
+        this.idCounter = maxId + 1;
+      }
+    } catch {
+      /* first run — keep seeds */
+    }
+  }
+
+  private persist(): void {
+    try {
+      fs.writeFileSync(STORE_FILE, JSON.stringify(this.documents, null, 2));
+    } catch (e) {
+      // non-fatal: documents still live in memory for this run
+    }
+  }
 
   findAll(caseId?: string): Document[] {
     if (caseId) {
@@ -232,6 +263,7 @@ export class DocumentsService {
         : undefined,
     };
     this.documents.push(newDoc);
+    this.persist();
     return newDoc;
   }
 
@@ -260,6 +292,7 @@ export class DocumentsService {
     }
 
     this.documents[idx] = updatedDoc;
+    this.persist();
     return updatedDoc;
   }
 
@@ -267,5 +300,6 @@ export class DocumentsService {
     const idx = this.documents.findIndex((doc) => doc.id === id);
     if (idx === -1) throw new NotFoundException(`Document with ID ${id} not found`);
     this.documents.splice(idx, 1);
+    this.persist();
   }
 }

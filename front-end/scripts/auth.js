@@ -61,7 +61,12 @@ const AuthService = (() => {
       const r = (role || '').toLowerCase();
       if (r === 'client') return 'client-consultation-dashboard.html';
       if (['firmadmin', 'lawyer', 'intern'].includes(r)) return 'firm-consultation-dashboard.html';
-      if (r === 'superadmin') return 'super-admin-dashboard.html';
+      if (r === 'superadmin') {
+        const pathname = (window.location && window.location.pathname) || '';
+        if (pathname.includes('/pages/')) return '../super-admin/index.html';
+        if (pathname.includes('/super-admin/')) return 'index.html';
+        return './super-admin/index.html';
+      }
       return getSignInPath();
     },
 
