@@ -149,7 +149,13 @@
         }
 
         const billingLink = document.getElementById('nav-billing');
-        if (billingLink) billingLink.href = 'firm-billing.html';
+        if (billingLink) {
+          if (userRole === 'intern') {
+            billingLink.closest('a').style.display = 'none';
+          } else {
+            billingLink.href = 'firm-billing.html';
+          }
+        }
 
         // Show and link User Management for firmAdmin only (or decide if lawyers can see it)
         const userMgmtLink = document.getElementById('nav-usermanagement');

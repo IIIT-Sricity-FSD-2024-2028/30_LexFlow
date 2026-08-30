@@ -57,6 +57,14 @@ const AuthService = (() => {
       window.location.href = getSignInPath();
     },
 
+    getDashboardPath(role) {
+      const r = (role || '').toLowerCase();
+      if (r === 'client') return 'client-consultation-dashboard.html';
+      if (['firmadmin', 'lawyer', 'intern'].includes(r)) return 'firm-consultation-dashboard.html';
+      if (r === 'superadmin') return 'super-admin-dashboard.html';
+      return getSignInPath();
+    },
+
     requireAuth(allowedRoles) {
       const user = this.getCurrentUser();
 
@@ -70,7 +78,7 @@ const AuthService = (() => {
         const allowedLower = allowedRoles.map(r => r.toLowerCase());
         
         if (!allowedLower.includes(userRoleLower)) {
-          window.location.href = getSignInPath();
+          window.location.href = this.getDashboardPath(userRoleLower);
           return null;
         }
       }
