@@ -376,7 +376,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     const CURRENT_CASE = db.cases.find(c => c.id === CURRENT_CASE_ID);
     if (!CURRENT_CASE) {
       renderAccessDenied(`Case "${CURRENT_CASE_ID}" does not exist.`, "CASE_NOT_FOUND");
-      renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
+
       return;
     }
 
@@ -403,7 +403,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
           `${CURRENT_CASE_ID} belongs to a different firm and you have not been granted access.`,
           "CROSS_FIRM_VIOLATION"
         );
-        renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
+  
         return;
       }
     }
@@ -427,7 +427,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         `You do not have access to Case ${CURRENT_CASE_ID}. Contact your firm administrator to request access.`,
         "NO_DOC_ACCESS"
       );
-      renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
+
       return;
     }
 
@@ -513,7 +513,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       }
     }
 
-    renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
+
 
     const grid = document.querySelector(".documents-grid");
     const searchInput = document.querySelector(".search-box input");
@@ -1328,32 +1328,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     }
   }
 
-  function renderRoleBadge(user, role, firmName) {
-    const existing = document.getElementById("lex-role-badge");
-    if (existing) existing.remove();
-    const roleColors = {
-      lawyer: { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
-      intern: { bg: "#f1f5f9", color: "#475569", border: "#cbd5e1" },
-      client: { bg: "#fefce8", color: "#854d0e", border: "#fde68a" },
-      lawfirm_admin: { bg: "#f0fdf4", color: "#166534", border: "#86efac" },
-    };
-    const rc = roleColors[role] || roleColors.lawyer;
-    const badge = document.createElement("div");
-    badge.id = "lex-role-badge";
-    badge.style.cssText = `
-      position:fixed; top:16px; right:16px;
-      background:${rc.bg}; color:${rc.color}; border:1px solid ${rc.border};
-      padding:6px 14px; border-radius:999px;
-      font-size:0.78rem; font-weight:700; letter-spacing:0.04em;
-      z-index:9998; text-transform:uppercase;
-      box-shadow:0 2px 8px rgba(0,0,0,0.08); max-width: 420px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    `;
-    const firm = firmName ? ` · ${firmName}` : "";
-    badge.textContent = `👤 ${user.name} · ${role.replace("_", " ").toUpperCase()}${firm} · ${CURRENT_CASE_ID}`;
-    badge.title = badge.textContent;
-    document.body.appendChild(badge);
-  }
+
 
   function toast(msg, type = "success") {
     const t = document.createElement("div");
