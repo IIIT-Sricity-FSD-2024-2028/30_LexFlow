@@ -381,28 +381,80 @@ function renderEditTeamList() {
       openModal("documentModal"));
   }),
   (window.saveDocumentModal = async function () {
-    const e = document.getElementById("docTypeSelect").value;
-    let t = "New_Document_" + e + "." + e.toLowerCase();
-    const n = document.getElementById("selectedFileName").innerText;
-    (n.includes("Selected:") && (t = n.replace("Selected:", "").trim()),
-      currentCase.documents || (currentCase.documents = []),
-      currentCase.documents.push({
-        name: t,
-        type: e,
-        date: new Date().toLocaleDateString(void 0, {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
-        status: "Reviewing",
-      }),
-      await saveData(),
-      closeModal("documentModal"));
+    const typeSelect = document.getElementById("docTypeSelect");
+    const e = typeSelect ? typeSelect.value : "PDF";
+    const fileInput = document.getElementById("hiddenFileInput");
+    const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+
+    if (!file) {
+      alert("Please select a file to upload.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", file.name);
+    formData.append("caseId", String(currentCase.id));
+
+    let docType = "CLIENT PROOF";
+    if (e === "DOC") docType = "CONTRACT";
+    else if (e === "ZIP") docType = "CASE EVIDENCE";
+
+    formData.append("type", docType);
+    
+    const ext = file.name.split('.').pop() || "PDF";
+    formData.append("fileType", ext.toUpperCase().slice(0, 3));
+    
+    let access = "SHARED";
+    const accessSelect = document.querySelector("#documentModal .form-row:nth-child(2) select:nth-child(2)");
+    if (accessSelect && accessSelect.value && accessSelect.value.includes("Firm")) {
+      access = "PRIVATE";
+    }
+    formData.append("access", access);
+    formData.append("file", file);
+
+    const currentUserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const role = (currentUserData.role || 'firmAdmin').toLowerCase();
+    const email = currentUserData.email || 'firmadmin@lexflow.in';
+
+    try {
+      const resp = await fetch("http://localhost:3000/documents", {
+        method: "POST",
+        headers: {
+          "role": role,
+          "x-user-email": email
+        },
+        body: formData
+      });
+      if (!resp.ok) throw new Error("Upload failed");
+      
+      const newDoc = await resp.json();
+      currentCase.documents = currentCase.documents || [];
+      currentCase.documents.push(newDoc);
+      renderDocuments();
+      closeModal("documentModal");
+    } catch(err) {
+      console.error(err);
+      alert("Upload failed. Is the server running?");
+    }
   }),
   (window.deleteDocument = async function (e) {
     if (!currentCase || !Array.isArray(currentCase.documents) || e < 0 || e >= currentCase.documents.length) return;
-    confirm("Are you sure you want to delete this document?") &&
-      (currentCase.documents.splice(e, 1), await saveData());
+    if (confirm("Are you sure you want to delete this document?")) {
+      const doc = currentCase.documents[e];
+      const currentUserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const role = (currentUserData.role || 'firmAdmin').toLowerCase();
+      const email = currentUserData.email || 'firmadmin@lexflow.in';
+      try {
+        if (doc.id && String(doc.id).startsWith("DOC-")) {
+          await fetch(`http://localhost:3000/documents/${doc.id}`, {
+            method: "DELETE",
+            headers: { "role": role, "x-user-email": email }
+          });
+        }
+      } catch(err) { console.error(err); }
+      currentCase.documents.splice(e, 1);
+      renderDocuments();
+    }
   }),
 
   (window.openEditClientModal = function () {

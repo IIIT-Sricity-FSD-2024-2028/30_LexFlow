@@ -205,27 +205,10 @@ export class DocumentsService {
     // Survive restarts: hydrate from data/documents.json when present,
     // fall back to seeds on first run.
     this.documents = [...SEED_DOCUMENTS];
-    try {
-      const raw = JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'));
-      if (Array.isArray(raw) && raw.length) {
-        this.documents = raw;
-        const maxId = Math.max(
-          0,
-          ...raw.map((d: Document) => Number(String(d.id).replace('DOC-', '')) || 0),
-        );
-        this.idCounter = maxId + 1;
-      }
-    } catch {
-      /* first run — keep seeds */
-    }
   }
 
   private persist(): void {
-    try {
-      fs.writeFileSync(STORE_FILE, JSON.stringify(this.documents, null, 2));
-    } catch (e) {
-      // non-fatal: documents still live in memory for this run
-    }
+    // Intentionally empty: user requested files not to be persistent on server restart
   }
 
   findAll(caseId?: string): Document[] {

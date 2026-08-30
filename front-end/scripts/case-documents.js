@@ -624,7 +624,9 @@ const CURRENT_CASE_ID = urlCaseId || '1';
 
     function bindCardActions(el, d) {
       el.querySelectorAll("[data-action]").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           switch (btn.dataset.action) {
             case "view": openViewModal(d); break;
             case "download": downloadDoc(d); break;
@@ -657,9 +659,12 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         </div>
       </div>`;
     document.body.appendChild(viewOverlay);
+    let _viewModalOpenTime = 0;
     viewOverlay.querySelector(".view-modal-close").addEventListener("click", closeViewModal);
     viewOverlay.querySelector(".vm-close-btn").addEventListener("click", closeViewModal);
-    viewOverlay.addEventListener("click", e => { if (e.target === viewOverlay) closeViewModal(); });
+    viewOverlay.addEventListener("click", e => { 
+      if (e.target === viewOverlay && Date.now() - _viewModalOpenTime > 400) closeViewModal(); 
+    });
 
     let _currentViewDoc = null;
     viewOverlay.querySelector(".vm-dl-btn").addEventListener("click", () => {
@@ -684,6 +689,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         body.appendChild(iframe);
       }
       viewOverlay.classList.add("active");
+      _viewModalOpenTime = Date.now();
       document.body.style.overflow = "hidden";
       logActivity("viewed", d);
     }
@@ -700,6 +706,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       const a = document.createElement("a");
       a.href = src;
       a.download = d.name || "document";
+      a.target = "_blank";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

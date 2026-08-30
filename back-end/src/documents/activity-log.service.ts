@@ -44,11 +44,7 @@ export class ActivityLogService {
   }
 
   private persist(): void {
-    try {
-      fs.writeFileSync(STORE_FILE, JSON.stringify(this.log, null, 2));
-    } catch {
-      /* non-fatal */
-    }
+    // Disabled to prevent hot-reload loop and per user persistence request.
   }
 
   findAll(caseId?: string): ActivityEntry[] {
