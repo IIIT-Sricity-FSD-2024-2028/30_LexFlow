@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!filtered.length) {
       invoicesList.innerHTML =
-        '<tr><td colspan="5" style="text-align:center; color:#6b7280;">No invoices found.</td></tr>';
+        '<tr><td colspan="6" style="text-align:center; color:#6b7280;">No invoices found.</td></tr>';
       return;
     }
 
@@ -90,6 +90,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         <td style="font-weight:700; color:#1a1a2e;">${formatCurrency(inv.amount)}</td>
         <td><span class="badge-status ${badgeClass}">${inv.status}</span></td>
         <td class="${dueClass}" style="font-weight:600;">${formatDate(inv.dueDate)}</td>
+        <td class="action-cell">${actionsHtml}</td>
       `;
 
       invoicesList.appendChild(row);
@@ -142,7 +143,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   } catch (err) {
     console.error("Error loading billing data:", err);
     invoicesList.innerHTML =
-      '<tr><td colspan="5" style="text-align:center; color:#ef4444;">Failed to load invoices.</td></tr>';
+      '<tr><td colspan="6" style="text-align:center; color:#ef4444;">Failed to load invoices.</td></tr>';
   }
 
   // ───────── SEARCH & FILTER ─────────

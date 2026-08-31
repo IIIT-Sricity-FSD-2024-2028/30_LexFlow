@@ -116,15 +116,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   const filterBtns = document.querySelectorAll(".filter-btn");
 
   function updateSummaries() {
-    let totalRevenue = 0, pendingAmount = 0, paidCount = 0, overdueCount = 0;
+    let pendingAmount = 0, totalBilled = 0, overdueCount = 0;
+    
+    // 1. Invoices aggregations
     invoices.forEach(inv => {
-      if (inv.status === "Paid") { totalRevenue += inv.amount; paidCount++; }
+      totalBilled += inv.amount;
       if (inv.status === "Pending") { pendingAmount += inv.amount; }
       if (inv.status === "Overdue") { pendingAmount += inv.amount; overdueCount++; }
     });
-    document.getElementById("valTotalRevenue").textContent = formatCurrency(totalRevenue);
+
+    // 2. Payments aggregations (Total Amount Paid)
+    let totalPaid = 0;
+    payments.forEach(p => {
+      totalPaid += p.amount;
+    });
+
+    document.getElementById("valTotalRevenue").textContent = formatCurrency(totalPaid);
     document.getElementById("valPending").textContent = formatCurrency(pendingAmount);
-    document.getElementById("valPaidInvoices").textContent = paidCount;
+    document.getElementById("valTotalBilled").textContent = formatCurrency(totalBilled);
     document.getElementById("valOverdueInvoices").textContent = overdueCount;
   }
 
