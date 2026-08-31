@@ -161,7 +161,7 @@ async function initCaseDetails() {
     // Fetch this case's documents from the backend
     let docs = currentCase.documents || [];
     try {
-      const resp = await fetch(`http://localhost:3000/documents?caseId=${currentCase.id}`, {
+      const resp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents?caseId=${currentCase.id}`, {
         headers: { role: currentUser.role },
       });
       if (resp.ok) docs = await resp.json();

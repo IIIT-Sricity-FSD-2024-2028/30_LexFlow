@@ -6,6 +6,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { AppLoggerService } from './common/logger/logger.service';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -21,6 +22,9 @@ async function bootstrap() {
   app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }, // static docs are loaded cross-origin by the frontend
   }));
+
+  // Parse cookies first so the CSRF middleware can use req.cookies
+  app.use(cookieParser());
 
   // ── Security: CSRF (double-submit cookie; enforced only when a session cookie exists) ──
   app.use(csrfMiddleware);
@@ -63,7 +67,9 @@ async function bootstrap() {
       'x-user-name',
       'x-client-id',
       'x-user-email',
+      'x-csrf-token',
     ],
+    credentials: true,
   });
 
   // Serve static files from the data/docs directory (with access logging + 404 handling)
@@ -107,8 +113,8 @@ async function bootstrap() {
 
   await app.listen(port, '0.0.0.0');
 
-  console.log(`🚀  LexFlow API running on  → http://localhost:${port}`);
-  console.log(`📚  Swagger UI available at → http://localhost:${port}/api/docs`);
+  console.log(`🚀  LexFlow API running on  → http://127.0.0.1:${port} (or http://localhost:${port})`);
+  console.log(`📚  Swagger UI available at → http://127.0.0.1:${port}/api/docs`);
   console.log(`✅  NestJS Backend listening on port ${port} (IPv4)`);
 }
 

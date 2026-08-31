@@ -283,7 +283,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
   `;
   document.head.appendChild(styleEl);
 
-  const API_BASE = 'http://localhost:3000';
+  const API_BASE = window.LexFlowAPI.BASE_URL;
 
   async function bootApp() {
     try {
@@ -417,7 +417,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
 
     let docsData = [];
     try {
-      const resp = await fetch(`http://localhost:3000/documents?caseId=${CURRENT_CASE_ID}`, {
+      const resp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents?caseId=${CURRENT_CASE_ID}`, {
         headers: {
           'role': ROLE,
           'x-user-email': CURRENT_USER_EMAIL,
@@ -439,7 +439,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
 
     // ── Load recent activity for side panel from backend ──────────────────
     try {
-      const actResp = await fetch(`http://localhost:3000/documents/activity?caseId=${CURRENT_CASE_ID}`, {
+      const actResp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents/activity?caseId=${CURRENT_CASE_ID}`, {
         headers: { 'role': ROLE, 'x-user-email': CURRENT_USER.email }
       });
       if (actResp.ok) {
@@ -479,7 +479,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
 
       // Persist to backend — no localStorage involved
       try {
-        await fetch("http://localhost:3000/documents/activity", {
+        await fetch(window.LexFlowAPI.BASE_URL + '/documents/activity', {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -744,7 +744,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         }
 
         try {
-          const resp = await fetch(`http://localhost:3000/documents/${doc.id}`, {
+          const resp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents/${doc.id}`, {
             method: "DELETE",
             headers: {
               "role": ROLE,
@@ -903,7 +903,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       updSaveBtn.textContent = 'Saving...';
 
       try {
-        const resp = await fetch(`http://localhost:3000/documents/${_updDoc.id}`, {
+        const resp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents/${_updDoc.id}`, {
           method: "PATCH",
           headers: {
             "role": ROLE,
@@ -1215,7 +1215,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         submitBtn.textContent = 'Uploading...';
 
         try {
-          const resp = await fetch("http://localhost:3000/documents", {
+          const resp = await fetch(window.LexFlowAPI.BASE_URL + '/documents', {
             method: "POST",
             headers: {
               "role": ROLE,

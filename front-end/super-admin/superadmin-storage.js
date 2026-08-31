@@ -78,7 +78,7 @@ window.LexFlowSuperAdminStorage = (() => {
 
     const updateFirmTier = async (firmId, tier) => {
         try {
-            const res = await fetch(`http://localhost:3000/users/firms/${firmId}/tier`, {
+            const res = await fetch(`${window.LexFlowAPI.BASE_URL}/users/firms/${firmId}/tier`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', role: _getRole() },
                 body: JSON.stringify({ tier })

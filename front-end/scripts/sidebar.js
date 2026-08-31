@@ -185,7 +185,7 @@
       }
 
       // Firm tier badge (firmAdmin / lawyer / intern only)
-      const API_BASE = window.__API_BASE__ || 'http://localhost:3000';
+      const API_BASE = window.__API_BASE__ || window.LexFlowAPI.BASE_URL;
       const tierBadge = container.querySelector('#tier-badge');
       if (isFirmStaff && tierBadge && currentUser && currentUser.firmId) {
         try {

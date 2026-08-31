@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
 
       try {
-        const res = await fetch('http://localhost:3000/users', {
+        const res = await fetch(window.LexFlowAPI.BASE_URL + '/users', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

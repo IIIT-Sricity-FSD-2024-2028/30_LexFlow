@@ -61,7 +61,7 @@
       if (form.firmId.value.trim()) data.firmId = form.firmId.value.trim();
 
       try {
-        const res = await fetch('http://localhost:3000/users', {
+        const res = await fetch(window.LexFlowAPI.BASE_URL + '/users', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -91,5 +91,6 @@
       }
     });
   </script>
-</body>
+<script src="../scripts/api.js"></script>
+  </body>
 </html>

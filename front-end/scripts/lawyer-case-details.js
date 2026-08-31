@@ -68,7 +68,7 @@ async function initCaseDetails() {
     renderTimeline();
     // Load this case's documents from the backend
     try {
-      const resp = await fetch(`http://localhost:3000/documents?caseId=${currentCase.id}`, {
+      const resp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents?caseId=${currentCase.id}`, {
         headers: { role: currentUser.role },
       });
       if (resp.ok) currentCase.documents = await resp.json();
@@ -443,7 +443,7 @@ window.saveDocumentModal = async function () {
   const email = currentUserData.email || 'lawyer@lexflow.in';
 
   try {
-    const resp = await fetch("http://localhost:3000/documents", {
+    const resp = await fetch(window.LexFlowAPI.BASE_URL + '/documents', {
       method: "POST",
       headers: {
         "role": role,
@@ -470,7 +470,7 @@ window.deleteDocument = async (index) => {
     const email = currentUserData.email || 'lawyer@lexflow.in';
     try {
       if (doc && doc.id && String(doc.id).startsWith("DOC-")) {
-        await fetch(`http://localhost:3000/documents/${doc.id}`, {
+        await fetch(`${window.LexFlowAPI.BASE_URL}/documents/${doc.id}`, {
           method: "DELETE",
           headers: { "role": currentUser.role, "x-user-email": email }
         });

@@ -30,7 +30,7 @@ function statusBadge(status) {
 
 document.addEventListener("DOMContentLoaded", async () => {
 
-  const API_BASE = "http://localhost:3000/billing";
+  const API_BASE = window.LexFlowAPI.BASE_URL + '/billing';
 
   function getCallerId() {
     try {

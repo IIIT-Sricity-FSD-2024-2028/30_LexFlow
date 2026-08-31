@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const passwordInput = document.getElementById('password');
     const loginBtn = document.querySelector('button[type="submit"]');
 
-    const API_BASE = window.__API_BASE__ || 'http://localhost:3000';
+    const API_BASE = window.__API_BASE__ || window.LexFlowAPI.BASE_URL;
 
     const signUpLink = document.querySelector('.signup-note a');
     const rawRole = localStorage.getItem('loginRole') || localStorage.getItem('userRole');

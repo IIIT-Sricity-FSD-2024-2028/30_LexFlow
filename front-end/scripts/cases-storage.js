@@ -15,7 +15,7 @@
 window.LexFlowCasesStorage = (function () {
   'use strict';
 
-  const API_BASE_URL = 'http://localhost:3000';
+  const API_BASE_URL = window.LexFlowAPI.BASE_URL;
 
   // ─── Auth helpers ────────────────────────────────────────────────────────────
 

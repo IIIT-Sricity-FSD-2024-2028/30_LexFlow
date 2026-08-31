@@ -69,7 +69,7 @@ async function initCaseDetails() {
     if (!currentCase.timeline) currentCase.timeline = [];
     // Load this case's documents from the backend
     try {
-      const resp = await fetch(`http://localhost:3000/documents?caseId=${currentCase.id}`, {
+      const resp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents?caseId=${currentCase.id}`, {
         headers: { role },
       });
       if (resp.ok) currentCase.documents = await resp.json();
@@ -417,7 +417,7 @@ function renderEditTeamList() {
     const email = currentUserData.email || 'firmadmin@lexflow.in';
 
     try {
-      const resp = await fetch("http://localhost:3000/documents", {
+      const resp = await fetch(window.LexFlowAPI.BASE_URL + '/documents', {
         method: "POST",
         headers: {
           "role": role,
@@ -446,7 +446,7 @@ function renderEditTeamList() {
       const email = currentUserData.email || 'firmadmin@lexflow.in';
       try {
         if (doc.id && String(doc.id).startsWith("DOC-")) {
-          await fetch(`http://localhost:3000/documents/${doc.id}`, {
+          await fetch(`${window.LexFlowAPI.BASE_URL}/documents/${doc.id}`, {
             method: "DELETE",
             headers: { "role": role, "x-user-email": email }
           });

@@ -11,7 +11,22 @@
 const LexFlowAPI = (() => {
   'use strict';
 
-  const BASE_URL = 'http://localhost:3000';
+  // --- GLOBAL FETCH OVERRIDE ---
+  // Ensure that all raw fetch() calls in the app send cookies across different ports
+  const originalFetch = window.fetch;
+  window.fetch = async function (...args) {
+    let [resource, config] = args;
+    if (!config) config = {};
+    if (config.credentials === undefined) {
+      config.credentials = 'include';
+    }
+    return originalFetch(resource, config);
+  };
+  // -----------------------------
+
+  // Use the same hostname as the frontend to prevent "cross-site" cookie warnings
+  // (e.g. if frontend is 127.0.0.1, backend is 127.0.0.1:3000)
+  const BASE_URL = `http://${window.location.hostname}:3000`;
 
   /**
    * Core fetch wrapper — injects role + content-type headers,
@@ -25,7 +40,7 @@ const LexFlowAPI = (() => {
 
     if (role) headers['role'] = role;
 
-    const opts = { method, headers };
+    const opts = { method, headers, credentials: 'include' };
     if (body !== undefined) opts.body = JSON.stringify(body);
 
     const res = await fetch(`${BASE_URL}${path}`, opts);

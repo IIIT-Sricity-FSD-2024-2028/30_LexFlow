@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    const API_BASE = 'http://localhost:3000';
+    const API_BASE = window.LexFlowAPI.BASE_URL;
     const ITEMS_PER_PAGE = 8;
     
     let allUsers = [];

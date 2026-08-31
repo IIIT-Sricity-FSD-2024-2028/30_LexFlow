@@ -39,7 +39,7 @@ function getSuperAdminBillingHeaders() {
 }
 
 async function fetchAllInvoices() {
-    const res = await fetch('http://localhost:3000/billing/invoices', {
+    const res = await fetch(window.LexFlowAPI.BASE_URL + '/billing/invoices', {
         headers: getSuperAdminBillingHeaders()
     });
     const json = await res.json();
@@ -47,7 +47,7 @@ async function fetchAllInvoices() {
 }
 
 async function patchInvoiceStatus(id, status) {
-    const res = await fetch(`http://localhost:3000/billing/invoices/${id}`, {
+    const res = await fetch(`${window.LexFlowAPI.BASE_URL}/billing/invoices/${id}`, {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
@@ -423,7 +423,7 @@ async function initInvoiceEdit() {
     }
 
     try {
-        const res = await fetch(`http://localhost:3000/billing/invoices/${invId}`, {
+        const res = await fetch(`${window.LexFlowAPI.BASE_URL}/billing/invoices/${invId}`, {
             headers: getSuperAdminBillingHeaders()
         });
         const json = await res.json();
