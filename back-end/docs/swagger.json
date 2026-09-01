@@ -283,6 +283,179 @@
         ]
       }
     },
+    "/users/firms": {
+      "post": {
+        "description": "Adds a law firm to the platform without the 3-step self-service onboarding flow. If adminName, adminEmail and adminPassword are all supplied, the firm admin account is provisioned and linked to the new firm in the same call. A subscription on the chosen tier starts billing immediately.",
+        "operationId": "UsersController_createFirm",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin",
+                "user"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFirmDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Firm created successfully"
+          },
+          "403": {
+            "description": "Forbidden - superadmin only"
+          },
+          "409": {
+            "description": "Firm email or admin email already in use"
+          }
+        },
+        "summary": "Create a law firm (superadmin only)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/firms/{firmId}": {
+      "put": {
+        "description": "Patch any editable field on a law firm, including its pricing tier.",
+        "operationId": "UsersController_updateFirm",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin",
+                "user"
+              ]
+            }
+          },
+          {
+            "name": "firmId",
+            "required": true,
+            "in": "path",
+            "description": "Law firm ID",
+            "schema": {
+              "example": "firm-1",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFirmDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Firm updated successfully"
+          },
+          "403": {
+            "description": "Forbidden - superadmin only"
+          },
+          "404": {
+            "description": "Firm not found"
+          }
+        },
+        "summary": "Update a law firm (superadmin only)",
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "description": "Removes a law firm from the platform. A firm that still has members is rejected so its users are never orphaned — pass cascade=true to delete those members too.",
+        "operationId": "UsersController_deleteFirm",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "header",
+            "description": "User role (required for all endpoints)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client",
+                "lawyer",
+                "intern",
+                "firm",
+                "firmadmin",
+                "superadmin",
+                "user"
+              ]
+            }
+          },
+          {
+            "name": "firmId",
+            "required": true,
+            "in": "path",
+            "description": "Law firm ID",
+            "schema": {
+              "example": "firm-1",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cascade",
+            "required": false,
+            "in": "query",
+            "description": "Set to \"true\" to also delete every user belonging to this firm",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Firm deleted successfully"
+          },
+          "400": {
+            "description": "Firm still has members and cascade was not set"
+          },
+          "403": {
+            "description": "Forbidden - superadmin only"
+          },
+          "404": {
+            "description": "Firm not found"
+          }
+        },
+        "summary": "Delete a law firm (superadmin only)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/users/firms/{firmId}/tier": {
       "put": {
         "description": "Change the pricing tier (Starter, Growth, Enterprise) of any law firm at any time.",
@@ -2455,6 +2628,648 @@
           "law-firms"
         ]
       }
+    },
+    "/platform/revenue/summary": {
+      "get": {
+        "description": "Headline numbers for the platform owner: MRR, ARR, lifetime earnings, subscription revenue collected vs outstanding, commission earned, and this month against last month.",
+        "operationId": "PlatformController_getRevenueSummary",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revenue summary"
+          }
+        },
+        "summary": "Platform earnings summary",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/revenue/monthly": {
+      "get": {
+        "description": "Earnings per month, oldest first, split into subscription and commission. Drives the revenue chart on the superadmin dashboard.",
+        "operationId": "PlatformController_getMonthlyRevenue",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "months",
+            "required": false,
+            "in": "query",
+            "description": "How many months to return (1-24, default 6)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Monthly revenue series"
+          }
+        },
+        "summary": "Monthly earnings series",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/revenue/by-firm": {
+      "get": {
+        "description": "Per-firm subscription revenue, commission and outstanding balance, sorted by total earned. Shows which firms actually carry the business.",
+        "operationId": "PlatformController_getRevenueByFirm",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Per-firm revenue breakdown"
+          }
+        },
+        "summary": "Earnings broken down by law firm",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/subscriptions": {
+      "get": {
+        "description": "One record per law firm. Firms added after boot are picked up automatically.",
+        "operationId": "PlatformController_getSubscriptions",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of subscriptions"
+          }
+        },
+        "summary": "List every firm subscription",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/subscriptions/{firmId}": {
+      "get": {
+        "description": "SUPERADMIN → any firm. FIRMADMIN → only their own firm (pass x-user-id).",
+        "operationId": "PlatformController_getSubscription",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "firmId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "firm-1",
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription"
+          },
+          "403": {
+            "description": "firmadmin requested another firm's subscription"
+          },
+          "404": {
+            "description": "No subscription for that firm"
+          }
+        },
+        "summary": "Get one firm subscription",
+        "tags": [
+          "platform"
+        ]
+      },
+      "patch": {
+        "description": "Moving a firm to another tier also moves its seat caps in the users module. Cancelling stops future monthly charges from being generated.",
+        "operationId": "PlatformController_updateSubscription",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "firmId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "firm-1",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription updated"
+          },
+          "404": {
+            "description": "No subscription for that firm"
+          }
+        },
+        "summary": "Change a firm plan or subscription state",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/subscriptions/{firmId}/tier-change": {
+      "post": {
+        "description": "Issues a one-time charge for the new tier's price. The firm stays on its current plan until that charge is paid — see PATCH /platform/charges/:id. Requesting the current tier again cancels a pending request instead of erroring. FIRMADMIN is scoped to their own firm (pass x-user-id); SUPERADMIN may act for any firm.",
+        "operationId": "PlatformController_requestTierChange",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "firmId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "firm-1",
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tier-change charge created (or pending request cancelled)"
+          },
+          "400": {
+            "description": "Invalid tier"
+          },
+          "403": {
+            "description": "firmadmin requested a change for another firm"
+          },
+          "404": {
+            "description": "No subscription for that firm"
+          }
+        },
+        "summary": "Request a plan change",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/charges": {
+      "get": {
+        "description": "The platform's own invoices — one per firm per month. Closed months are settled, the month in progress is still outstanding.\n\nSUPERADMIN → every firm's charges, optionally filtered by ?firmId.\nFIRMADMIN → only their own firm's charges (pass x-user-id); the firmId query param is ignored, since the caller cannot see any other firm's bill.",
+        "operationId": "PlatformController_getCharges",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "firmId",
+            "required": false,
+            "in": "query",
+            "description": "Filter to one firm (superadmin only — ignored for firmadmin callers)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of subscription charges"
+          },
+          "400": {
+            "description": "firmadmin caller could not be resolved to a firm"
+          }
+        },
+        "summary": "Subscription charges raised against firms",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/charges/{id}": {
+      "patch": {
+        "description": "SUPERADMIN → set any status (Paid, Pending, Overdue).\nFIRMADMIN → may only mark Paid, and only a charge belonging to their own firm (pass x-user-id); the request body's status is ignored for this role.",
+        "operationId": "PlatformController_updateCharge",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "PSUB-FIRM-1-2026-09",
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Charge updated"
+          },
+          "403": {
+            "description": "firmadmin tried to pay another firm's charge"
+          },
+          "404": {
+            "description": "Charge not found"
+          }
+        },
+        "summary": "Settle a subscription charge",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/tiers": {
+      "get": {
+        "description": "Monthly price and seat caps for each tier. Readable by firmadmin too, so onboarding and the plan-change picker can show live prices.",
+        "operationId": "PlatformController_getTierPlans",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tier plans"
+          }
+        },
+        "summary": "Subscription plans",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/tiers/{tier}": {
+      "put": {
+        "description": "Sets the monthly list price. Charges already issued keep the price they were billed at; future months use the new price.",
+        "operationId": "PlatformController_updateTierPricing",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tier",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "Starter",
+                "Growth",
+                "Enterprise"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTierPricingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tier repriced"
+          },
+          "400": {
+            "description": "Invalid tier"
+          }
+        },
+        "summary": "Reprice a subscription tier",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/settings": {
+      "get": {
+        "description": "Commission rate, support email, currency and the maintenance / signup switches.",
+        "operationId": "PlatformController_getSettings",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Platform settings"
+          }
+        },
+        "summary": "Platform settings",
+        "tags": [
+          "platform"
+        ]
+      },
+      "put": {
+        "description": "Changing the commission rate immediately re-values reported commission earnings.",
+        "operationId": "PlatformController_updateSettings",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Settings updated"
+          }
+        },
+        "summary": "Update platform settings",
+        "tags": [
+          "platform"
+        ]
+      }
     }
   },
   "info": {
@@ -2631,6 +3446,150 @@
           "role",
           "password"
         ]
+      },
+      "CreateFirmDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Law firm name",
+            "example": "Sharma & Associates"
+          },
+          "email": {
+            "type": "string",
+            "description": "Firm contact email",
+            "example": "contact@sharma.law"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number (10 digits)",
+            "example": "9876543210"
+          },
+          "tier": {
+            "type": "string",
+            "description": "Pricing tier. Defaults to Starter.",
+            "enum": [
+              "Starter",
+              "Growth",
+              "Enterprise"
+            ]
+          },
+          "street": {
+            "type": "string",
+            "description": "Street address"
+          },
+          "city": {
+            "type": "string",
+            "description": "City"
+          },
+          "state": {
+            "type": "string",
+            "description": "State"
+          },
+          "pinCode": {
+            "type": "string",
+            "description": "PIN code"
+          },
+          "primaryEmail": {
+            "type": "string",
+            "description": "Public-facing primary email"
+          },
+          "website": {
+            "type": "string",
+            "description": "Website URL"
+          },
+          "subtitle": {
+            "type": "string",
+            "description": "Short tagline shown in firm search"
+          },
+          "description": {
+            "type": "string",
+            "description": "Longer firm description"
+          },
+          "practiceArea": {
+            "type": "string",
+            "description": "Primary practice area"
+          },
+          "adminName": {
+            "type": "string",
+            "description": "Name of the firm admin to create"
+          },
+          "adminEmail": {
+            "type": "string",
+            "description": "Login email for the firm admin"
+          },
+          "adminPassword": {
+            "type": "string",
+            "description": "Password for the firm admin (min 6 characters)"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "phone"
+        ]
+      },
+      "UpdateFirmDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Law firm name"
+          },
+          "email": {
+            "type": "string",
+            "description": "Firm contact email"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number"
+          },
+          "tier": {
+            "type": "string",
+            "description": "Pricing tier",
+            "enum": [
+              "Starter",
+              "Growth",
+              "Enterprise"
+            ]
+          },
+          "street": {
+            "type": "string",
+            "description": "Street address"
+          },
+          "city": {
+            "type": "string",
+            "description": "City"
+          },
+          "state": {
+            "type": "string",
+            "description": "State"
+          },
+          "pinCode": {
+            "type": "string",
+            "description": "PIN code"
+          },
+          "primaryEmail": {
+            "type": "string",
+            "description": "Public-facing primary email"
+          },
+          "website": {
+            "type": "string",
+            "description": "Website URL"
+          },
+          "subtitle": {
+            "type": "string",
+            "description": "Short tagline"
+          },
+          "description": {
+            "type": "string",
+            "description": "Longer firm description"
+          },
+          "practiceArea": {
+            "type": "string",
+            "description": "Primary practice area"
+          }
+        }
       },
       "UpdateUserDto": {
         "type": "object",
@@ -3378,6 +4337,70 @@
           "education",
           "avatarColor"
         ]
+      },
+      "UpdateSubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string",
+            "description": "Move the firm onto a different plan. Also updates its seat caps.",
+            "enum": [
+              "Starter",
+              "Growth",
+              "Enterprise"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "Subscription state. A cancelled subscription stops generating monthly charges.",
+            "enum": [
+              "active",
+              "cancelled",
+              "past_due"
+            ]
+          }
+        }
+      },
+      "UpdateTierPricingDto": {
+        "type": "object",
+        "properties": {
+          "monthlyPrice": {
+            "type": "number",
+            "description": "New monthly price for this tier, in the platform currency",
+            "example": 9999
+          }
+        },
+        "required": [
+          "monthlyPrice"
+        ]
+      },
+      "UpdateSettingsDto": {
+        "type": "object",
+        "properties": {
+          "commissionRate": {
+            "type": "number",
+            "description": "Percentage LexFlow keeps from every paid client invoice. Changing this immediately re-values reported commission earnings.",
+            "example": 10
+          },
+          "supportEmail": {
+            "type": "string",
+            "description": "Support address shown to firms and clients",
+            "example": "support@lexflow.legal"
+          },
+          "currency": {
+            "type": "string",
+            "description": "Reporting currency code",
+            "example": "INR"
+          },
+          "maintenanceMode": {
+            "type": "boolean",
+            "description": "Put the platform into maintenance mode"
+          },
+          "disableSignup": {
+            "type": "boolean",
+            "description": "Block new firm and client signups"
+          }
+        }
       }
     }
   }

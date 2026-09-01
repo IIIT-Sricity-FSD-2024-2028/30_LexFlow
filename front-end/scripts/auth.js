@@ -3,7 +3,6 @@ const AuthService = (() => {
 
   function getSignInPath() {
     const pathname = (window.location && window.location.pathname) || '';
-    if (pathname.includes('/super-admin/') || pathname.includes('/super admin/') || pathname.includes('/super%20admin/')) return 'super-admin-login.html';
     if (pathname.includes('/pages/')) return 'sign-in.html';
     return 'pages/sign-in.html';
   }
@@ -61,12 +60,7 @@ const AuthService = (() => {
       const r = (role || '').toLowerCase();
       if (r === 'client') return 'client-consultation-dashboard.html';
       if (['firmadmin', 'lawyer', 'intern'].includes(r)) return 'firm-consultation-dashboard.html';
-      if (r === 'superadmin') {
-        const pathname = (window.location && window.location.pathname) || '';
-        if (pathname.includes('/pages/')) return '../super-admin/index.html';
-        if (pathname.includes('/super-admin/')) return 'index.html';
-        return './super-admin/index.html';
-      }
+      if (r === 'superadmin') return 'superadmin-dashboard.html';
       return getSignInPath();
     },
 

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LexFlow – Consultations</title>
+    <link rel="stylesheet" href="../styles/superadmin.css">
+    <link rel="stylesheet" href="../styles/sidebar.css">
+</head>
+
+<body data-sa-page="consultations">
+
+    <div id="sidebar-container"></div>
+
+    <main class="sa-main">
+        <div class="sa-page-header">
+            <div>
+                <h1>Consultations</h1>
+                <p>Every booking made through the platform.</p>
+            </div>
+        </div>
+
+        <div class="sa-toolbar">
+            <div class="search-bar">
+                <span class="search-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                <input id="consultSearch" type="search" placeholder="Search by client, firm or lawyer…" autocomplete="off">
+            </div>
+            <select class="sa-select" id="consultStatusFilter" aria-label="Filter by status">
+                <option value="all">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+            <span class="sa-kpi-hint" id="consultCount"></span>
+        </div>
+
+        <section class="sa-table-card">
+            <div class="sa-table-scroll">
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Client</th>
+                            <th>Firm</th>
+                            <th>Lawyer</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="consultationsBody">
+                        <tr><td colspan="6" class="sa-loading">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="../scripts/auth.js"></script>
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/superadmin-core.js"></script>
+    <script src="../scripts/sidebar.js"></script>
+    <script src="../scripts/superadmin.js"></script>
+</body>
+
+</html>

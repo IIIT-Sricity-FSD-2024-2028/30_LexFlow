@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             firmadmin: 'firm-consultation-dashboard.html',
             lawyer: 'firm-consultation-dashboard.html',
             intern: 'firm-consultation-dashboard.html',
-            superadmin: '../super-admin/index.html',
+            superadmin: 'superadmin-dashboard.html',
         };
         return roleRedirects[roleLower] || 'sign-in.html';
     }

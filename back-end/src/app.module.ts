@@ -7,6 +7,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { BillingModule } from './billing/billing.module';
 import { TasksModule } from './tasks/tasks.module';
 import { LawFirmsModule } from './law-firms/law-firms.module';
+import { PlatformModule } from './platform/platform.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
 
@@ -20,6 +21,7 @@ import { RequestLoggerMiddleware } from './common/middleware/request-logger.midd
     BillingModule,
     TasksModule,
     LawFirmsModule,
+    PlatformModule,
   ],
   controllers: [AppController],
 })

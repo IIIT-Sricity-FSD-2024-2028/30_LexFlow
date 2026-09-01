@@ -258,6 +258,32 @@
     align-items: center;
 }
 
+.btn-pay-now {
+    background: var(--clr-primary, #3b5bdb);
+    color: #fff;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.3s var(--ease-spring);
+}
+
+.btn-pay-now:hover {
+    background: #2b396b;
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 4px 12px rgba(59, 91, 219, 0.15);
+}
+
+.btn-pay-now:disabled {
+    background: var(--clr-text-tertiary, #aeaeb2);
+    cursor: default;
+    transform: none;
+    box-shadow: none;
+}
+
 .icon-btn {
     background: transparent;
     border: none;

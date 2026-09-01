@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LexFlow – Platform Settings</title>
+    <link rel="stylesheet" href="../styles/superadmin.css">
+    <link rel="stylesheet" href="../styles/sidebar.css">
+</head>
+
+<body data-sa-page="settings">
+
+    <div id="sidebar-container"></div>
+
+    <main class="sa-main">
+        <div class="sa-page-header">
+            <div>
+                <h1>Platform Settings</h1>
+                <p>Your pricing and the rules the platform runs on.</p>
+            </div>
+        </div>
+
+        <section>
+            <div class="sa-card-head">
+                <div>
+                    <h2>Subscription pricing</h2>
+                    <p>What each tier costs a law firm per month. Charges already raised keep their original price.</p>
+                </div>
+                <button type="button" class="btn-primary" id="saveTiersBtn">Save pricing</button>
+            </div>
+            <div class="sa-tier-grid" id="tierGrid">
+                <div class="sa-loading">Loading plans…</div>
+            </div>
+        </section>
+
+        <section class="sa-chart-card">
+            <div class="sa-card-head">
+                <div>
+                    <h2>Business &amp; platform rules</h2>
+                    <p>The commission rate applies to every client invoice settled through LexFlow.</p>
+                </div>
+            </div>
+            <form id="settingsForm">
+                <div class="sa-settings-grid">
+                    <div class="form-group">
+                        <label for="setCommission">Commission rate (%)</label>
+                        <input id="setCommission" name="commissionRate" type="number" min="0" max="100" step="0.5" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="setCurrency">Reporting currency</label>
+                        <input id="setCurrency" name="currency" type="text" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="setSupportEmail">Support email</label>
+                        <input id="setSupportEmail" name="supportEmail" type="email" required>
+                    </div>
+                </div>
+
+                <div class="sa-switch-row">
+                    <div>
+                        <label for="setMaintenance">Maintenance mode</label>
+                        <p>Signal to the platform that it is temporarily unavailable.</p>
+                    </div>
+                    <span class="sa-switch">
+                        <input id="setMaintenance" name="maintenanceMode" type="checkbox">
+                        <span></span>
+                    </span>
+                </div>
+
+                <div class="sa-switch-row">
+                    <div>
+                        <label for="setDisableSignup">Disable new signups</label>
+                        <p>Stop new firms and clients from registering.</p>
+                    </div>
+                    <span class="sa-switch">
+                        <input id="setDisableSignup" name="disableSignup" type="checkbox">
+                        <span></span>
+                    </span>
+                </div>
+
+                <div class="modal-footer" style="padding-top:18px">
+                    <button type="submit" class="btn-primary">Save settings</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <script src="../scripts/auth.js"></script>
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/superadmin-core.js"></script>
+    <script src="../scripts/sidebar.js"></script>
+    <script src="../scripts/superadmin.js"></script>
+</body>
+
+</html>

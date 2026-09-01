@@ -31,6 +31,7 @@ function statusBadge(status) {
 document.addEventListener("DOMContentLoaded", async () => {
 
   const API_BASE = window.LexFlowAPI.BASE_URL + '/billing';
+  const PLATFORM_BASE = window.LexFlowAPI.BASE_URL + '/platform';
 
   function getCallerId() {
     try {
@@ -39,6 +40,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch {
       return "";
     }
+  }
+
+  // ───────── SUBSCRIPTION CHARGES (what this firm owes LexFlow) ─────────
+  async function fetchSubscriptionCharges() {
+    const res = await fetch(`${PLATFORM_BASE}/charges`, {
+      headers: { role: "firmadmin", "x-user-id": getCallerId() }
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to fetch subscription charges");
+    return json || [];
+  }
+
+  async function paySubscriptionCharge(id) {
+    const res = await fetch(`${PLATFORM_BASE}/charges/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        role: "firmadmin",
+        "x-user-id": getCallerId()
+      },
+      // The backend ignores this body for firmadmin callers and always marks
+      // Paid, but sending it keeps the request shape self-explanatory.
+      body: JSON.stringify({ status: "Paid" })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Payment failed");
+    return json;
   }
 
   async function fetchInvoices() {
@@ -108,10 +136,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let invoices = [];
   let payments = [];
+  let subscriptionCharges = [];
   let currentFilter = "All";
 
   const invoicesList = document.getElementById("invoicesList");
   const paymentHistoryList = document.getElementById("paymentHistoryList");
+  const subscriptionChargesList = document.getElementById("subscriptionChargesList");
   const searchInput = document.getElementById("searchInvoiceInput");
   const filterBtns = document.querySelectorAll(".filter-btn");
 
@@ -404,6 +434,58 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // ───────── RENDER SUBSCRIPTION CHARGES ─────────
+  function renderSubscriptionCharges() {
+    if (!subscriptionChargesList) return;
+    subscriptionChargesList.innerHTML = "";
+
+    if (!subscriptionCharges.length) {
+      subscriptionChargesList.innerHTML =
+        `<tr><td colspan="6" style="text-align:center">No subscription charges yet</td></tr>`;
+      return;
+    }
+
+    // Most recent period first, so the current month's bill is what you see.
+    const sorted = [...subscriptionCharges].sort((a, b) =>
+      a.period < b.period ? 1 : a.period > b.period ? -1 : 0
+    );
+
+    sorted.forEach(charge => {
+      const tr = document.createElement("tr");
+      const payCell = charge.status === "Paid"
+        ? `<span style="color:var(--clr-text-tertiary,#aeaeb2);font-size:11px;">Settled</span>`
+        : `<button class="btn-pay-now" onclick="window.handlePaySubscriptionCharge(event, '${charge.id}')">Pay now</button>`;
+
+      tr.innerHTML = `
+        <td>${charge.id}</td>
+        <td>${charge.period}</td>
+        <td>${charge.tier}</td>
+        <td>${formatCurrency(charge.amount)}</td>
+        <td>${statusBadge(charge.status)}</td>
+        <td>${payCell}</td>
+      `;
+      subscriptionChargesList.appendChild(tr);
+    });
+  }
+
+  // ───────── PAY SUBSCRIPTION CHARGE ─────────
+  window.handlePaySubscriptionCharge = async function (evt, id) {
+    const btn = evt && evt.target;
+    if (btn) { btn.disabled = true; btn.textContent = "Paying…"; }
+
+    try {
+      const updated = await paySubscriptionCharge(id);
+      const idx = subscriptionCharges.findIndex(c => c.id === id);
+      if (idx !== -1) subscriptionCharges[idx] = updated;
+      // Re-render in place — no page reload, so the rest of the billing
+      // dashboard (invoices, payment history, scroll position) is untouched.
+      renderSubscriptionCharges();
+    } catch (err) {
+      alert("Payment failed: " + err.message);
+      if (btn) { btn.disabled = false; btn.textContent = "Pay now"; }
+    }
+  };
+
   if (searchInput)
     searchInput.addEventListener("input", renderInvoices);
 
@@ -418,6 +500,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   showSkeleton("invoicesList", 7);
   showSkeleton("paymentHistoryList", 7);
+  showSkeleton("subscriptionChargesList", 6);
 
   try {
     const [inv, pay] = await Promise.all([fetchInvoices(), fetchPayments()]);
@@ -428,6 +511,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderPaymentHistory();
   } catch (err) {
     console.error("Billing load error", err);
+  }
+
+  // Kept as a separate try/catch so a subscription-charges failure never
+  // blanks out the invoices/payments the firm actually cares about.
+  try {
+    subscriptionCharges = await fetchSubscriptionCharges();
+    renderSubscriptionCharges();
+  } catch (err) {
+    console.error("Subscription charges load error", err);
+    if (subscriptionChargesList) {
+      subscriptionChargesList.innerHTML =
+        `<tr><td colspan="6" style="text-align:center">Could not load subscription charges</td></tr>`;
+    }
   }
 
 });

@@ -32,6 +32,16 @@ const LexFlowAPI = (() => {
    * Core fetch wrapper — injects role + content-type headers,
    * throws a structured error on non-2xx responses.
    */
+  /**
+   * Read the double-submit CSRF cookie the backend sets on every safe request.
+   * The backend only enforces it once a session cookie is in play, but sending
+   * it always means state-changing calls keep working if that ever turns on.
+   */
+  function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)x-csrf-token=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
   async function request(method, path, { body, role, extraHeaders = {} } = {}) {
     const headers = {
       'Content-Type': 'application/json',
@@ -39,6 +49,11 @@ const LexFlowAPI = (() => {
     };
 
     if (role) headers['role'] = role;
+
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      const csrf = getCsrfToken();
+      if (csrf) headers['x-csrf-token'] = csrf;
+    }
 
     const opts = { method, headers, credentials: 'include' };
     if (body !== undefined) opts.body = JSON.stringify(body);
@@ -174,6 +189,31 @@ const LexFlowAPI = (() => {
     getAllFirms(role) {
       return request('GET', '/users/firms/all', { role });
     },
+    create(body, role) {
+      return request('POST', '/users', { body, role });
+    },
+    update(id, body, role) {
+      return request('PUT', `/users/${id}`, { body, role });
+    },
+    remove(id, role) {
+      return request('DELETE', `/users/${id}`, { role });
+    },
+    /** Superadmin: create a law firm, optionally with its admin account. */
+    createFirm(body, role) {
+      return request('POST', '/users/firms', { body, role });
+    },
+    /** Superadmin: patch a law firm, including its tier. */
+    updateFirm(firmId, body, role) {
+      return request('PUT', `/users/firms/${firmId}`, { body, role });
+    },
+    /** Superadmin: delete a law firm. Pass cascade to remove its members too. */
+    deleteFirm(firmId, role, cascade = false) {
+      const query = cascade ? '?cascade=true' : '';
+      return request('DELETE', `/users/firms/${firmId}${query}`, { role });
+    },
+    updateFirmTier(firmId, tier, role) {
+      return request('PUT', `/users/firms/${firmId}/tier`, { body: { tier }, role });
+    },
     getById(id, role) {
       return request('GET', `/users/${id}`, { role });
     },
@@ -261,6 +301,98 @@ const LexFlowAPI = (() => {
     },
   };
 
+  // ── Billing namespace ───────────────────────────────────────────────────────
+  const billing = {
+    getInvoices(role, extraHeaders = {}) {
+      return request('GET', '/billing/invoices', { role, extraHeaders });
+    },
+    getInvoice(id, role) {
+      return request('GET', `/billing/invoices/${id}`, { role });
+    },
+    updateInvoice(id, body, role) {
+      return request('PATCH', `/billing/invoices/${id}`, { body, role });
+    },
+    deleteInvoice(id, role) {
+      return request('DELETE', `/billing/invoices/${id}`, { role });
+    },
+    getPayments(role, extraHeaders = {}) {
+      return request('GET', '/billing/payments', { role, extraHeaders });
+    },
+  };
+
+  // ── Platform namespace (superadmin only) ────────────────────────────────────
+  // The platform owner's own business: what LexFlow earns from the law firms
+  // that use it, through tier subscriptions and invoice commission.
+  const platform = {
+    /** Headline earnings: MRR, ARR, lifetime, this month vs last. */
+    getRevenueSummary(role) {
+      return request('GET', '/platform/revenue/summary', { role });
+    },
+    /** Month-by-month earnings series for the dashboard chart. */
+    getMonthlyRevenue(months = 6, role) {
+      return request('GET', `/platform/revenue/monthly?months=${months}`, { role });
+    },
+    /** Per-firm earnings breakdown. */
+    getRevenueByFirm(role) {
+      return request('GET', '/platform/revenue/by-firm', { role });
+    },
+    getSubscriptions(role) {
+      return request('GET', '/platform/subscriptions', { role });
+    },
+    /**
+     * One firm's subscription. Superadmin may look up any firm; a firmadmin
+     * caller is scoped server-side to their own (pass their user id).
+     */
+    getSubscription(firmId, role, callerId) {
+      const extraHeaders = callerId ? { 'x-user-id': callerId } : {};
+      return request('GET', `/platform/subscriptions/${firmId}`, { role, extraHeaders });
+    },
+    /** Superadmin only: change a firm's tier or status immediately, free of charge. */
+    updateSubscription(firmId, body, role) {
+      return request('PATCH', `/platform/subscriptions/${firmId}`, { body, role });
+    },
+    /**
+     * Request a plan change. Issues a one-time charge for the new tier — the
+     * firm stays on its current plan until that charge is paid. Requesting
+     * the current tier again cancels a pending request. A firmadmin caller
+     * is scoped to their own firm (pass their user id).
+     */
+    requestTierChange(firmId, tier, role, callerId) {
+      const extraHeaders = callerId ? { 'x-user-id': callerId } : {};
+      return request('POST', `/platform/subscriptions/${firmId}/tier-change`, { body: { tier }, role, extraHeaders });
+    },
+    /**
+     * Subscription charges LexFlow raises against each firm, one per month.
+     * Superadmin sees every firm (optionally filtered by firmId); a firmadmin
+     * caller is scoped server-side to their own firm, so pass their user id.
+     */
+    getCharges(role, firmId, callerId) {
+      const query = firmId ? `?firmId=${firmId}` : '';
+      const extraHeaders = callerId ? { 'x-user-id': callerId } : {};
+      return request('GET', `/platform/charges${query}`, { role, extraHeaders });
+    },
+    /**
+     * Superadmin may set any status; a firmadmin caller may only mark Paid,
+     * and only their own firm's charge (pass their user id as callerId).
+     */
+    updateChargeStatus(id, status, role, callerId) {
+      const extraHeaders = callerId ? { 'x-user-id': callerId } : {};
+      return request('PATCH', `/platform/charges/${id}`, { body: { status }, role, extraHeaders });
+    },
+    getTierPlans(role) {
+      return request('GET', '/platform/tiers', { role });
+    },
+    updateTierPricing(tier, monthlyPrice, role) {
+      return request('PUT', `/platform/tiers/${tier}`, { body: { monthlyPrice }, role });
+    },
+    getSettings(role) {
+      return request('GET', '/platform/settings', { role });
+    },
+    updateSettings(body, role) {
+      return request('PUT', '/platform/settings', { body, role });
+    },
+  };
+
   // ── Auth namespace ──────────────────────────────────────────────────────────
   const auth = {
     login(email, password, role) {
@@ -269,7 +401,7 @@ const LexFlowAPI = (() => {
   };
 
   // Public interface
-  return { auth, consultations, users, cases, tasks, lawFirms, getCurrentUser, getRole, BASE_URL };
+  return { auth, consultations, users, cases, tasks, lawFirms, billing, platform, getCurrentUser, getRole, BASE_URL };
 
 })();
 

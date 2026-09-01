@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LexFlow – Lawyers</title>
+    <link rel="stylesheet" href="../styles/superadmin.css">
+    <link rel="stylesheet" href="../styles/sidebar.css">
+</head>
+
+<body data-sa-page="lawyers">
+
+    <div id="sidebar-container"></div>
+
+    <main class="sa-main">
+        <div class="sa-page-header">
+            <div>
+                <h1>Lawyers &amp; Interns</h1>
+                <p>Everyone practising on the platform, across every firm.</p>
+            </div>
+        </div>
+
+        <div class="sa-toolbar">
+            <div class="search-bar">
+                <span class="search-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                <input id="lawyerSearch" type="search" placeholder="Search by name, email or firm…" autocomplete="off">
+            </div>
+            <select class="sa-select" id="lawyerStatusFilter" aria-label="Filter by status">
+                <option value="all">All statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+            <span class="sa-kpi-hint" id="lawyerCount"></span>
+        </div>
+
+        <section class="sa-table-card">
+            <div class="sa-table-scroll">
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Firm</th>
+                            <th>Account</th>
+                            <th>Availability</th>
+                            <th class="sa-th-actions">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lawyersBody">
+                        <tr><td colspan="6" class="sa-loading">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="../scripts/auth.js"></script>
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/superadmin-core.js"></script>
+    <script src="../scripts/sidebar.js"></script>
+    <script src="../scripts/superadmin.js"></script>
+</body>
+
+</html>

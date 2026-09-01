@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
-import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto } from './dto';
+import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto, CreateFirmDto, UpdateFirmDto } from './dto';
 import { FirmOnboardingDto } from './dto/firm-onboarding.dto';
 import { FirmOnboardingResponseDto } from './dto/firm-onboarding-response.dto';
 
@@ -25,7 +25,7 @@ export const TIER_LIMITS: Record<FirmTier, { lawyers: number; interns: number }>
   Enterprise: { lawyers: 10000, interns: 10000 },
 };
 
-interface Firm {
+export interface Firm {
   id: string;
   tier: FirmTier;
   name: string;
@@ -269,8 +269,20 @@ export class UsersService {
 
     this.users = seed.slice();
     this.firms = seedFirms.slice();
-    this.idCounter = 23;
-    this.firmIdCounter = 6;
+
+    // Start counters one past the highest seeded id, derived rather than
+    // hardcoded, so a new user/firm never collides with a seeded one again
+    // if the seed list above changes.
+    const highestSeededUserNum = Math.max(
+      0,
+      ...seed.map((u) => Number(u.id.replace('user-', '')) || 0),
+    );
+    const highestSeededFirmNum = Math.max(
+      0,
+      ...seedFirms.map((f) => Number(f.id.replace('firm-', '')) || 0),
+    );
+    this.idCounter = highestSeededUserNum + 1;
+    this.firmIdCounter = highestSeededFirmNum + 1;
   }
 
   create(createUserDto: CreateUserDto): UserResponseDto {
@@ -556,8 +568,13 @@ export class UsersService {
 
     const data = session.data;
 
-    // Create the Firm (tier defaults to Starter unless explicitly provided during onboarding)
-    const tier: FirmTier = data.tier && TIER_LIMITS[data.tier] ? data.tier : 'Starter';
+    // Create the Firm (tier defaults to Starter unless chosen during onboarding).
+    // The plan picker lives on the step 3 screen, so its tier arrives in this
+    // call's own body rather than having been merged into session.data by an
+    // earlier step — check there first, falling back to session.data for a
+    // tier submitted at step 1/2 instead.
+    const chosenTier = onboardingDto.tier ?? data.tier;
+    const tier: FirmTier = chosenTier && TIER_LIMITS[chosenTier] ? chosenTier : 'Starter';
     const firm: Firm = {
       id: `firm-${this.firmIdCounter++}`,
       tier,
@@ -635,6 +652,147 @@ export class UsersService {
     firm.tier = tier;
     firm.updatedAt = new Date();
     return firm;
+  }
+
+  /**
+   * Superadmin: create a law firm directly (bypasses the 3-step onboarding flow).
+   * Optionally provisions the firm's admin account in the same call.
+   */
+  createFirm(dto: CreateFirmDto): { firm: Firm; adminUserId?: string } {
+    const duplicate = this.firms.find(
+      (f) => f.email.toLowerCase() === dto.email.toLowerCase(),
+    );
+    if (duplicate) {
+      throw new ConflictException(
+        `A firm with the email "${dto.email}" already exists`,
+      );
+    }
+
+    const tier: FirmTier = dto.tier && TIER_LIMITS[dto.tier] ? dto.tier : 'Starter';
+    const now = new Date();
+
+    const firm: Firm = {
+      id: `firm-${this.firmIdCounter++}`,
+      tier,
+      name: dto.name,
+      email: dto.email,
+      phone: dto.phone,
+      street: dto.street ?? '',
+      city: dto.city ?? '',
+      state: dto.state ?? '',
+      pinCode: dto.pinCode ?? '',
+      primaryEmail: dto.primaryEmail ?? dto.email,
+      website: dto.website,
+      subtitle: dto.subtitle,
+      description: dto.description,
+      practiceArea: dto.practiceArea,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.firms.push(firm);
+
+    // Provision the firm admin only when a full credential set was supplied.
+    let adminUserId: string | undefined;
+    if (dto.adminName && dto.adminEmail && dto.adminPassword) {
+      const emailTaken = this.users.find(
+        (u) => u.email.toLowerCase() === dto.adminEmail!.toLowerCase(),
+      );
+      if (emailTaken) {
+        // Roll the firm back so we never leave a firm without its admin.
+        this.firms.pop();
+        throw new ConflictException(
+          `The admin email "${dto.adminEmail}" is already registered`,
+        );
+      }
+
+      const admin: User = {
+        id: `user-${this.idCounter++}`,
+        fullName: dto.adminName,
+        email: dto.adminEmail,
+        role: UserRole.FIRMADMIN,
+        createdAt: now,
+        password: dto.adminPassword,
+        firmId: firm.id,
+        accountStatus: 'active',
+      };
+      this.users.push(admin);
+      adminUserId = admin.id;
+    }
+
+    return { firm, adminUserId };
+  }
+
+  /**
+   * Superadmin: update any editable field on a law firm.
+   */
+  updateFirm(firmId: string, dto: UpdateFirmDto): Firm {
+    const firm = this.firms.find((f) => f.id === firmId);
+    if (!firm) {
+      throw new NotFoundException('Firm not found');
+    }
+
+    if (dto.tier !== undefined && !TIER_LIMITS[dto.tier]) {
+      throw new BadRequestException(
+        'Invalid tier. Allowed values: Starter, Growth, Enterprise',
+      );
+    }
+
+    if (dto.email && dto.email.toLowerCase() !== firm.email.toLowerCase()) {
+      const clash = this.firms.find(
+        (f) => f.id !== firmId && f.email.toLowerCase() === dto.email!.toLowerCase(),
+      );
+      if (clash) {
+        throw new ConflictException(
+          `Another firm already uses the email "${dto.email}"`,
+        );
+      }
+    }
+
+    Object.entries(dto).forEach(([key, value]) => {
+      if (value !== undefined) {
+        (firm as unknown as Record<string, unknown>)[key] = value;
+      }
+    });
+    firm.updatedAt = new Date();
+
+    return firm;
+  }
+
+  /**
+   * Superadmin: remove a law firm.
+   *
+   * A firm with members is protected — deleting it would orphan those users
+   * and every case, consultation and invoice hanging off them. Pass
+   * cascade=true to delete the firm together with all of its members.
+   */
+  deleteFirm(
+    firmId: string,
+    cascade = false,
+  ): { message: string; deletedUsers: number } {
+    const idx = this.firms.findIndex((f) => f.id === firmId);
+    if (idx === -1) {
+      throw new NotFoundException('Firm not found');
+    }
+
+    const members = this.users.filter((u) => u.firmId === firmId);
+
+    if (members.length > 0 && !cascade) {
+      throw new BadRequestException(
+        `This firm still has ${members.length} member(s). ` +
+          'Reassign or remove them first, or retry with ?cascade=true to delete them along with the firm.',
+      );
+    }
+
+    if (cascade) {
+      this.users = this.users.filter((u) => u.firmId !== firmId);
+    }
+
+    const [removed] = this.firms.splice(idx, 1);
+
+    return {
+      message: `Firm "${removed.name}" deleted successfully`,
+      deletedUsers: cascade ? members.length : 0,
+    };
   }
 
   getAllClients(): User[] {

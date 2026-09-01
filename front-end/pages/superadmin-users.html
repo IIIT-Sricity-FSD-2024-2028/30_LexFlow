@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LexFlow – Users</title>
+    <link rel="stylesheet" href="../styles/superadmin.css">
+    <link rel="stylesheet" href="../styles/sidebar.css">
+</head>
+
+<body data-sa-page="users">
+
+    <div id="sidebar-container"></div>
+
+    <main class="sa-main">
+        <div class="sa-page-header">
+            <div>
+                <h1>Users</h1>
+                <p>Every account on the platform, in any role.</p>
+            </div>
+            <div class="sa-header-actions">
+                <button type="button" class="btn-primary" id="addUserBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add user</button>
+            </div>
+        </div>
+
+        <div class="sa-toolbar">
+            <div class="search-bar">
+                <span class="search-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                <input id="userSearch" type="search" placeholder="Search by name, email, ID or firm…" autocomplete="off">
+            </div>
+            <select class="sa-select" id="userRoleFilter" aria-label="Filter by role">
+                <option value="all">All roles</option>
+                <option value="client">Client</option>
+                <option value="lawyer">Lawyer</option>
+                <option value="intern">Intern</option>
+                <option value="firmadmin">Firm admin</option>
+                <option value="superadmin">Super admin</option>
+            </select>
+            <span class="sa-kpi-hint" id="userCount"></span>
+        </div>
+
+        <section class="sa-table-card">
+            <div class="sa-table-scroll">
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Firm</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                            <th class="sa-th-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersBody">
+                        <tr><td colspan="7" class="sa-loading">Loading users…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="modal-backdrop" id="userModal" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
+            <div class="modal-content sa-modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h2 id="userModalTitle">Add user</h2>
+                    </div>
+                    <button type="button" class="modal-close" data-close-modal aria-label="Close">&times;</button>
+                </div>
+                <form id="userForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="userFullName">Full name</label>
+                            <input id="userFullName" name="fullName" type="text" required placeholder="Rajesh Sharma">
+                        </div>
+                        <div class="sa-form-row">
+                            <div class="form-group">
+                                <label for="userEmail">Email</label>
+                                <input id="userEmail" name="email" type="email" required placeholder="rajesh@firm.law">
+                            </div>
+                            <div class="form-group">
+                                <label for="userPhone">Phone</label>
+                                <input id="userPhone" name="phone" type="tel" placeholder="9876543210">
+                            </div>
+                        </div>
+                        <div class="sa-form-row">
+                            <div class="form-group">
+                                <label for="userRole">Role</label>
+                                <select id="userRole" name="role" required>
+                                    <option value="client">Client</option>
+                                    <option value="lawyer">Lawyer</option>
+                                    <option value="intern">Intern</option>
+                                    <option value="firmadmin">Firm admin</option>
+                                    <option value="superadmin">Super admin</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="userFirmId">Firm ID</label>
+                                <input id="userFirmId" name="firmId" type="text" placeholder="firm-1">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="userStatus">Account status</label>
+                            <select id="userStatus" name="accountStatus">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="userPasswordField">
+                            <label for="userPassword">Password</label>
+                            <input id="userPassword" name="password" type="password" placeholder="At least 6 characters">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-outline" data-close-modal>Cancel</button>
+                        <button type="submit" class="btn-primary">Save user</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="../scripts/auth.js"></script>
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/superadmin-core.js"></script>
+    <script src="../scripts/sidebar.js"></script>
+    <script src="../scripts/superadmin.js"></script>
+</body>
+
+</html>

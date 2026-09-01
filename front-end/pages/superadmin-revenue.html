@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LexFlow – Revenue</title>
+    <link rel="stylesheet" href="../styles/superadmin.css">
+    <link rel="stylesheet" href="../styles/sidebar.css">
+</head>
+
+<body data-sa-page="revenue">
+
+    <div id="sidebar-container"></div>
+
+    <main class="sa-main">
+        <div class="sa-page-header">
+            <div>
+                <h1>Revenue</h1>
+                <p>Every rupee the platform has earned, and where it came from.</p>
+            </div>
+        </div>
+
+        <section class="sa-kpi-grid sa-kpi-grid--wide">
+            <div class="sa-kpi">
+                <span class="sa-kpi-label">Total earned</span>
+                <div class="sa-kpi-value" id="sumTotal">—</div>
+            </div>
+            <div class="sa-kpi">
+                <span class="sa-kpi-label">From subscriptions</span>
+                <div class="sa-kpi-value" id="sumSubscriptions">—</div>
+            </div>
+            <div class="sa-kpi">
+                <span class="sa-kpi-label">From commission</span>
+                <div class="sa-kpi-value" id="sumCommission">—</div>
+            </div>
+            <div class="sa-kpi">
+                <span class="sa-kpi-label">Outstanding</span>
+                <div class="sa-kpi-value" id="sumOutstanding">—</div>
+                <div class="sa-kpi-hint">Billed, not yet collected</div>
+            </div>
+        </section>
+
+        <section class="sa-chart-card">
+            <div class="sa-card-head">
+                <div>
+                    <h2>Earnings by month</h2>
+                    <p>MRR <strong id="sumMrr">—</strong> · annualised <strong id="sumArr">—</strong></p>
+                </div>
+                <div class="sa-header-actions">
+                <div class="sa-legend">
+                    <span><i class="sa-swatch-sub"></i> Subscriptions</span>
+                    <span><i class="sa-swatch-comm"></i> Commission</span>
+                </div>
+                    <select class="sa-select" id="monthsRange" aria-label="Months to show">
+                        <option value="6">Last 6 months</option>
+                        <option value="12">Last 12 months</option>
+                        <option value="24">Last 24 months</option>
+                    </select>
+                </div>
+            </div>
+            <div class="sa-chart" id="revenueChart">
+                <div class="sa-loading">Loading earnings…</div>
+            </div>
+        </section>
+
+        <section class="sa-table-card">
+            <div class="sa-card-head">
+                <div>
+                    <h2>Plan mix</h2>
+                    <p>How the recurring revenue splits across tiers.</p>
+                </div>
+                <a class="sa-btn-ghost" href="superadmin-settings.html">Edit pricing</a>
+            </div>
+            <div class="sa-table-scroll">
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>Tier</th>
+                            <th class="sa-num">Firms</th>
+                            <th class="sa-num">Price / month</th>
+                            <th class="sa-num">MRR</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tierMixBody">
+                        <tr><td colspan="4" class="sa-loading">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="sa-table-card">
+            <div class="sa-card-head">
+                <div>
+                    <h2>Earnings by firm</h2>
+                    <p id="unattributedNote" class="sa-kpi-hint" hidden></p>
+                </div>
+            </div>
+            <div class="sa-table-scroll">
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>Firm</th>
+                            <th>Tier</th>
+                            <th>Status</th>
+                            <th class="sa-num">Price / month</th>
+                            <th class="sa-num">Subscriptions</th>
+                            <th class="sa-num">Commission</th>
+                            <th class="sa-num">Outstanding</th>
+                            <th class="sa-num">Total earned</th>
+                        </tr>
+                    </thead>
+                    <tbody id="byFirmBody">
+                        <tr><td colspan="8" class="sa-loading">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="sa-table-card">
+            <div class="sa-card-head">
+                <div>
+                    <h2>Subscription charges</h2>
+                    <p>What you billed each firm, month by month.</p>
+                </div>
+            </div>
+            <div class="sa-table-scroll">
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>Charge</th>
+                            <th>Firm</th>
+                            <th>Tier</th>
+                            <th>Period</th>
+                            <th class="sa-num">Amount</th>
+                            <th>Status</th>
+                            <th class="sa-th-actions">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="chargesBody">
+                        <tr><td colspan="7" class="sa-loading">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="../scripts/auth.js"></script>
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/superadmin-core.js"></script>
+    <script src="../scripts/sidebar.js"></script>
+    <script src="../scripts/superadmin.js"></script>
+</body>
+
+</html>

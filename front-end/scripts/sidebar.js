@@ -61,6 +61,14 @@
     'client-lawfirm-search.html':        'nav-search',
     'firm-user-management.html': 'nav-usermanagement',
     'schedule-management.html':            'nav-consultations',
+    'superadmin-dashboard.html':     'nav-sa-dashboard',
+    'superadmin-revenue.html':       'nav-sa-revenue',
+    'superadmin-firms.html':         'nav-sa-firms',
+    'superadmin-lawyers.html':       'nav-sa-lawyers',
+    'superadmin-users.html':         'nav-sa-users',
+    'superadmin-consultations.html': 'nav-sa-consultations',
+    'superadmin-invoices.html':      'nav-sa-invoices',
+    'superadmin-settings.html':      'nav-sa-settings',
   };
 
   // Maps nav item ID → relative page path (for link resolution)
@@ -103,14 +111,15 @@
         if (el) el.classList.add('active');
       }
 
-      // Resolve nav link hrefs for pages that exist
+      // Resolve nav link hrefs for pages that exist.
+      // The superadmin nav ships with real hrefs already, so it is skipped.
       Object.entries(NAV_TO_PAGE).forEach(([id, pagePath]) => {
         const link = document.getElementById(id);
         if (link) link.href = pagePath;
       });
 
       // Update sidebar user identity from signed-in user data
-      const roleLabels = { client: 'Client', firmAdmin: 'Firm Admin', lawyer: 'Lawyer' };
+      const roleLabels = { client: 'Client', firmAdmin: 'Firm Admin', lawyer: 'Lawyer', intern: 'Intern', superAdmin: 'Super Admin' };
       const currentUserRaw = localStorage.getItem('currentUser');
       let currentUser = null;
       try {
@@ -133,8 +142,28 @@
       // firmAdmin: hide "Find a Law Firm", point Consultations to firm dashboard
       // client:    hide "Schedules",        point Consultations to client dashboard
       const isFirmStaff = ['firmAdmin', 'lawyer', 'intern'].includes(userRole);
+      const isSuperAdmin = String(userRole).toLowerCase() === 'superadmin';
 
-      if (isFirmStaff) {
+      // Superadmin runs the platform rather than a firm, so it gets its own
+      // nav entirely instead of a reshuffled version of the firm/client one.
+      const defaultNav = container.querySelector('.sidebar-nav:not(#sidebar-nav-superadmin)');
+      const superAdminNav = container.querySelector('#sidebar-nav-superadmin');
+
+      // .sidebar-nav sets display:flex, which wins over the `hidden`
+      // attribute, so the swap has to go through style.display.
+      if (isSuperAdmin) {
+        if (defaultNav) defaultNav.style.display = 'none';
+        if (superAdminNav) {
+          superAdminNav.hidden = false;
+          superAdminNav.style.display = 'flex';
+        }
+      } else if (superAdminNav) {
+        superAdminNav.style.display = 'none';
+      }
+
+      if (isSuperAdmin) {
+        // No firm links to resolve — the superadmin nav is already absolute.
+      } else if (isFirmStaff) {
         const searchLink = document.getElementById('nav-search');
         if (searchLink) searchLink.closest('a').style.display = 'none';
 

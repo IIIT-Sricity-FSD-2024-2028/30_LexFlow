@@ -20,7 +20,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
-import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto, UpdateUserDto } from './dto';
+import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto, UpdateUserDto, CreateFirmDto, UpdateFirmDto } from './dto';
 import { FirmOnboardingDto } from './dto/firm-onboarding.dto';
 import { FirmOnboardingResponseDto } from './dto/firm-onboarding-response.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -154,6 +154,80 @@ export class UsersController {
   })
   getAllFirms(): any {
     return this.usersService.getAllFirms();
+  }
+
+  /**
+   * Superadmin: create a law firm directly
+   * POST /users/firms
+   */
+  @Post('firms')
+  @Roles(UserRole.SUPERADMIN)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create a law firm (superadmin only)',
+    description:
+      'Adds a law firm to the platform without the 3-step self-service onboarding flow. ' +
+      'If adminName, adminEmail and adminPassword are all supplied, the firm admin account ' +
+      'is provisioned and linked to the new firm in the same call. ' +
+      'A subscription on the chosen tier starts billing immediately.',
+  })
+  @ApiResponse({ status: 201, description: 'Firm created successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - superadmin only' })
+  @ApiResponse({ status: 409, description: 'Firm email or admin email already in use' })
+  createFirm(@Body() dto: CreateFirmDto): any {
+    return this.usersService.createFirm(dto);
+  }
+
+  /**
+   * Superadmin: update a law firm
+   * PUT /users/firms/:firmId
+   */
+  @Put('firms/:firmId')
+  @Roles(UserRole.SUPERADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Update a law firm (superadmin only)',
+    description: 'Patch any editable field on a law firm, including its pricing tier.',
+  })
+  @ApiParam({ name: 'firmId', example: 'firm-1', description: 'Law firm ID' })
+  @ApiResponse({ status: 200, description: 'Firm updated successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - superadmin only' })
+  @ApiResponse({ status: 404, description: 'Firm not found' })
+  updateFirm(
+    @Param('firmId') firmId: string,
+    @Body() dto: UpdateFirmDto,
+  ): any {
+    return this.usersService.updateFirm(firmId, dto);
+  }
+
+  /**
+   * Superadmin: delete a law firm
+   * DELETE /users/firms/:firmId
+   */
+  @Delete('firms/:firmId')
+  @Roles(UserRole.SUPERADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Delete a law firm (superadmin only)',
+    description:
+      'Removes a law firm from the platform. A firm that still has members is rejected ' +
+      'so its users are never orphaned — pass cascade=true to delete those members too.',
+  })
+  @ApiParam({ name: 'firmId', example: 'firm-1', description: 'Law firm ID' })
+  @ApiQuery({
+    name: 'cascade',
+    required: false,
+    description: 'Set to "true" to also delete every user belonging to this firm',
+  })
+  @ApiResponse({ status: 200, description: 'Firm deleted successfully' })
+  @ApiResponse({ status: 400, description: 'Firm still has members and cascade was not set' })
+  @ApiResponse({ status: 403, description: 'Forbidden - superadmin only' })
+  @ApiResponse({ status: 404, description: 'Firm not found' })
+  deleteFirm(
+    @Param('firmId') firmId: string,
+    @Query('cascade') cascade?: string,
+  ): any {
+    return this.usersService.deleteFirm(firmId, cascade === 'true');
   }
 
   /**
