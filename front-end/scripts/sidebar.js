@@ -144,15 +144,14 @@
       const isFirmStaff = ['firmAdmin', 'lawyer', 'intern'].includes(userRole);
       const isSuperAdmin = String(userRole).toLowerCase() === 'superadmin';
 
-      // Superadmin runs the platform rather than a firm, so it gets its own
-      // nav entirely instead of a reshuffled version of the firm/client one.
+      // Superadmin gets its own platform nav AND the firm nav, so every page
+      // is reachable. Firm pages resolve their links like staff views.
       const defaultNav = container.querySelector('.sidebar-nav:not(#sidebar-nav-superadmin)');
       const superAdminNav = container.querySelector('#sidebar-nav-superadmin');
 
       // .sidebar-nav sets display:flex, which wins over the `hidden`
       // attribute, so the swap has to go through style.display.
       if (isSuperAdmin) {
-        if (defaultNav) defaultNav.style.display = 'none';
         if (superAdminNav) {
           superAdminNav.hidden = false;
           superAdminNav.style.display = 'flex';
@@ -161,21 +160,18 @@
         superAdminNav.style.display = 'none';
       }
 
-      if (isSuperAdmin) {
-        // No firm links to resolve — the superadmin nav is already absolute.
-      } else if (isFirmStaff) {
-        const searchLink = document.getElementById('nav-search');
-        if (searchLink) searchLink.closest('a').style.display = 'none';
+      if (isSuperAdmin || isFirmStaff) {
+        if (isFirmStaff) {
+          // Firm staff don't prospect for law firms; superadmin keeps it.
+          const searchLink = document.getElementById('nav-search');
+          if (searchLink) searchLink.closest('a').style.display = 'none';
+        }
 
         const consultLink = document.getElementById('nav-consultations');
         if (consultLink) consultLink.href = 'firm-consultation-dashboard.html';
 
         const casesLink = document.getElementById('nav-cases');
-        if (casesLink) {
-          // If role is lawyer, we could optionally point to a different cases list, 
-          // but for now firm-cases.html seems intended for staff.
-          casesLink.href = 'firm-cases.html';
-        }
+        if (casesLink) casesLink.href = 'firm-cases.html';
 
         const billingLink = document.getElementById('nav-billing');
         if (billingLink) {
@@ -186,10 +182,10 @@
           }
         }
 
-        // Show and link User Management for firmAdmin only (or decide if lawyers can see it)
+        // Show and link User Management for firmAdmin and superadmin
         const userMgmtLink = document.getElementById('nav-usermanagement');
         if (userMgmtLink) {
-          if (userRole === 'firmAdmin') {
+          if (userRole === 'firmAdmin' || isSuperAdmin) {
             userMgmtLink.closest('a').style.display = 'flex';
             userMgmtLink.href = 'firm-user-management.html';
           } else {

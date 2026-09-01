@@ -33,7 +33,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             loginBtn.classList.add('btn-loading');
             try {
-                const user = await _postJSON(`${API_BASE}/users/login`, { email, password });
+                // Backend returns { access_token, user }; unwrap and keep the
+                // token so api.js's fetch override can attach it everywhere.
+                const resp = await _postJSON(`${API_BASE}/users/login`, { email, password });
+                const user = (resp && resp.user) ? resp.user : resp;
+                if (resp && resp.access_token) {
+                    localStorage.setItem('access_token', resp.access_token);
+                }
 
                 const isFirmPortal = ['firmadmin', 'intern'].includes(expectedRole);
                 const isFirmStaff = ['firmadmin', 'lawyer', 'intern'].includes(user.role.toLowerCase());

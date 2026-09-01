@@ -20,6 +20,16 @@ const LexFlowAPI = (() => {
     if (config.credentials === undefined) {
       config.credentials = 'include';
     }
+    // JWT: attach the stored token to every request that doesn't set its own.
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      if (!config.headers) config.headers = {};
+      if (config.headers instanceof Headers) {
+        if (!config.headers.has('Authorization')) config.headers.set('Authorization', 'Bearer ' + token);
+      } else if (!config.headers['Authorization']) {
+        config.headers['Authorization'] = 'Bearer ' + token;
+      }
+    }
     return originalFetch(resource, config);
   };
   // -----------------------------
@@ -395,8 +405,15 @@ const LexFlowAPI = (() => {
 
   // ── Auth namespace ──────────────────────────────────────────────────────────
   const auth = {
-    login(email, password, role) {
-      return request('POST', '/users/login', { body: { email, password, role } });
+    async login(email, password, role) {
+      const data = await request('POST', '/users/login', { body: { email, password, role } });
+      // New backend returns { access_token, user }; store the token for the
+      // fetch override and hand back the user object callers already expect.
+      if (data && data.access_token) {
+        try { localStorage.setItem('access_token', data.access_token); } catch {}
+        return data.user ?? data;
+      }
+      return data;
     },
   };
 

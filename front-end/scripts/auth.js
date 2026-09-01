@@ -52,6 +52,7 @@ const AuthService = (() => {
 
     logout() {
       localStorage.removeItem('currentUser');
+      localStorage.removeItem('access_token');
       // Redirect to the correct login page for the current folder.
       window.location.href = getSignInPath();
     },
@@ -72,11 +73,12 @@ const AuthService = (() => {
         return null;
       }
 
+      // Superadmin can open every page — role lists gate staff/client views only.
       if (allowedRoles && allowedRoles.length > 0) {
         const userRoleLower = (user.role || '').toLowerCase();
         const allowedLower = allowedRoles.map(r => r.toLowerCase());
-        
-        if (!allowedLower.includes(userRoleLower)) {
+
+        if (userRoleLower !== 'superadmin' && !allowedLower.includes(userRoleLower)) {
           window.location.href = this.getDashboardPath(userRoleLower);
           return null;
         }

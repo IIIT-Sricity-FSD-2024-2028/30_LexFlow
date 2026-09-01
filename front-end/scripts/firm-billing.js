@@ -42,10 +42,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  function getRole() {
+    return (localStorage.getItem("userRole")
+      || (JSON.parse(localStorage.getItem("currentUser") || "null") || {}).role
+      || "firmadmin").toLowerCase();
+  }
+
   // ───────── SUBSCRIPTION CHARGES (what this firm owes LexFlow) ─────────
   async function fetchSubscriptionCharges() {
     const res = await fetch(`${PLATFORM_BASE}/charges`, {
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
+      headers: { role: getRole(), "x-user-id": getCallerId() }
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || "Failed to fetch subscription charges");
@@ -57,7 +63,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        role: "firmadmin",
+        role: getRole(),
         "x-user-id": getCallerId()
       },
       // The backend ignores this body for firmadmin callers and always marks
@@ -71,7 +77,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function fetchInvoices() {
     const res = await fetch(`${API_BASE}/invoices`, {
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
+      headers: { role: getRole(), "x-user-id": getCallerId() }
     });
     const json = await res.json();
     return json.data || [];
@@ -79,7 +85,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function fetchPayments() {
     const res = await fetch(`${API_BASE}/payments`, {
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
+      headers: { role: getRole(), "x-user-id": getCallerId() }
     });
     const json = await res.json();
     return json.data || [];
@@ -87,7 +93,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function fetchClients() {
     const res = await fetch(`${API_BASE}/clients`, {
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
+      headers: { role: getRole(), "x-user-id": getCallerId() }
     });
     if (!res.ok) throw new Error("Failed to fetch clients");
     const json = await res.json();
@@ -99,7 +105,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        role: "firmadmin",
+        role: getRole(),
         "x-user-id": getCallerId()
       },
       body: JSON.stringify(payload)
@@ -114,7 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        role: "firmadmin",
+        role: getRole(),
         "x-user-id": getCallerId()
       },
       body: JSON.stringify(payload)
@@ -127,7 +133,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function deleteInvoice(id) {
     const res = await fetch(`${API_BASE}/invoices/${id}`, {
       method: "DELETE",
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
+      headers: { role: getRole(), "x-user-id": getCallerId() }
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || "Delete failed");
@@ -486,6 +492,98 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
+  // ───────── PLAN (current tier + change plan) ─────────
+  function getFirmId() {
+    try {
+      const user = JSON.parse(localStorage.getItem("currentUser"));
+      return (user && user.firmId) ? user.firmId : "";
+    } catch {
+      return "";
+    }
+  }
+
+  async function fetchSubscription() {
+    const res = await fetch(`${PLATFORM_BASE}/subscriptions/${getFirmId()}`, {
+      headers: { role: getRole(), "x-user-id": getCallerId() }
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to fetch subscription");
+    return json.data || json;
+  }
+
+  async function fetchTierPlans() {
+    const res = await fetch(`${PLATFORM_BASE}/tiers`, {
+      headers: { role: getRole() }
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to fetch plans");
+    return json.data || json;
+  }
+
+  async function requestPlanChange(tier) {
+    const res = await fetch(`${PLATFORM_BASE}/subscriptions/${getFirmId()}/tier-change`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        role: getRole(),
+        "x-user-id": getCallerId()
+      },
+      body: JSON.stringify({ tier })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Plan change failed");
+    return json.charge || (json.data && json.data.charge) || null;
+  }
+
+  async function renderPlan() {
+    const info = document.getElementById("planInfo");
+    const buttons = document.getElementById("planButtons");
+    if (!info || !buttons) return;
+
+    try {
+      const [sub, plans] = await Promise.all([fetchSubscription(), fetchTierPlans()]);
+      const seats = (p) => {
+        const l = p.lawyerSeats >= 10000 ? "unlimited" : p.lawyerSeats;
+        const i = p.internSeats >= 10000 ? "unlimited" : p.internSeats;
+        return `${l} lawyers / ${i} interns`;
+      };
+
+      const pending = sub.pendingTier
+        ? ` — <strong>${sub.pendingTier} pending</strong>: pay the charge below to switch`
+        : "";
+      info.innerHTML =
+        `Current plan: <strong>${sub.tier}</strong> (${formatCurrency(sub.monthlyPrice)}/mo)${pending}`;
+
+      buttons.innerHTML = "";
+      plans.filter((p) => p.tier !== sub.tier).forEach((p) => {
+        const btn = document.createElement("button");
+        btn.className = "btn-create-invoice";
+        btn.style.padding = "8px 14px";
+        btn.innerHTML = `Switch to ${p.tier} — ${formatCurrency(p.monthlyPrice)}/mo ` +
+          `<span style="opacity:.7;font-size:11px">(${seats(p)})</span>`;
+        btn.onclick = async () => {
+          if (!confirm(`Switch plan to ${p.tier}? A one-time charge of ${formatCurrency(p.monthlyPrice)} will be issued — pay it below to apply the change.`)) return;
+          btn.disabled = true;
+          info.innerHTML = `Requesting plan change to ${p.tier}…`;
+          try {
+            await requestPlanChange(p.tier);
+            await renderPlan();
+            subscriptionCharges = await fetchSubscriptionCharges();
+            renderSubscriptionCharges();
+          } catch (err) {
+            console.error("Plan change error", err);
+            info.textContent = err.message || "Plan change failed";
+            btn.disabled = false;
+          }
+        };
+        buttons.appendChild(btn);
+      });
+    } catch (err) {
+      console.error("Plan load error", err);
+      info.textContent = "Could not load plan details";
+    }
+  }
+
   if (searchInput)
     searchInput.addEventListener("input", renderInvoices);
 
@@ -525,5 +623,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         `<tr><td colspan="6" style="text-align:center">Could not load subscription charges</td></tr>`;
     }
   }
+
+  await renderPlan();
 
 });
