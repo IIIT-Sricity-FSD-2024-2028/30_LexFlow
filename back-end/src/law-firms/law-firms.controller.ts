@@ -69,13 +69,13 @@ export class LawFirmsController {
     type: [LawFirmResponseDto],
   })
   @ApiResponse({ status: 403, description: 'Forbidden – insufficient role' })
-  findAll(
+  async findAll(
     @Query('keyword') keyword?: string,
     @Query('location') location?: string,
     @Query('practiceArea') practiceArea?: string,
     @Query('sortBy') sortBy?: string,
-  ): LawFirmResponseDto[] {
-    return this.lawFirmsService.findAll({ keyword, location, practiceArea, sortBy });
+  ): Promise<LawFirmResponseDto[]> {
+    return await this.lawFirmsService.findAll({ keyword, location, practiceArea, sortBy });
   }
 
   // ── GET /law-firms/:id ─────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ export class LawFirmsController {
   })
   @ApiResponse({ status: 403, description: 'Forbidden – insufficient role' })
   @ApiResponse({ status: 404, description: 'Law firm not found' })
-  findOne(@Param('id') id: string): LawFirmResponseDto {
-    return this.lawFirmsService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<LawFirmResponseDto> {
+    return await this.lawFirmsService.findOne(id);
   }
 }

@@ -67,15 +67,15 @@ export class ConsultationsService {
     const seed: Consultation[] = [
 
       // ═══════════════════════════════════════════════════════════════
-      // CLIENT SIDE — user-2 (Client Alice) — Scheduled / Active
+      // CLIENT SIDE — cl-1 (Client Alice) — Scheduled / Active
       // ═══════════════════════════════════════════════════════════════
       {
         id: 'CONS-882',
-        clientId: 'user-2',
+        clientId: 'cl-1',
         clientName: 'Client Alice',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
-        lawyerId: 'user-3',
+        lawyerId: 'lw-1',
         lawyerName: 'Lawyer Bob',
         type: 'video',
         date: 'May 24, 2026',
@@ -90,11 +90,11 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-895',
-        clientId: 'user-2',
+        clientId: 'cl-1',
         clientName: 'Client Alice',
         firmId: 'firm-2',
         firmName: 'Khanna & Co',
-        lawyerId: 'user-13',
+        lawyerId: 'lw-4',
         lawyerName: 'Lawyer Rahul',
         type: 'inperson',
         date: 'May 26, 2026',
@@ -109,11 +109,11 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-901',
-        clientId: 'user-2',
+        clientId: 'cl-1',
         clientName: 'Client Alice',
         firmId: 'firm-4',
         firmName: 'Coastal Legal Chennai',
-        lawyerId: 'user-10',
+        lawyerId: 'lw-10',
         lawyerName: 'Lawyer Elena',
         type: 'chat',
         date: 'Jun 02, 2026',
@@ -128,7 +128,7 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-907',
-        clientId: 'user-2',
+        clientId: 'cl-1',
         clientName: 'Client Alice',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
@@ -145,15 +145,15 @@ export class ConsultationsService {
       },
 
       // ═══════════════════════════════════════════════════════════════
-      // CLIENT SIDE — user-2 (Client Alice) — Past Consultations
+      // CLIENT SIDE — cl-1 (Client Alice) — Past Consultations
       // ═══════════════════════════════════════════════════════════════
       {
         id: 'CONS-204',
-        clientId: 'user-2',
+        clientId: 'cl-1',
         clientName: 'Client Alice',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
-        lawyerId: 'user-4',
+        lawyerId: 'lw-2',
         lawyerName: 'Lawyer Amit',
         type: 'video',
         date: 'Mar 14, 2026',
@@ -169,7 +169,7 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-156',
-        clientId: 'user-2',
+        clientId: 'cl-1',
         clientName: 'Client Alice',
         firmId: 'firm-3',
         firmName: 'Rodriguez Civil Law',
@@ -186,11 +186,11 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-143',
-        clientId: 'user-2',
+        clientId: 'cl-1',
         clientName: 'Client Alice',
         firmId: 'firm-2',
         firmName: 'Khanna & Co',
-        lawyerId: 'user-14',
+        lawyerId: 'lw-5',
         lawyerName: 'Lawyer Priya',
         type: 'inperson',
         date: 'Feb 20, 2026',
@@ -206,11 +206,11 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-118',
-        clientId: 'user-2',
+        clientId: 'cl-1',
         clientName: 'Client Alice',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
-        lawyerId: 'user-11',
+        lawyerId: 'lw-3',
         lawyerName: 'Lawyer Sunita',
         type: 'video',
         date: 'Nov 05, 2025',
@@ -226,7 +226,7 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-097',
-        clientId: 'user-2',
+        clientId: 'cl-1',
         clientName: 'Client Alice',
         firmId: 'firm-4',
         firmName: 'Coastal Legal Chennai',
@@ -248,7 +248,7 @@ export class ConsultationsService {
       // ═══════════════════════════════════════════════════════════════
       {
         id: 'CONS-910',
-        clientId: 'user-200',
+        clientId: 'cl-3',
         clientName: 'Client Dave',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
@@ -264,7 +264,7 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-911',
-        clientId: 'user-201',
+        clientId: 'cl-4',
         clientName: 'Client Eve',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
@@ -280,7 +280,7 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-912',
-        clientId: 'user-202',
+        clientId: 'cl-5',
         clientName: 'Client Frank',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
@@ -296,7 +296,7 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-913',
-        clientId: 'user-203',
+        clientId: 'cl-6',
         clientName: 'Client Grace',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
@@ -316,11 +316,11 @@ export class ConsultationsService {
       // ═══════════════════════════════════════════════════════════════
       {
         id: 'CONS-875',
-        clientId: 'user-204',
+        clientId: 'cl-7',
         clientName: 'Client Henry',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
-        lawyerId: 'user-3',
+        lawyerId: 'lw-1',
         lawyerName: 'Lawyer Bob',
         type: 'video',
         date: 'May 25, 2026',
@@ -335,11 +335,11 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-876',
-        clientId: 'user-205',
+        clientId: 'cl-8',
         clientName: 'Client Irene',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
-        lawyerId: 'user-4',
+        lawyerId: 'lw-2',
         lawyerName: 'Lawyer Amit',
         type: 'inperson',
         date: 'May 27, 2026',
@@ -354,11 +354,11 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-877',
-        clientId: 'user-206',
+        clientId: 'cl-9',
         clientName: 'Client Jake',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
-        lawyerId: 'user-11',
+        lawyerId: 'lw-3',
         lawyerName: 'Lawyer Sunita',
         type: 'video',
         date: 'May 23, 2026',
@@ -373,11 +373,11 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-878',
-        clientId: 'user-207',
+        clientId: 'cl-10',
         clientName: 'Client Laura',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
-        lawyerId: 'user-4',
+        lawyerId: 'lw-2',
         lawyerName: 'Lawyer Amit',
         type: 'chat',
         date: 'May 23, 2026',
@@ -392,11 +392,11 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-879',
-        clientId: 'user-208',
+        clientId: 'cl-11',
         clientName: 'Client Mark',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
-        lawyerId: 'user-11',
+        lawyerId: 'lw-3',
         lawyerName: 'Lawyer Sunita',
         type: 'inperson',
         date: 'May 30, 2026',
@@ -415,11 +415,11 @@ export class ConsultationsService {
       // ═══════════════════════════════════════════════════════════════
       {
         id: 'CONS-800',
-        clientId: 'user-5',
+        clientId: 'fa-2',
         clientName: 'Client Dave',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
-        lawyerId: 'user-3',
+        lawyerId: 'lw-1',
         lawyerName: 'Lawyer Bob',
         type: 'video',
         date: 'Apr 10, 2026',
@@ -435,11 +435,11 @@ export class ConsultationsService {
       },
       {
         id: 'CONS-801',
-        clientId: 'user-6',
+        clientId: 'fa-3',
         clientName: 'Client Eve',
         firmId: 'firm-1',
         firmName: 'Sharma & Associates',
-        lawyerId: 'user-4',
+        lawyerId: 'lw-2',
         lawyerName: 'Lawyer Amit',
         type: 'inperson',
         date: 'Apr 18, 2026',
@@ -585,7 +585,7 @@ export class ConsultationsService {
   /**
    * PATCH — Update a consultation (firm admin assigns lawyer / changes status).
    */
-  update(id: string, dto: UpdateConsultationDto): ConsultationResponseDto {
+  async update(id: string, dto: UpdateConsultationDto): Promise<ConsultationResponseDto> {
     const index = this.consultations.findIndex((c) => c.id === id);
     if (index === -1) {
       throw new NotFoundException(`Consultation with ID "${id}" not found`);
@@ -607,7 +607,9 @@ export class ConsultationsService {
     // convert the prospect into a client of this law firm.
     if (dto.status === ConsultationStatus.CONFIRMED) {
       try {
-        this.usersService.updateUser(existing.clientId, {
+        // Clients are platform-global now; the consultation itself is the
+        // firm link, so this is bookkeeping only.
+        await this.usersService.updateUser(existing.clientId, {
           firmId: existing.firmId,
         });
         console.log(`[Backend] User ${existing.clientId} converted to Client of Firm ${existing.firmId}`);

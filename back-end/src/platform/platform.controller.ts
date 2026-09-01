@@ -128,13 +128,13 @@ export class PlatformController {
   @ApiResponse({ status: 200, description: 'Subscription' })
   @ApiResponse({ status: 403, description: 'firmadmin requested another firm\'s subscription' })
   @ApiResponse({ status: 404, description: 'No subscription for that firm' })
-  getSubscription(
+  async getSubscription(
     @Param('firmId') firmId: string,
     @Headers('role') role: string,
     @Headers('x-user-id') callerId: string,
   ) {
     if ((role || '').toLowerCase() === 'firmadmin') {
-      const callerFirmId = this.platformService.resolveCallerFirmId(callerId);
+      const callerFirmId = await this.platformService.resolveCallerFirmId(callerId);
       if (callerFirmId !== firmId) {
         throw new ForbiddenException('You can only view your own firm\'s subscription');
       }

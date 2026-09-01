@@ -13,10 +13,15 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { csrfMiddleware } from './common/middleware/csrf.middleware';
 import { staticFilesMiddleware } from './common/middleware/static-files.middleware';
+import { initDb } from './db';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const logger = app.get(AppLoggerService);
+
+  // Connect to Postgres, apply the schema delta and seed demo data (no-ops
+  // when already applied/seeded) before any module touches the database.
+  await initDb();
 
   // ── Security: Helmet HTTP headers ──────────────────────────────────────────
   app.use(helmet({

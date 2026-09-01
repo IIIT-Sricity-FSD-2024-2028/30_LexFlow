@@ -196,10 +196,10 @@ export class ConsultationsController {
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 403, description: 'Forbidden – cannot modify terminal-state consultations, or insufficient role' })
   @ApiResponse({ status: 404, description: 'Consultation not found' })
-  update(
+  async update(
     @Param('id') id: string,
     @Body() dto: UpdateConsultationDto,
-  ): ConsultationResponseDto {
+  ): Promise<ConsultationResponseDto> {
     return this.consultationsService.update(id, dto);
   }
 

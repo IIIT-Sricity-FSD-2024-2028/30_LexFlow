@@ -56,7 +56,7 @@ export class UsersController {
     status: 404,
     description: 'Firm not found or has no users',
   })
-  getUsersByFirm(@Param('firmId') firmId: string): UserResponseDto[] {
+  async getUsersByFirm(@Param('firmId') firmId: string): Promise<UserResponseDto[]> {
     return this.usersService.findUsersByFirm(firmId);
   }
 
@@ -75,7 +75,7 @@ export class UsersController {
     status: 401,
     description: 'Invalid email or password',
   })
-  login(@Body() loginUserDto: LoginUserDto): UserResponseDto {
+  async login(@Body() loginUserDto: LoginUserDto): Promise<UserResponseDto> {
     return this.usersService.login(loginUserDto);
   }
 
@@ -104,7 +104,7 @@ export class UsersController {
     status: 403,
     description: 'Forbidden - only firmadmin role can create users',
   })
-  create(@Body() createUserDto: CreateUserDto): UserResponseDto {
+  async create(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
     return this.usersService.create(createUserDto);
   }
 
@@ -135,7 +135,7 @@ export class UsersController {
     status: 403,
     description: 'Forbidden - only firmadmin role can view all users',
   })
-  findAll(@Query('role') role?: UserRole): UserResponseDto[] {
+  async findAll(@Query('role') role?: UserRole): Promise<UserResponseDto[]> {
     return this.usersService.findAll(role);
   }
 
@@ -152,7 +152,7 @@ export class UsersController {
     status: 200,
     description: 'List of firms',
   })
-  getAllFirms(): any {
+  async getAllFirms(): Promise<any> {
     return this.usersService.getAllFirms();
   }
 
@@ -174,7 +174,7 @@ export class UsersController {
   @ApiResponse({ status: 201, description: 'Firm created successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - superadmin only' })
   @ApiResponse({ status: 409, description: 'Firm email or admin email already in use' })
-  createFirm(@Body() dto: CreateFirmDto): any {
+  async createFirm(@Body() dto: CreateFirmDto): Promise<any> {
     return this.usersService.createFirm(dto);
   }
 
@@ -193,10 +193,10 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Firm updated successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - superadmin only' })
   @ApiResponse({ status: 404, description: 'Firm not found' })
-  updateFirm(
+  async updateFirm(
     @Param('firmId') firmId: string,
     @Body() dto: UpdateFirmDto,
-  ): any {
+  ): Promise<any> {
     return this.usersService.updateFirm(firmId, dto);
   }
 
@@ -223,10 +223,10 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'Firm still has members and cascade was not set' })
   @ApiResponse({ status: 403, description: 'Forbidden - superadmin only' })
   @ApiResponse({ status: 404, description: 'Firm not found' })
-  deleteFirm(
+  async deleteFirm(
     @Param('firmId') firmId: string,
     @Query('cascade') cascade?: string,
-  ): any {
+  ): Promise<any> {
     return this.usersService.deleteFirm(firmId, cascade === 'true');
   }
 
@@ -249,10 +249,10 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'Invalid tier value' })
   @ApiResponse({ status: 403, description: 'Forbidden - superadmin only' })
   @ApiResponse({ status: 404, description: 'Firm not found' })
-  updateFirmTier(
+  async updateFirmTier(
     @Param('firmId') firmId: string,
     @Body() body: { tier: 'Starter' | 'Growth' | 'Enterprise' },
-  ): any {
+  ): Promise<any> {
     return this.usersService.updateFirmTier(firmId, body.tier);
   }
 
@@ -286,9 +286,9 @@ export class UsersController {
     type: [UserResponseDto],
   })
   @ApiResponse({ status: 403, description: 'Forbidden – insufficient role' })
-  getLawyers(
+  async getLawyers(
     @Query('firmId') firmId?: string,
-  ): UserResponseDto[] {
+  ): Promise<UserResponseDto[]> {
     return this.usersService.getLawyersByFirmId(firmId);
   }
 
@@ -316,7 +316,7 @@ export class UsersController {
     status: 403,
     description: 'Forbidden - role header is required',
   })
-  findOne(@Param('id') id: string): UserResponseDto {
+  async findOne(@Param('id') id: string): Promise<UserResponseDto> {
     return this.usersService.findOne(id);
   }
 
@@ -342,7 +342,7 @@ export class UsersController {
     status: 404,
     description: 'User not found',
   })
-  updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): UserResponseDto {
+  async updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
     return this.usersService.updateUser(id, updateUserDto);
   }
 
@@ -359,8 +359,8 @@ export class UsersController {
     status: 200,
     description: 'User deleted successfully',
   })
-  deleteUser(@Param('id') id: string) {
-    this.usersService.deleteUser(id);
+  async deleteUser(@Param('id') id: string) {
+    await this.usersService.deleteUser(id);
     return { message: 'User deleted successfully' };
   }
 
@@ -435,10 +435,10 @@ export class UsersController {
     status: 400,
     description: 'Invalid input or incomplete onboarding',
   })
-  submitStep3(
+  async submitStep3(
     @Param('sessionId') sessionId: string,
     @Body() onboardingDto: FirmOnboardingDto,
-  ): FirmOnboardingResponseDto {
+  ): Promise<FirmOnboardingResponseDto> {
     return this.usersService.submitOnboardingStep3(sessionId, onboardingDto);
   }
 }
