@@ -115,7 +115,7 @@ function rowToActor(r: Record<string, unknown>): ActorRow {
   };
 }
 
-const ROLE_OF_KIND: Record<ActorKind, UserRole> = {
+export const ROLE_OF_KIND: Record<ActorKind, UserRole> = {
   sa: UserRole.SUPERADMIN,
   fa: UserRole.FIRMADMIN,
   lw: UserRole.LAWYER,
@@ -142,7 +142,7 @@ function actorToResponse(a: ActorRow): UserResponseDto {
  * Every actor table unioned into one shape. A WHERE on `email` filters for
  * login/duplicate checks; a WHERE on prefixed ids is done by the callers.
  */
-const ACTORS_UNION = `
+export const ACTORS_UNION = `
   SELECT id, name, email, password_hash, NULL::int AS lawfirm_id,
          NULL::varchar AS contact_number, TRUE AS is_active, created_at, 'sa'::text AS kind
     FROM platform_admin

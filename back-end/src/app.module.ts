@@ -10,10 +10,14 @@ import { LawFirmsModule } from './law-firms/law-firms.module';
 import { PlatformModule } from './platform/platform.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
+import { AuthModule } from './auth/auth.module';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
     LoggerModule,
+    AuthModule,
     UsersModule,
     ConsultationsModule,
     CasesModule,
@@ -24,6 +28,7 @@ import { RequestLoggerMiddleware } from './common/middleware/request-logger.midd
     PlatformModule,
   ],
   controllers: [AppController],
+  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

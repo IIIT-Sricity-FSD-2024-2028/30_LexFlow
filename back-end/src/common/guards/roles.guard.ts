@@ -23,7 +23,10 @@ export class RolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const rawRole = request.headers['role'];
+    // JWT identity is authoritative when present; the legacy `role` header
+    // only counts for requests that did not present a token.
+    const jwtRole = request.user?.role;
+    const rawRole = jwtRole ?? request.headers['role'];
     const userRole = typeof rawRole === 'string' ? rawRole.toLowerCase() : undefined;
 
     if (!userRole) {

@@ -1,7 +1,6 @@
 import {
   Controller, Get, Post, Body, Patch, Param,
-  Delete, HttpCode, HttpStatus, UseGuards, Headers,
-} from '@nestjs/common';
+  Delete, HttpCode, HttpStatus, UseGuards, Headers, Req } from '@nestjs/common';
 import {
   ApiTags, ApiOperation, ApiResponse, ApiParam, ApiHeader,
 } from '@nestjs/swagger';
@@ -30,11 +29,12 @@ export class BillingController {
   @Get('clients')
   @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.SUPERADMIN)
   async getClients(
+    @Req() req,
     @Headers('x-user-id') callerId: string,
   ): Promise<ApiWrapper<ClientEntry[]>> {
     return ok(
       'Clients retrieved successfully',
-      await this.billingService.getClients(callerId),
+      await this.billingService.getClients(req.user?.id ?? callerId),
     );
   }
 
@@ -47,9 +47,10 @@ export class BillingController {
   @ApiResponse({ status: 404, description: 'Client ID not found or not a client' })
   async createInvoice(
     @Body() dto: CreateInvoiceDto,
+    @Req() req,
     @Headers('x-user-id') callerId: string,
   ): Promise<ApiWrapper<InvoiceRecord>> {
-    return ok('Invoice created successfully', await this.billingService.createInvoice(dto, callerId));
+    return ok('Invoice created successfully', await this.billingService.createInvoice(dto, req.user?.id ?? callerId));
   }
 
   // GET /billing/invoices
@@ -64,11 +65,12 @@ export class BillingController {
   })
   async findAllInvoices(
     @Headers('role') role: string,
+    @Req() req,
     @Headers('x-user-id') callerId: string,
     @Headers('x-user-name') callerName: string,
   ): Promise<ApiWrapper<InvoiceRecord[]>> {
     return ok('Invoices retrieved successfully',
-      await this.billingService.findAllInvoices(role, callerId, callerName));
+      await this.billingService.findAllInvoices(req.user?.role ?? role, req.user?.id ?? callerId, req.user?.fullName ?? callerName));
   }
 
   // GET /billing/invoices/summary
@@ -77,11 +79,12 @@ export class BillingController {
   @ApiOperation({ summary: 'Billing summary stats (role-scoped)' })
   async getSummary(
     @Headers('role') role: string,
+    @Req() req,
     @Headers('x-user-id') callerId: string,
     @Headers('x-user-name') callerName: string,
   ): Promise<ApiWrapper<object>> {
     return ok('Summary retrieved successfully',
-      await this.billingService.getSummary(role, callerId, callerName));
+      await this.billingService.getSummary(req.user?.role ?? role, req.user?.id ?? callerId, req.user?.fullName ?? callerName));
   }
 
   // GET /billing/invoices/:id
@@ -122,10 +125,11 @@ export class BillingController {
   @ApiOperation({ summary: 'Get payments (role-scoped)' })
   async findAllPayments(
     @Headers('role') role: string,
+    @Req() req,
     @Headers('x-user-id') callerId: string,
   ): Promise<ApiWrapper<PaymentRecord[]>> {
     return ok('Payments retrieved successfully',
-      await this.billingService.findAllPayments(role, callerId));
+      await this.billingService.findAllPayments(req.user?.role ?? role, req.user?.id ?? callerId));
   }
 
   // GET /billing/payments/invoice/:invoiceId

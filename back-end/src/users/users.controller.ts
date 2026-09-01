@@ -24,6 +24,7 @@ import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto, UpdateUserDto, 
 import { FirmOnboardingDto } from './dto/firm-onboarding.dto';
 import { FirmOnboardingResponseDto } from './dto/firm-onboarding-response.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { AuthService } from '../auth/auth.service';
 import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('users')
@@ -36,7 +37,10 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseGuards(RolesGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly authService: AuthService,
+  ) {}
 
   /**
    * Get all users for a specific firm
@@ -75,8 +79,11 @@ export class UsersController {
     status: 401,
     description: 'Invalid email or password',
   })
-  async login(@Body() loginUserDto: LoginUserDto): Promise<UserResponseDto> {
-    return this.usersService.login(loginUserDto);
+  async login(@Body() loginUserDto: LoginUserDto) {
+    const user = await this.usersService.login(loginUserDto);
+    // access_token sits beside the user so the existing frontend keeps working;
+    // api.js unwraps it and stores the token for the Bearer header.
+    return { access_token: this.authService.signToken(user), user };
   }
 
   /**

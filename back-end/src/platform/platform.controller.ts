@@ -11,8 +11,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  ForbiddenException,
-} from '@nestjs/common';
+  ForbiddenException, Req } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -131,10 +130,11 @@ export class PlatformController {
   async getSubscription(
     @Param('firmId') firmId: string,
     @Headers('role') role: string,
+    @Req() req,
     @Headers('x-user-id') callerId: string,
   ) {
-    if ((role || '').toLowerCase() === 'firmadmin') {
-      const callerFirmId = await this.platformService.resolveCallerFirmId(callerId);
+    if ((req.user?.role ?? (role || '')).toLowerCase() === 'firmadmin') {
+      const callerFirmId = await this.platformService.resolveCallerFirmId(req.user?.id ?? callerId);
       if (callerFirmId !== firmId) {
         throw new ForbiddenException('You can only view your own firm\'s subscription');
       }
@@ -161,11 +161,12 @@ export class PlatformController {
   requestTierChange(
     @Param('firmId') firmId: string,
     @Headers('role') role: string,
+    @Req() req,
     @Headers('x-user-id') callerId: string,
     @Body() body: { tier: FirmTier },
   ) {
-    const isSuperAdmin = (role || '').toLowerCase() === 'superadmin';
-    return this.platformService.requestTierChange(firmId, body.tier, callerId, isSuperAdmin);
+    const isSuperAdmin = (req.user?.role ?? (role || '')).toLowerCase() === 'superadmin';
+    return this.platformService.requestTierChange(firmId, body.tier, req.user?.id ?? callerId, isSuperAdmin);
   }
 
   @Patch('subscriptions/:firmId')
@@ -208,6 +209,7 @@ export class PlatformController {
   @ApiResponse({ status: 400, description: 'firmadmin caller could not be resolved to a firm' })
   getCharges(
     @Headers('role') role: string,
+    @Req() req,
     @Headers('x-user-id') callerId: string,
     @Query('firmId') firmId?: string,
   ) {
@@ -234,6 +236,7 @@ export class PlatformController {
   updateCharge(
     @Param('id') id: string,
     @Headers('role') role: string,
+    @Req() req,
     @Headers('x-user-id') callerId: string,
     @Body() body: { status: ChargeStatus },
   ) {

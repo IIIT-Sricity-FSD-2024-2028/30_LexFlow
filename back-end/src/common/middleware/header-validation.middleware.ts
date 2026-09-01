@@ -25,11 +25,15 @@ export function validateHeaders(req: Request): void {
   const path = req.originalUrl.split('?')[0];
   const role = (req.headers['role'] as string | undefined)?.toLowerCase();
   const public_ = isPublicPath(path);
+  // The global JwtAuthGuard verifies this token and derives the role from it;
+  // requiring the legacy `role` header on top would only break Bearer clients.
+  const hasBearer = typeof req.headers['authorization'] === 'string'
+    && (req.headers['authorization'] as string).startsWith('Bearer ');
 
-  if (!public_ && !role) {
+  if (!public_ && !hasBearer && !role) {
     throw new ForbiddenException('Role header is required');
   }
-  if (!public_ && !VALID_ROLES.includes(role as string)) {
+  if (!public_ && !hasBearer && !VALID_ROLES.includes(role as string)) {
     throw new ForbiddenException(
       `Invalid role header. Valid values: ${VALID_ROLES.join(', ')}`,
     );
@@ -40,7 +44,7 @@ export function validateHeaders(req: Request): void {
     return typeof v === 'string' ? v.trim() : '';
   };
 
-  if (path.startsWith('/billing') && (role === 'client' || role === 'lawyer')) {
+  if (path.startsWith('/billing') && !hasBearer && (role === 'client' || role === 'lawyer')) {
     if (role === 'client' && !header('x-user-id')) {
       throw new BadRequestException('x-user-id header is required for client billing access');
     }
@@ -49,7 +53,7 @@ export function validateHeaders(req: Request): void {
     }
   }
 
-  if (path === '/consultations/my' && role === 'client' && !header('x-client-id')) {
+  if (path === '/consultations/my' && !hasBearer && role === 'client' && !header('x-client-id')) {
     throw new BadRequestException('x-client-id header is required to fetch your consultations');
   }
 
