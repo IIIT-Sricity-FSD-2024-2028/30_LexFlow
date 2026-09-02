@@ -5,11 +5,14 @@ import {
   Body,
   Query,
   Param,
+  Headers,
+  Req,
   HttpCode,
   HttpStatus,
   Put,
   Delete,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,12 +20,14 @@ import {
   ApiResponse,
   ApiQuery,
   ApiHeader,
+  ApiParam,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
-import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto, UpdateUserDto } from './dto';
+import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto, UpdateUserDto, CreateFirmDto, UpdateFirmDto } from './dto';
 import { FirmOnboardingDto } from './dto/firm-onboarding.dto';
 import { FirmOnboardingResponseDto } from './dto/firm-onboarding-response.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { AuthService } from '../auth/auth.service';
 import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('users')
@@ -35,7 +40,10 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseGuards(RolesGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly authService: AuthService,
+  ) {}
 
   /**
    * Get all users for a specific firm
@@ -55,7 +63,7 @@ export class UsersController {
     status: 404,
     description: 'Firm not found or has no users',
   })
-  getUsersByFirm(@Param('firmId') firmId: string): UserResponseDto[] {
+  async getUsersByFirm(@Param('firmId') firmId: string): Promise<UserResponseDto[]> {
     return this.usersService.findUsersByFirm(firmId);
   }
 
@@ -74,8 +82,11 @@ export class UsersController {
     status: 401,
     description: 'Invalid email or password',
   })
-  login(@Body() loginUserDto: LoginUserDto): UserResponseDto {
-    return this.usersService.login(loginUserDto);
+  async login(@Body() loginUserDto: LoginUserDto) {
+    const user = await this.usersService.login(loginUserDto);
+    // access_token sits beside the user so the existing frontend keeps working;
+    // api.js unwraps it and stores the token for the Bearer header.
+    return { access_token: this.authService.signToken(user), user };
   }
 
   /**
@@ -88,7 +99,11 @@ export class UsersController {
   @ApiOperation({
     summary: 'Create a new user',
     description:
-      'Creates a new user with the specified role (client, lawyer, intern, firm, firmadmin, superadmin). Only firmadmins/superadmins can create users.',
+      'Creates a new user with the specified role. CLIENT is open self-service signup. ' +
+      'INTERN has no self-registration at all — it may only be created by the calling ' +
+      "firm's own firmadmin (or superadmin). SUPERADMIN may only be created by an " +
+      'existing superadmin — the highest-privilege role is never self-granted. ' +
+      'FIRMADMIN is separately blocked below — it only comes from firm onboarding.',
   })
   @ApiResponse({
     status: 201,
@@ -101,9 +116,39 @@ export class UsersController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - only firmadmin role can create users',
+    description:
+      'Forbidden - creating an intern requires a firmadmin/superadmin caller; ' +
+      'creating a superadmin requires a superadmin caller',
   })
-  create(@Body() createUserDto: CreateUserDto): UserResponseDto {
+  async create(
+    @Body() createUserDto: CreateUserDto,
+    @Req() req,
+    @Headers('role') role: string,
+  ): Promise<UserResponseDto> {
+    // A verified JWT role wins over the legacy header, matching every other
+    // caller-identity check in this app.
+    const callerRole = (req.user?.role ?? role ?? '').toLowerCase();
+
+    // Interns have no self-registration surface — only the firm that hires
+    // them creates their account.
+    if (
+      createUserDto.role === UserRole.INTERN &&
+      !['firmadmin', 'superadmin'].includes(callerRole)
+    ) {
+      throw new ForbiddenException(
+        'Only a firm admin can create an intern account — interns cannot self-register',
+      );
+    }
+
+    // Superadmin is the highest-privilege role on the platform — only an
+    // existing superadmin may grant it, never self-registered, never by a
+    // firmadmin.
+    if (createUserDto.role === UserRole.SUPERADMIN && callerRole !== 'superadmin') {
+      throw new ForbiddenException(
+        'Only an existing superadmin can create another superadmin account',
+      );
+    }
+
     return this.usersService.create(createUserDto);
   }
 
@@ -134,7 +179,7 @@ export class UsersController {
     status: 403,
     description: 'Forbidden - only firmadmin role can view all users',
   })
-  findAll(@Query('role') role?: UserRole): UserResponseDto[] {
+  async findAll(@Query('role') role?: UserRole): Promise<UserResponseDto[]> {
     return this.usersService.findAll(role);
   }
 
@@ -151,8 +196,108 @@ export class UsersController {
     status: 200,
     description: 'List of firms',
   })
-  getAllFirms(): any {
+  async getAllFirms(): Promise<any> {
     return this.usersService.getAllFirms();
+  }
+
+  /**
+   * Superadmin: create a law firm directly
+   * POST /users/firms
+   */
+  @Post('firms')
+  @Roles(UserRole.SUPERADMIN)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create a law firm (superadmin only)',
+    description:
+      'Adds a law firm to the platform without the 3-step self-service onboarding flow. ' +
+      'If adminName, adminEmail and adminPassword are all supplied, the firm admin account ' +
+      'is provisioned and linked to the new firm in the same call. ' +
+      'A subscription on the chosen tier starts billing immediately.',
+  })
+  @ApiResponse({ status: 201, description: 'Firm created successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - superadmin only' })
+  @ApiResponse({ status: 409, description: 'Firm email or admin email already in use' })
+  async createFirm(@Body() dto: CreateFirmDto): Promise<any> {
+    return this.usersService.createFirm(dto);
+  }
+
+  /**
+   * Superadmin: update a law firm
+   * PUT /users/firms/:firmId
+   */
+  @Put('firms/:firmId')
+  @Roles(UserRole.SUPERADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Update a law firm (superadmin only)',
+    description: 'Patch any editable field on a law firm, including its pricing tier.',
+  })
+  @ApiParam({ name: 'firmId', example: 'firm-1', description: 'Law firm ID' })
+  @ApiResponse({ status: 200, description: 'Firm updated successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - superadmin only' })
+  @ApiResponse({ status: 404, description: 'Firm not found' })
+  async updateFirm(
+    @Param('firmId') firmId: string,
+    @Body() dto: UpdateFirmDto,
+  ): Promise<any> {
+    return this.usersService.updateFirm(firmId, dto);
+  }
+
+  /**
+   * Superadmin: delete a law firm
+   * DELETE /users/firms/:firmId
+   */
+  @Delete('firms/:firmId')
+  @Roles(UserRole.SUPERADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Delete a law firm (superadmin only)',
+    description:
+      'Removes a law firm from the platform. A firm that still has members is rejected ' +
+      'so its users are never orphaned — pass cascade=true to delete those members too.',
+  })
+  @ApiParam({ name: 'firmId', example: 'firm-1', description: 'Law firm ID' })
+  @ApiQuery({
+    name: 'cascade',
+    required: false,
+    description: 'Set to "true" to also delete every user belonging to this firm',
+  })
+  @ApiResponse({ status: 200, description: 'Firm deleted successfully' })
+  @ApiResponse({ status: 400, description: 'Firm still has members and cascade was not set' })
+  @ApiResponse({ status: 403, description: 'Forbidden - superadmin only' })
+  @ApiResponse({ status: 404, description: 'Firm not found' })
+  async deleteFirm(
+    @Param('firmId') firmId: string,
+    @Query('cascade') cascade?: string,
+  ): Promise<any> {
+    return this.usersService.deleteFirm(firmId, cascade === 'true');
+  }
+
+  /**
+   * Superadmin: change the pricing tier of a law firm
+   * PUT /users/firms/:firmId/tier
+   */
+  @Put('firms/:firmId/tier')
+  @Roles(UserRole.SUPERADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Update a firm tier (superadmin only)',
+    description: 'Change the pricing tier (Starter, Growth, Enterprise) of any law firm at any time.',
+  })
+  @ApiParam({ name: 'firmId', example: 'firm-1', description: 'Law firm ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tier updated successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid tier value' })
+  @ApiResponse({ status: 403, description: 'Forbidden - superadmin only' })
+  @ApiResponse({ status: 404, description: 'Firm not found' })
+  async updateFirmTier(
+    @Param('firmId') firmId: string,
+    @Body() body: { tier: 'Starter' | 'Growth' | 'Enterprise' },
+  ): Promise<any> {
+    return this.usersService.updateFirmTier(firmId, body.tier);
   }
 
 
@@ -185,9 +330,9 @@ export class UsersController {
     type: [UserResponseDto],
   })
   @ApiResponse({ status: 403, description: 'Forbidden – insufficient role' })
-  getLawyers(
+  async getLawyers(
     @Query('firmId') firmId?: string,
-  ): UserResponseDto[] {
+  ): Promise<UserResponseDto[]> {
     return this.usersService.getLawyersByFirmId(firmId);
   }
 
@@ -215,7 +360,7 @@ export class UsersController {
     status: 403,
     description: 'Forbidden - role header is required',
   })
-  findOne(@Param('id') id: string): UserResponseDto {
+  async findOne(@Param('id') id: string): Promise<UserResponseDto> {
     return this.usersService.findOne(id);
   }
 
@@ -241,7 +386,7 @@ export class UsersController {
     status: 404,
     description: 'User not found',
   })
-  updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): UserResponseDto {
+  async updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
     return this.usersService.updateUser(id, updateUserDto);
   }
 
@@ -258,8 +403,8 @@ export class UsersController {
     status: 200,
     description: 'User deleted successfully',
   })
-  deleteUser(@Param('id') id: string) {
-    this.usersService.deleteUser(id);
+  async deleteUser(@Param('id') id: string) {
+    await this.usersService.deleteUser(id);
     return { message: 'User deleted successfully' };
   }
 
@@ -334,10 +479,10 @@ export class UsersController {
     status: 400,
     description: 'Invalid input or incomplete onboarding',
   })
-  submitStep3(
+  async submitStep3(
     @Param('sessionId') sessionId: string,
     @Body() onboardingDto: FirmOnboardingDto,
-  ): FirmOnboardingResponseDto {
+  ): Promise<FirmOnboardingResponseDto> {
     return this.usersService.submitOnboardingStep3(sessionId, onboardingDto);
   }
 }

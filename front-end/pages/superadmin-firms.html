@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LexFlow – Law Firms</title>
+    <link rel="stylesheet" href="../styles/superadmin.css">
+    <link rel="stylesheet" href="../styles/sidebar.css">
+</head>
+
+<body data-sa-page="firms">
+
+    <div id="sidebar-container"></div>
+
+    <main class="sa-main">
+        <div class="sa-page-header">
+            <div>
+                <h1>Law Firms</h1>
+                <p>Add, edit and remove the firms on the platform.</p>
+            </div>
+            <div class="sa-header-actions">
+                <button type="button" class="btn-primary" id="addFirmBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add law firm</button>
+            </div>
+        </div>
+
+        <div class="sa-toolbar">
+            <div class="search-bar">
+                <span class="search-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                <input id="firmSearch" type="search" placeholder="Search by name, email, city or ID…" autocomplete="off">
+            </div>
+            <select class="sa-select" id="firmTierFilter" aria-label="Filter by tier">
+                <option value="all">All tiers</option>
+                <option value="Starter">Starter</option>
+                <option value="Growth">Growth</option>
+                <option value="Enterprise">Enterprise</option>
+            </select>
+            <span class="sa-kpi-hint" id="firmCount"></span>
+        </div>
+
+        <section class="sa-table-card">
+            <div class="sa-table-scroll">
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>Firm</th>
+                            <th>Contact</th>
+                            <th>City</th>
+                            <th>Tier</th>
+                            <th class="sa-num">Price / month</th>
+                            <th>Subscription</th>
+                            <th>This month</th>
+                            <th>Joined</th>
+                            <th class="sa-th-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="firmsBody">
+                        <tr><td colspan="9" class="sa-loading">Loading firms…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="modal-backdrop" id="firmModal" role="dialog" aria-modal="true" aria-labelledby="firmModalTitle">
+            <div class="modal-content sa-modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h2 id="firmModalTitle">Add law firm</h2>
+                        <p class="sa-kpi-hint" id="firmModalSub"></p>
+                    </div>
+                    <button type="button" class="modal-close" data-close-modal aria-label="Close">&times;</button>
+                </div>
+                <form id="firmForm">
+                    <div class="modal-body">
+                        <div class="sa-form-row">
+                            <div class="form-group">
+                                <label for="firmName">Firm name</label>
+                                <input id="firmName" name="name" type="text" required placeholder="Sharma &amp; Associates">
+                            </div>
+                            <div class="form-group">
+                                <label for="firmTier">Tier</label>
+                                <select id="firmTier" name="tier">
+                                    <option value="Starter">Starter</option>
+                                    <option value="Growth">Growth</option>
+                                    <option value="Enterprise">Enterprise</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="sa-form-row">
+                            <div class="form-group">
+                                <label for="firmEmail">Contact email</label>
+                                <input id="firmEmail" name="email" type="email" required placeholder="contact@firm.law">
+                            </div>
+                            <div class="form-group">
+                                <label for="firmPhone">Phone</label>
+                                <input id="firmPhone" name="phone" type="tel" required placeholder="9876543210">
+                            </div>
+                        </div>
+                        <div class="sa-form-row">
+                            <div class="form-group">
+                                <label for="firmCity">City</label>
+                                <input id="firmCity" name="city" type="text" placeholder="New Delhi">
+                            </div>
+                            <div class="form-group">
+                                <label for="firmState">State</label>
+                                <input id="firmState" name="state" type="text" placeholder="Delhi">
+                            </div>
+                        </div>
+                        <div class="sa-form-row">
+                            <div class="form-group">
+                                <label for="firmStreet">Street</label>
+                                <input id="firmStreet" name="street" type="text" placeholder="21, Connaught Place">
+                            </div>
+                            <div class="form-group">
+                                <label for="firmPin">PIN code</label>
+                                <input id="firmPin" name="pinCode" type="text" placeholder="110001">
+                            </div>
+                        </div>
+                        <div class="sa-form-row">
+                            <div class="form-group">
+                                <label for="firmWebsite">Website</label>
+                                <input id="firmWebsite" name="website" type="url" placeholder="https://firm.law">
+                            </div>
+                            <div class="form-group">
+                                <label for="firmSubtitle">Tagline</label>
+                                <input id="firmSubtitle" name="subtitle" type="text" placeholder="Civil &amp; Corporate Litigation">
+                            </div>
+                        </div>
+
+                        <div id="firmAdminFields">
+                            <div class="sa-fieldset-title">Firm admin account (optional)</div>
+                            <p class="sa-kpi-hint" style="margin-bottom:12px">
+                                Fill all three to create the firm’s login at the same time. Leave blank to add the firm only.
+                            </p>
+                            <div class="form-group">
+                                <label for="firmAdminName">Admin name</label>
+                                <input id="firmAdminName" name="adminName" type="text" placeholder="Rajesh Sharma">
+                            </div>
+                            <div class="sa-form-row">
+                                <div class="form-group">
+                                    <label for="firmAdminEmail">Admin email</label>
+                                    <input id="firmAdminEmail" name="adminEmail" type="email" placeholder="admin@firm.law">
+                                </div>
+                                <div class="form-group">
+                                    <label for="firmAdminPassword">Password</label>
+                                    <input id="firmAdminPassword" name="adminPassword" type="password" minlength="6" placeholder="At least 6 characters">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-outline" data-close-modal>Cancel</button>
+                        <button type="submit" class="btn-primary">Save firm</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="../scripts/auth.js"></script>
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/superadmin-core.js"></script>
+    <script src="../scripts/sidebar.js"></script>
+    <script src="../scripts/superadmin.js"></script>
+</body>
+
+</html>

@@ -10,8 +10,7 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
-  UseGuards,
-} from '@nestjs/common';
+  UseGuards, Req } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -92,6 +91,7 @@ export class ConsultationsController {
   })
   @ApiResponse({ status: 403, description: 'Forbidden – non-client role' })
   getMyConsultations(
+    @Req() req,
     @Headers('x-client-id') clientId: string,
   ): ConsultationResponseDto[] {
     return this.consultationsService.findByClientId(clientId);
@@ -196,10 +196,10 @@ export class ConsultationsController {
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 403, description: 'Forbidden – cannot modify terminal-state consultations, or insufficient role' })
   @ApiResponse({ status: 404, description: 'Consultation not found' })
-  update(
+  async update(
     @Param('id') id: string,
     @Body() dto: UpdateConsultationDto,
-  ): ConsultationResponseDto {
+  ): Promise<ConsultationResponseDto> {
     return this.consultationsService.update(id, dto);
   }
 

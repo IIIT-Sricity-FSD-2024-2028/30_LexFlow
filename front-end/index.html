@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -28,6 +28,7 @@
                     <!-- Simple text navigation -->
                     <nav class="site-header__links">
                         <a href="#features">Features</a>
+                        <a href="#pricing">Pricing</a>
                         <a href="#how-it-works">How it works</a>
                         <a href="#security">Security</a>
                     </nav>
@@ -262,6 +263,76 @@
             </div>
         </section>
 
+        <!-- ================= PRICING SECTION ================= -->
+        <section id="pricing" class="pricing section-padding">
+            <div class="page-inner">
+                <h2 class="section-title">Pricing Plans for Every Firm</h2>
+                <p class="section-subtitle">
+                    Choose the tier that fits your practice. Upgrade or downgrade anytime —
+                    seat limits are enforced per tier.
+                </p>
+
+                <div class="pricing-grid">
+                    <!-- Starter -->
+                    <article class="pricing-card">
+                        <h3 class="pricing-card__name">Starter</h3>
+                        <div class="pricing-card__price">
+                            <span class="pricing-card__amount">₹999</span>
+                            <span class="pricing-card__period">/month</span>
+                        </div>
+                        <p class="pricing-card__desc">
+                            For solo practitioners and small firms just getting started.
+                        </p>
+                        <ul class="pricing-card__features">
+                            <li>Up to 3 lawyers</li>
+                            <li>Up to 2 interns</li>
+                            <li>Case &amp; consultation management</li>
+                            <li>Document management</li>
+                            <li>Email support</li>
+                        </ul>
+                        <a href="pages/lawfirm-onboarding-step-1.html" class="pricing-card__cta">Get Started</a>
+                    </article>
+
+                    <!-- Growth -->
+                    <article class="pricing-card pricing-card--featured">
+                        <span class="pricing-card__badge">Most Popular</span>
+                        <h3 class="pricing-card__name">Growth</h3>
+                        <div class="pricing-card__price">
+                            <span class="pricing-card__amount">₹2,999</span>
+                            <span class="pricing-card__period">/month</span>
+                        </div>
+                        <p class="pricing-card__desc">
+                            For growing firms that need more capacity and collaboration.
+                        </p>
+                        <ul class="pricing-card__features">
+                            <li>Up to 25 lawyers</li>
+                            <li>Unlimited interns</li>
+                            <li>Everything in Starter</li>
+                            <li>Priority support</li>
+                        </ul>
+                        <a href="pages/lawfirm-onboarding-step-1.html" class="pricing-card__cta">Choose Growth</a>
+                    </article>
+
+                    <!-- Enterprise -->
+                    <article class="pricing-card">
+                        <h3 class="pricing-card__name">Enterprise</h3>
+                        <div class="pricing-card__price">
+                            <span class="pricing-card__amount">Custom</span>
+                        </div>
+                        <p class="pricing-card__desc">
+                            For large firms and multi-office organizations that scale per seat.
+                        </p>
+                        <ul class="pricing-card__features">
+                            <li>Unlimited seats (up to 10,000)</li>
+                            <li>Everything in Growth</li>
+                            <li>24/7 premium support</li>
+                        </ul>
+                        <a href="pages/lawfirm-onboarding-step-1.html" class="pricing-card__cta">Contact Sales</a>
+                    </article>
+                </div>
+            </div>
+        </section>
+
         <!-- ================= HOW IT WORKS SECTION ================= -->
         <section id="how-it-works" class="how-it-works section-padding">
             <div class="page-inner how-it-works__inner">
@@ -386,7 +457,7 @@
                     billing from a single dashboard. Get insights, assign cases, and
                     maintain full visibility over your practice.
                 </p>
-                <button type="button" class="btn-secondary">
+                <button type="button" class="btn-secondary" onclick="window.location.href='./pages/lawfirm-onboarding-step-1.html'">
                     Register as Law Firm
                 </button>
             </div>
@@ -471,7 +542,8 @@
         </footer>
     </div>
 
-    <script src="./scripts/landing-page.js" defer></script>
+    <script src="./scripts/api.js"></script>
+  <script src="./scripts/landing-page.js" defer></script>
 </body>
 
 </html>

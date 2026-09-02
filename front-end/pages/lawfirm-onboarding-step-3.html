@@ -34,6 +34,17 @@
       <p class="card-subtitle" style="margin-bottom:40px; font-size: 15px;">Set up the primary administrator for your law firm account. This person will have full access to manage the firm's settings.</p>
 
       <form action="firm-consultation-dashboard.html" novalidate>
+        <!-- Plan selection -->
+        <div style="margin-bottom: 32px;">
+          <label style="display:block; margin-bottom: 10px;">Choose your plan</label>
+          <div id="tierPicker" style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+            <p style="grid-column: 1 / -1; color:#6B7280; font-size:13px;">Loading plans…</p>
+          </div>
+          <p style="font-size:12px; color:#6B7280; margin-top:10px;">
+            You can change plans any time from your billing dashboard once you're set up — a plan change is billed as its own charge, payable when you're ready.
+          </p>
+        </div>
+
         <div class="form-grid-2" style="gap: 32px; margin-bottom: 24px;">
           <div class="form-field">
             <label for="admin-name">Admin Full Name</label>
@@ -108,6 +119,7 @@
       });
     });
   </script>
+  <script src="../scripts/api.js"></script>
   <script src="../scripts/storage-service.js?v=3"></script>
   <script src="../scripts/auth.js?v=3"></script>
   <script src="../scripts/lawfirm-onboarding.js?v=3"></script>

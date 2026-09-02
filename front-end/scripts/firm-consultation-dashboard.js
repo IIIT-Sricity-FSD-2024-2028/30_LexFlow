@@ -199,7 +199,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         <td><span class="status-badge status-${cons.status.toLowerCase().replace(' ', '-')}">${cons.status}</span></td>
         <td>
           <div class="table-actions">
-            <button class="btn btn-sm btn-primary btn-join" data-id="${cons.id}" id="btn-join-${cons.id}">Join Call</button>
             ${isActive ? `<button class="btn btn-sm btn-convert" data-id="${cons.id}" id="btn-convert-${cons.id}">Convert to Case</button>` : ''}
             <button class="btn btn-sm btn-outline btn-cancel" data-id="${cons.id}" id="btn-cancel-${cons.id}">Cancel</button>
           </div>
@@ -311,17 +310,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Global click delegation ────────────────────────────────────────────────
   document.addEventListener('click', async (e) => {
-    const btnJoin   = e.target.closest('.btn-join');
     const btnAccept = e.target.closest('.btn-accept');
     const btnReject = e.target.closest('.btn-reject');
     const btnCancel = e.target.closest('.btn-cancel');
     const btnConvert = e.target.closest('.btn-convert');
 
-    if (btnJoin) {
-      const id = btnJoin.dataset.id;
-      sessionStorage.setItem('active_cons_id', id);
-      window.location.href = 'lawyer-join-consultation-interface.html';
-    }
     if (btnAccept) await handleAccept(btnAccept.dataset.id);
     if (btnReject) {
       if (confirm('Reject this consultation request?')) {

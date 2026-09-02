@@ -157,7 +157,18 @@ async function initCaseDetails() {
     }
 
     renderTimeline(currentCase.timeline || []);
-    renderDocuments(currentCase.documents || []);
+
+    // Fetch this case's documents from the backend
+    let docs = currentCase.documents || [];
+    try {
+      const resp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents?caseId=${currentCase.id}`, {
+        headers: { role: currentUser.role },
+      });
+      if (resp.ok) docs = await resp.json();
+    } catch (e) {
+      console.warn("Could not load case documents:", e);
+    }
+    renderDocuments(docs);
   } catch (error) {
     console.error("Error loading case details:", error);
   }

@@ -5,3 +5,5 @@
 .env.*
 docs/swagger.json
 .vscode/
+logs/
+!.env.example

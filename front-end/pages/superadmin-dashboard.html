@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LexFlow – Platform Overview</title>
+    <link rel="stylesheet" href="../styles/superadmin.css">
+    <link rel="stylesheet" href="../styles/sidebar.css">
+</head>
+
+<body data-sa-page="dashboard">
+
+    <div id="sidebar-container"></div>
+
+    <main class="sa-main">
+        <div class="sa-page-header">
+            <div>
+                <h1>Platform Overview</h1>
+                <p>What LexFlow earns from the law firms running on it.</p>
+            </div>
+        </div>
+
+        <section class="sa-hero">
+            <div class="sa-earnings-card">
+                <div class="sa-earnings-label">Total earnings to date</div>
+                <div class="sa-earnings-value" id="kpiTotalEarnings">—</div>
+                <div class="sa-earnings-sub" id="kpiEarningsSub">Loading subscriptions…</div>
+                <div class="sa-earnings-split">
+                    <div>
+                        <span>Subscriptions</span>
+                        <strong id="kpiSubRevenue">—</strong>
+                    </div>
+                    <div>
+                        <span>Commission</span>
+                        <strong id="kpiCommission">—</strong>
+                    </div>
+                    <div>
+                        <span>Outstanding</span>
+                        <strong id="kpiOutstanding">—</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sa-kpi-grid">
+                <div class="sa-kpi">
+                    <span class="sa-kpi-label">Monthly recurring revenue</span>
+                    <div class="sa-kpi-value" id="kpiMrr">—</div>
+                    <div class="sa-kpi-hint" id="kpiArr">—</div>
+                </div>
+                <div class="sa-kpi">
+                    <span class="sa-kpi-label">Billed this month</span>
+                    <div class="sa-kpi-value" id="kpiThisMonth">—</div>
+                    <div id="kpiThisMonthDelta"></div>
+                </div>
+                <div class="sa-kpi">
+                    <span class="sa-kpi-label">Commission earned</span>
+                    <div class="sa-kpi-value" id="kpiCommission2">—</div>
+                    <div class="sa-kpi-hint" id="kpiCommissionHint">—</div>
+                </div>
+                <div class="sa-kpi">
+                    <span class="sa-kpi-label">Law firms</span>
+                    <div class="sa-kpi-value" id="kpiFirms">—</div>
+                    <div class="sa-kpi-hint">Paying subscribers</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="sa-kpi-grid sa-kpi-grid--wide">
+            <div class="sa-kpi">
+                <span class="sa-kpi-label">Lawyers &amp; interns</span>
+                <div class="sa-kpi-value" id="kpiLawyers">—</div>
+            </div>
+            <div class="sa-kpi">
+                <span class="sa-kpi-label">Total users</span>
+                <div class="sa-kpi-value" id="kpiUsers">—</div>
+            </div>
+            <div class="sa-kpi">
+                <span class="sa-kpi-label">Manage firms</span>
+                <div class="sa-kpi-hint" style="margin-top:8px">
+                    <a class="sa-btn-ghost" href="superadmin-firms.html">Open firms</a>
+                </div>
+            </div>
+            <div class="sa-kpi">
+                <span class="sa-kpi-label">Earnings detail</span>
+                <div class="sa-kpi-hint" style="margin-top:8px">
+                    <a class="sa-btn-ghost" href="superadmin-revenue.html">Open revenue</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="sa-chart-card">
+            <div class="sa-card-head">
+                <div>
+                    <h2>Earnings over the last 6 months</h2>
+                    <p>Subscription fees plus commission, per month.</p>
+                </div>
+                <div class="sa-legend">
+                    <span><i class="sa-swatch-sub"></i> Subscriptions</span>
+                    <span><i class="sa-swatch-comm"></i> Commission</span>
+                </div>
+            </div>
+            <div class="sa-chart" id="revenueChart">
+                <div class="sa-loading">Loading earnings…</div>
+            </div>
+        </section>
+
+        <section class="sa-table-card">
+            <div class="sa-card-head">
+                <div>
+                    <h2>Top earning firms</h2>
+                    <p>Ranked by everything they have paid you.</p>
+                </div>
+                <a class="sa-btn-ghost" href="superadmin-revenue.html">See all</a>
+            </div>
+            <div class="sa-table-scroll">
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>Firm</th>
+                            <th>Tier</th>
+                            <th class="sa-num">Subscriptions</th>
+                            <th class="sa-num">Commission</th>
+                            <th class="sa-num">Total earned</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topFirmsBody">
+                        <tr><td colspan="5" class="sa-loading">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="../scripts/auth.js"></script>
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/superadmin-core.js"></script>
+    <script src="../scripts/sidebar.js"></script>
+    <script src="../scripts/superadmin.js"></script>
+</body>
+
+</html>

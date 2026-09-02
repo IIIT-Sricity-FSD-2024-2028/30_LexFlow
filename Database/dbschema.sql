@@ -1,6 +1,7 @@
 CREATE TABLE lawfirm_meta (
     id              INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,
+    tier            VARCHAR(50) DEFAULT 'Starter',  -- 'Starter' | 'Growth' | 'Enterprise'
     address         TEXT NOT NULL,
     avg_rating      NUMERIC(3,2) CHECK (avg_rating BETWEEN 0 AND 5),
     logo_url        TEXT,

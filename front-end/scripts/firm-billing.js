@@ -30,7 +30,8 @@ function statusBadge(status) {
 
 document.addEventListener("DOMContentLoaded", async () => {
 
-  const API_BASE = "http://localhost:3000/billing";
+  const API_BASE = window.LexFlowAPI.BASE_URL + '/billing';
+  const PLATFORM_BASE = window.LexFlowAPI.BASE_URL + '/platform';
 
   function getCallerId() {
     try {
@@ -41,9 +42,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  function getRole() {
+    return (localStorage.getItem("userRole")
+      || (JSON.parse(localStorage.getItem("currentUser") || "null") || {}).role
+      || "firmadmin").toLowerCase();
+  }
+
+  // ───────── SUBSCRIPTION CHARGES (what this firm owes LexFlow) ─────────
+  async function fetchSubscriptionCharges() {
+    const res = await fetch(`${PLATFORM_BASE}/charges`, {
+      headers: { role: getRole(), "x-user-id": getCallerId() }
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to fetch subscription charges");
+    return json || [];
+  }
+
+  async function paySubscriptionCharge(id) {
+    const res = await fetch(`${PLATFORM_BASE}/charges/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        role: getRole(),
+        "x-user-id": getCallerId()
+      },
+      // The backend ignores this body for firmadmin callers and always marks
+      // Paid, but sending it keeps the request shape self-explanatory.
+      body: JSON.stringify({ status: "Paid" })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Payment failed");
+    return json;
+  }
+
   async function fetchInvoices() {
     const res = await fetch(`${API_BASE}/invoices`, {
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
+      headers: { role: getRole(), "x-user-id": getCallerId() }
     });
     const json = await res.json();
     return json.data || [];
@@ -51,7 +85,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function fetchPayments() {
     const res = await fetch(`${API_BASE}/payments`, {
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
+      headers: { role: getRole(), "x-user-id": getCallerId() }
     });
     const json = await res.json();
     return json.data || [];
@@ -59,7 +93,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function fetchClients() {
     const res = await fetch(`${API_BASE}/clients`, {
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
+      headers: { role: getRole(), "x-user-id": getCallerId() }
     });
     if (!res.ok) throw new Error("Failed to fetch clients");
     const json = await res.json();
@@ -71,7 +105,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        role: "firmadmin",
+        role: getRole(),
         "x-user-id": getCallerId()
       },
       body: JSON.stringify(payload)
@@ -86,7 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        role: "firmadmin",
+        role: getRole(),
         "x-user-id": getCallerId()
       },
       body: JSON.stringify(payload)
@@ -99,7 +133,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function deleteInvoice(id) {
     const res = await fetch(`${API_BASE}/invoices/${id}`, {
       method: "DELETE",
-      headers: { role: "firmadmin", "x-user-id": getCallerId() }
+      headers: { role: getRole(), "x-user-id": getCallerId() }
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || "Delete failed");
@@ -108,23 +142,34 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let invoices = [];
   let payments = [];
+  let subscriptionCharges = [];
   let currentFilter = "All";
 
   const invoicesList = document.getElementById("invoicesList");
   const paymentHistoryList = document.getElementById("paymentHistoryList");
+  const subscriptionChargesList = document.getElementById("subscriptionChargesList");
   const searchInput = document.getElementById("searchInvoiceInput");
   const filterBtns = document.querySelectorAll(".filter-btn");
 
   function updateSummaries() {
-    let totalRevenue = 0, pendingAmount = 0, paidCount = 0, overdueCount = 0;
+    let pendingAmount = 0, totalBilled = 0, overdueCount = 0;
+    
+    // 1. Invoices aggregations
     invoices.forEach(inv => {
-      if (inv.status === "Paid") { totalRevenue += inv.amount; paidCount++; }
+      totalBilled += inv.amount;
       if (inv.status === "Pending") { pendingAmount += inv.amount; }
       if (inv.status === "Overdue") { pendingAmount += inv.amount; overdueCount++; }
     });
-    document.getElementById("valTotalRevenue").textContent = formatCurrency(totalRevenue);
+
+    // 2. Payments aggregations (Total Amount Paid)
+    let totalPaid = 0;
+    payments.forEach(p => {
+      totalPaid += p.amount;
+    });
+
+    document.getElementById("valTotalRevenue").textContent = formatCurrency(totalPaid);
     document.getElementById("valPending").textContent = formatCurrency(pendingAmount);
-    document.getElementById("valPaidInvoices").textContent = paidCount;
+    document.getElementById("valTotalBilled").textContent = formatCurrency(totalBilled);
     document.getElementById("valOverdueInvoices").textContent = overdueCount;
   }
 
@@ -395,6 +440,150 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // ───────── RENDER SUBSCRIPTION CHARGES ─────────
+  function renderSubscriptionCharges() {
+    if (!subscriptionChargesList) return;
+    subscriptionChargesList.innerHTML = "";
+
+    if (!subscriptionCharges.length) {
+      subscriptionChargesList.innerHTML =
+        `<tr><td colspan="6" style="text-align:center">No subscription charges yet</td></tr>`;
+      return;
+    }
+
+    // Most recent period first, so the current month's bill is what you see.
+    const sorted = [...subscriptionCharges].sort((a, b) =>
+      a.period < b.period ? 1 : a.period > b.period ? -1 : 0
+    );
+
+    sorted.forEach(charge => {
+      const tr = document.createElement("tr");
+      const payCell = charge.status === "Paid"
+        ? `<span style="color:var(--clr-text-tertiary,#aeaeb2);font-size:11px;">Settled</span>`
+        : `<button class="btn-pay-now" onclick="window.handlePaySubscriptionCharge(event, '${charge.id}')">Pay now</button>`;
+
+      tr.innerHTML = `
+        <td>${charge.id}</td>
+        <td>${charge.period}</td>
+        <td>${charge.tier}</td>
+        <td>${formatCurrency(charge.amount)}</td>
+        <td>${statusBadge(charge.status)}</td>
+        <td>${payCell}</td>
+      `;
+      subscriptionChargesList.appendChild(tr);
+    });
+  }
+
+  // ───────── PAY SUBSCRIPTION CHARGE ─────────
+  window.handlePaySubscriptionCharge = async function (evt, id) {
+    const btn = evt && evt.target;
+    if (btn) { btn.disabled = true; btn.textContent = "Paying…"; }
+
+    try {
+      const updated = await paySubscriptionCharge(id);
+      const idx = subscriptionCharges.findIndex(c => c.id === id);
+      if (idx !== -1) subscriptionCharges[idx] = updated;
+      // Re-render in place — no page reload, so the rest of the billing
+      // dashboard (invoices, payment history, scroll position) is untouched.
+      renderSubscriptionCharges();
+    } catch (err) {
+      alert("Payment failed: " + err.message);
+      if (btn) { btn.disabled = false; btn.textContent = "Pay now"; }
+    }
+  };
+
+  // ───────── PLAN (current tier + change plan) ─────────
+  function getFirmId() {
+    try {
+      const user = JSON.parse(localStorage.getItem("currentUser"));
+      return (user && user.firmId) ? user.firmId : "";
+    } catch {
+      return "";
+    }
+  }
+
+  async function fetchSubscription() {
+    const res = await fetch(`${PLATFORM_BASE}/subscriptions/${getFirmId()}`, {
+      headers: { role: getRole(), "x-user-id": getCallerId() }
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to fetch subscription");
+    return json.data || json;
+  }
+
+  async function fetchTierPlans() {
+    const res = await fetch(`${PLATFORM_BASE}/tiers`, {
+      headers: { role: getRole() }
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to fetch plans");
+    return json.data || json;
+  }
+
+  async function requestPlanChange(tier) {
+    const res = await fetch(`${PLATFORM_BASE}/subscriptions/${getFirmId()}/tier-change`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        role: getRole(),
+        "x-user-id": getCallerId()
+      },
+      body: JSON.stringify({ tier })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Plan change failed");
+    return json.charge || (json.data && json.data.charge) || null;
+  }
+
+  async function renderPlan() {
+    const info = document.getElementById("planInfo");
+    const buttons = document.getElementById("planButtons");
+    if (!info || !buttons) return;
+
+    try {
+      const [sub, plans] = await Promise.all([fetchSubscription(), fetchTierPlans()]);
+      const seats = (p) => {
+        const l = p.lawyerSeats >= 10000 ? "unlimited" : p.lawyerSeats;
+        const i = p.internSeats >= 10000 ? "unlimited" : p.internSeats;
+        return `${l} lawyers / ${i} interns`;
+      };
+
+      const pending = sub.pendingTier
+        ? ` — <strong>${sub.pendingTier} pending</strong>: pay the charge below to switch`
+        : "";
+      info.innerHTML =
+        `Current plan: <strong>${sub.tier}</strong> (${formatCurrency(sub.monthlyPrice)}/mo)${pending}`;
+
+      buttons.innerHTML = "";
+      plans.filter((p) => p.tier !== sub.tier).forEach((p) => {
+        const btn = document.createElement("button");
+        btn.className = "btn-create-invoice";
+        btn.style.padding = "8px 14px";
+        btn.innerHTML = `Switch to ${p.tier} — ${formatCurrency(p.monthlyPrice)}/mo ` +
+          `<span style="opacity:.7;font-size:11px">(${seats(p)})</span>`;
+        btn.onclick = async () => {
+          if (!confirm(`Switch plan to ${p.tier}? A one-time charge of ${formatCurrency(p.monthlyPrice)} will be issued — pay it below to apply the change.`)) return;
+          btn.disabled = true;
+          info.innerHTML = `Requesting plan change to ${p.tier}…`;
+          try {
+            await requestPlanChange(p.tier);
+            await renderPlan();
+            subscriptionCharges = await fetchSubscriptionCharges();
+            renderSubscriptionCharges();
+          } catch (err) {
+            console.error("Plan change error", err);
+            info.textContent = err.message || "Plan change failed";
+            btn.disabled = false;
+          }
+        };
+        buttons.appendChild(btn);
+      });
+    } catch (err) {
+      console.error("Plan load error", err);
+      info.textContent = "Could not load plan details";
+    }
+  }
+
   if (searchInput)
     searchInput.addEventListener("input", renderInvoices);
 
@@ -409,6 +598,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   showSkeleton("invoicesList", 7);
   showSkeleton("paymentHistoryList", 7);
+  showSkeleton("subscriptionChargesList", 6);
 
   try {
     const [inv, pay] = await Promise.all([fetchInvoices(), fetchPayments()]);
@@ -420,5 +610,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   } catch (err) {
     console.error("Billing load error", err);
   }
+
+  // Kept as a separate try/catch so a subscription-charges failure never
+  // blanks out the invoices/payments the firm actually cares about.
+  try {
+    subscriptionCharges = await fetchSubscriptionCharges();
+    renderSubscriptionCharges();
+  } catch (err) {
+    console.error("Subscription charges load error", err);
+    if (subscriptionChargesList) {
+      subscriptionChargesList.innerHTML =
+        `<tr><td colspan="6" style="text-align:center">Could not load subscription charges</td></tr>`;
+    }
+  }
+
+  await renderPlan();
 
 });

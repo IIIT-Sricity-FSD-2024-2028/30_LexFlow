@@ -61,6 +61,14 @@
     'client-lawfirm-search.html':        'nav-search',
     'firm-user-management.html': 'nav-usermanagement',
     'schedule-management.html':            'nav-consultations',
+    'superadmin-dashboard.html':     'nav-sa-dashboard',
+    'superadmin-revenue.html':       'nav-sa-revenue',
+    'superadmin-firms.html':         'nav-sa-firms',
+    'superadmin-lawyers.html':       'nav-sa-lawyers',
+    'superadmin-users.html':         'nav-sa-users',
+    'superadmin-consultations.html': 'nav-sa-consultations',
+    'superadmin-invoices.html':      'nav-sa-invoices',
+    'superadmin-settings.html':      'nav-sa-settings',
   };
 
   // Maps nav item ID → relative page path (for link resolution)
@@ -103,14 +111,15 @@
         if (el) el.classList.add('active');
       }
 
-      // Resolve nav link hrefs for pages that exist
+      // Resolve nav link hrefs for pages that exist.
+      // The superadmin nav ships with real hrefs already, so it is skipped.
       Object.entries(NAV_TO_PAGE).forEach(([id, pagePath]) => {
         const link = document.getElementById(id);
         if (link) link.href = pagePath;
       });
 
       // Update sidebar user identity from signed-in user data
-      const roleLabels = { client: 'Client', firmAdmin: 'Firm Admin', lawyer: 'Lawyer' };
+      const roleLabels = { client: 'Client', firmAdmin: 'Firm Admin', lawyer: 'Lawyer', intern: 'Intern', superAdmin: 'Super Admin' };
       const currentUserRaw = localStorage.getItem('currentUser');
       let currentUser = null;
       try {
@@ -133,8 +142,28 @@
       // firmAdmin: hide "Find a Law Firm", point Consultations to firm dashboard
       // client:    hide "Schedules",        point Consultations to client dashboard
       const isFirmStaff = ['firmAdmin', 'lawyer', 'intern'].includes(userRole);
+      const isSuperAdmin = String(userRole).toLowerCase() === 'superadmin';
+
+      // Superadmin runs the platform, not a firm — it gets only its own nav
+      // (Overview/Revenue/Law Firms/…), not the firm/client one stacked
+      // underneath. One role, one nav, same as every other role here.
+      const defaultNav = container.querySelector('.sidebar-nav:not(#sidebar-nav-superadmin)');
+      const superAdminNav = container.querySelector('#sidebar-nav-superadmin');
+
+      // .sidebar-nav sets display:flex, which wins over the `hidden`
+      // attribute, so the swap has to go through style.display.
+      if (isSuperAdmin) {
+        if (defaultNav) defaultNav.style.display = 'none';
+        if (superAdminNav) {
+          superAdminNav.hidden = false;
+          superAdminNav.style.display = 'flex';
+        }
+      } else if (superAdminNav) {
+        superAdminNav.style.display = 'none';
+      }
 
       if (isFirmStaff) {
+        // Firm staff don't prospect for law firms.
         const searchLink = document.getElementById('nav-search');
         if (searchLink) searchLink.closest('a').style.display = 'none';
 
@@ -142,16 +171,18 @@
         if (consultLink) consultLink.href = 'firm-consultation-dashboard.html';
 
         const casesLink = document.getElementById('nav-cases');
-        if (casesLink) {
-          // If role is lawyer, we could optionally point to a different cases list, 
-          // but for now firm-cases.html seems intended for staff.
-          casesLink.href = 'firm-cases.html';
-        }
+        if (casesLink) casesLink.href = 'firm-cases.html';
 
         const billingLink = document.getElementById('nav-billing');
-        if (billingLink) billingLink.href = 'firm-billing.html';
+        if (billingLink) {
+          if (userRole === 'intern') {
+            billingLink.closest('a').style.display = 'none';
+          } else {
+            billingLink.href = 'firm-billing.html';
+          }
+        }
 
-        // Show and link User Management for firmAdmin only (or decide if lawyers can see it)
+        // Show and link User Management for firmAdmin only.
         const userMgmtLink = document.getElementById('nav-usermanagement');
         if (userMgmtLink) {
           if (userRole === 'firmAdmin') {
@@ -176,6 +207,28 @@
         // Hide User Management for client
         const userMgmtLink = document.getElementById('nav-usermanagement');
         if (userMgmtLink) userMgmtLink.closest('a').style.display = 'none';
+      }
+
+      // Firm tier badge (firmAdmin / lawyer / intern only)
+      const API_BASE = window.__API_BASE__ || window.LexFlowAPI.BASE_URL;
+      const tierBadge = container.querySelector('#tier-badge');
+      if (isFirmStaff && tierBadge && currentUser && currentUser.firmId) {
+        try {
+          const res = await fetch(`${API_BASE}/users/firms/all`, {
+            headers: { 'role': userRole.toLowerCase() }
+          });
+          if (res.ok) {
+            const firms = await res.json();
+            const firm = (firms || []).find((f) => f.id === currentUser.firmId);
+            if (firm && firm.tier) {
+              tierBadge.textContent = `Tier: ${firm.tier}`;
+              tierBadge.dataset.tier = firm.tier;
+              tierBadge.hidden = false;
+            }
+          }
+        } catch (err) {
+          console.warn('[sidebar.js] Could not load firm tier:', err);
+        }
       }
 
       // Shared logout behavior for all pages using the common sidebar

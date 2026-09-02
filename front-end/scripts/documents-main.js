@@ -359,7 +359,7 @@
       const uMap = {};
       await Promise.allSettled(
         userIds.map(uid =>
-          fetch(`http://localhost:3000/users/${uid}`, {
+          fetch(`${window.LexFlowAPI.BASE_URL}/users/${uid}`, {
             headers: { 'role': casesStorage.getRoleHeader() }
           })
           .then(r => r.ok ? r.json() : null)

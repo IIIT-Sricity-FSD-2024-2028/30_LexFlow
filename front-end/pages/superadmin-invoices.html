@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LexFlow – Client Invoices</title>
+    <link rel="stylesheet" href="../styles/superadmin.css">
+    <link rel="stylesheet" href="../styles/sidebar.css">
+</head>
+
+<body data-sa-page="invoices">
+
+    <div id="sidebar-container"></div>
+
+    <main class="sa-main">
+        <div class="sa-page-header">
+            <div>
+                <h1>Client Invoices</h1>
+                <p>What the firms bill their clients — and your commission on it.</p>
+            </div>
+        </div>
+
+        <section class="sa-kpi-grid sa-kpi-grid--wide">
+            <div class="sa-kpi">
+                <span class="sa-kpi-label">Paid through the platform</span>
+                <div class="sa-kpi-value" id="invoiceGross">—</div>
+                <div class="sa-kpi-hint">Settled client invoices</div>
+            </div>
+            <div class="sa-kpi">
+                <span class="sa-kpi-label">Your commission</span>
+                <div class="sa-kpi-value" id="invoiceCommission">—</div>
+                <div class="sa-kpi-hint" id="invoiceRateHint">—</div>
+            </div>
+        </section>
+
+        <div class="sa-toolbar">
+            <div class="search-bar">
+                <span class="search-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                <input id="invoiceSearch" type="search" placeholder="Search by invoice, client, case or advocate…" autocomplete="off">
+            </div>
+            <select class="sa-select" id="invoiceStatusFilter" aria-label="Filter by status">
+                <option value="all">All statuses</option>
+                <option value="Paid">Paid</option>
+                <option value="Pending">Pending</option>
+                <option value="Overdue">Overdue</option>
+            </select>
+            <span class="sa-kpi-hint" id="invoiceCount"></span>
+        </div>
+
+        <section class="sa-table-card">
+            <div class="sa-table-scroll">
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice</th>
+                            <th>Client / case</th>
+                            <th>Advocate</th>
+                            <th class="sa-num">Amount</th>
+                            <th class="sa-num">Your cut</th>
+                            <th>Due</th>
+                            <th>Status</th>
+                            <th class="sa-th-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoicesBody">
+                        <tr><td colspan="8" class="sa-loading">Loading invoices…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="../scripts/auth.js"></script>
+    <script src="../scripts/api.js"></script>
+    <script src="../scripts/superadmin-core.js"></script>
+    <script src="../scripts/sidebar.js"></script>
+    <script src="../scripts/superadmin.js"></script>
+</body>
+
+</html>

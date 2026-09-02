@@ -407,7 +407,7 @@
        No localStorage for activity data.
     ═══════════════════════════════════════════════════ */
 
-    const BACKEND = "http://localhost:3000";
+    const BACKEND = window.LexFlowAPI.BASE_URL;
     const ROWS_PER_PAGE = 15;
 
     /* ── Resolve current user from localStorage auth ── */
@@ -714,6 +714,7 @@
       fetchLog();
     }
   </script>
-</body>
+<script src="../scripts/api.js"></script>
+  </body>
 
 </html>

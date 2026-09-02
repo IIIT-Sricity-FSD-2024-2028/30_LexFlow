@@ -66,6 +66,13 @@ async function initCaseDetails() {
     renderClientInfo();
     renderPendingTasks();
     renderTimeline();
+    // Load this case's documents from the backend
+    try {
+      const resp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents?caseId=${currentCase.id}`, {
+        headers: { role: currentUser.role },
+      });
+      if (resp.ok) currentCase.documents = await resp.json();
+    } catch (e) { console.warn("Could not load case documents:", e); }
     renderDocuments();
     renderPendingBanner();
   } catch (e) {
@@ -391,10 +398,86 @@ window.deleteTimelineEvent = async (index) => {
   }
 };
 
+window.addDocumentPrompt = function () {
+  document.getElementById("docClientName").value = (currentCase.case_type || "").split("vs.")[0].trim() || (currentCase.title || "").split("vs.")[0].trim();
+  document.getElementById("docCaseCnr").value = currentCase.cnr || currentCase.id;
+  document.getElementById("docDescription").value = "";
+  document.getElementById("selectedFileName").innerHTML = 'Drag & Drop Files Here or <span style="color:#3b5bdb; text-decoration:underline;">Click to Upload</span>';
+  window.openModal("documentModal");
+};
+
+window.saveDocumentModal = async function () {
+  const typeSelect = document.getElementById("docTypeSelect");
+  const e = typeSelect ? typeSelect.value : "PDF";
+  const fileInput = document.getElementById("hiddenFileInput");
+  const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+
+  if (!file) {
+    alert("Please select a file to upload.");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("name", file.name);
+  formData.append("caseId", String(currentCase.id));
+
+  let docType = "CLIENT PROOF";
+  if (e === "DOC") docType = "CONTRACT";
+  else if (e === "ZIP") docType = "CASE EVIDENCE";
+
+  formData.append("type", docType);
+  
+  const ext = file.name.split('.').pop() || "PDF";
+  formData.append("fileType", ext.toUpperCase().slice(0, 3));
+  
+  let access = "SHARED";
+  const accessSelect = document.querySelector("#documentModal .form-row:nth-child(2) select:nth-child(2)");
+  if (accessSelect && accessSelect.value && accessSelect.value.includes("Firm")) {
+    access = "PRIVATE";
+  }
+  formData.append("access", access);
+  formData.append("file", file);
+
+  const currentUserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const role = (currentUserData.role || 'lawyer').toLowerCase();
+  const email = currentUserData.email || 'lawyer@lexflow.in';
+
+  try {
+    const resp = await fetch(window.LexFlowAPI.BASE_URL + '/documents', {
+      method: "POST",
+      headers: {
+        "role": role,
+        "x-user-email": email
+      },
+      body: formData
+    });
+    if (!resp.ok) throw new Error("Upload failed");
+    
+    const newDoc = await resp.json();
+    currentCase.documents = currentCase.documents || [];
+    currentCase.documents.push(newDoc);
+    renderDocuments();
+    window.closeModal("documentModal");
+  } catch(err) {
+    console.error(err);
+    alert("Upload failed. Is the server running?");
+  }
+};
+
 window.deleteDocument = async (index) => {
   if (confirm("Delete this document?")) {
+    const doc = currentCase.documents[index];
+    const email = currentUserData.email || 'lawyer@lexflow.in';
+    try {
+      if (doc && doc.id && String(doc.id).startsWith("DOC-")) {
+        await fetch(`${window.LexFlowAPI.BASE_URL}/documents/${doc.id}`, {
+          method: "DELETE",
+          headers: { "role": currentUser.role, "x-user-email": email }
+        });
+      }
+    } catch(err) { console.error(err); }
     currentCase.documents.splice(index, 1);
-    await saveCaseData();
+    renderDocuments();
   }
 };
 

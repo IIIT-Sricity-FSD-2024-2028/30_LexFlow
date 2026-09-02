@@ -45,15 +45,13 @@ export class LawFirmsService implements OnModuleInit {
 
   /** Called by NestJS after all dependencies are resolved */
   onModuleInit(): void {
-    this.seedData();
+    this.syncFirmsFromUsers().catch((e) => console.error('[law-firms] sync failed', e));
   }
 
-  // ── Seed ──────────────────────────────────────────────────────────────────
-  private seedData(): void {
-    // ─── Hydrate real firms from UsersService ─────────────────────────────
-    // Pull every firm registered via onboarding and add it to the searchable list.
-    // This guarantees firm-1 (Sharma & Associates) always appears in search results.
-    const realFirms = this.usersService.getAllFirms();
+  private async syncFirmsFromUsers(): Promise<void> {
+    // Pull the latest firm's records from UsersService every time so newly created firms
+    // are immediately visible to the law-firms search/list APIs without restarting the app.
+    const realFirms = await this.usersService.getAllFirms();
     const realFirmEntries: LawFirm[] = realFirms.map((f) => ({
       id: f.id,                   // e.g. 'firm-1' — MUST match firmId used in consultations
       name: f.name,               // 'Sharma & Associates'
@@ -96,7 +94,8 @@ export class LawFirmsService implements OnModuleInit {
   }
 
   // ── findAll with filter + sort ────────────────────────────────────────────
-  findAll(filters: LawFirmFilters): LawFirmResponseDto[] {
+  async findAll(filters: LawFirmFilters): Promise<LawFirmResponseDto[]> {
+    await this.syncFirmsFromUsers();
     let results = [...this.firms];
 
     if (filters.keyword) {
@@ -145,7 +144,8 @@ export class LawFirmsService implements OnModuleInit {
   }
 
   // ── findOne ───────────────────────────────────────────────────────────────
-  findOne(id: string): LawFirmResponseDto {
+  async findOne(id: string): Promise<LawFirmResponseDto> {
+    await this.syncFirmsFromUsers();
     const firm = this.firms.find((f) => f.id === id);
     if (!firm) {
       throw new NotFoundException(`Law firm with ID "${id}" not found`);

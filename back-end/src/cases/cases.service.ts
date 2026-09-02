@@ -24,8 +24,8 @@ export class CasesService {
         filed_date: '2024-01-15',
         created_at: now,
         lawfirm_id: 'firm-1',
-        client_id: 'user-2', // Client Alice
-        lawyer_id: 'user-3', // Lawyer Bob
+        client_id: 'cl-1', // Client Alice
+        lawyer_id: 'lw-1', // Lawyer Bob
       },
       {
         id: this.idCounter++,
@@ -36,8 +36,8 @@ export class CasesService {
         filed_date: '2024-02-20',
         created_at: now,
         lawfirm_id: 'firm-1',
-        client_id: 'user-2', // Client Alice
-        lawyer_id: 'user-3', // Lawyer Bob
+        client_id: 'cl-1', // Client Alice
+        lawyer_id: 'lw-1', // Lawyer Bob
       },
       {
         id: this.idCounter++,
@@ -48,8 +48,8 @@ export class CasesService {
         filed_date: '2024-03-05',
         created_at: now,
         lawfirm_id: 'firm-1',
-        client_id: 'user-2', // Client Alice
-        lawyer_id: 'user-3', // Lawyer Bob
+        client_id: 'cl-1', // Client Alice
+        lawyer_id: 'lw-1', // Lawyer Bob
       },
     ];
   }

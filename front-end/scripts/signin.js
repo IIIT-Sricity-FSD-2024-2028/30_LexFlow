@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const passwordInput = document.getElementById('password');
     const loginBtn = document.querySelector('button[type="submit"]');
 
-    const API_BASE = window.__API_BASE__ || 'http://localhost:3000';
+    const API_BASE = window.__API_BASE__ || window.LexFlowAPI.BASE_URL;
 
     const signUpLink = document.querySelector('.signup-note a');
     const rawRole = localStorage.getItem('loginRole') || localStorage.getItem('userRole');
@@ -33,7 +33,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             loginBtn.classList.add('btn-loading');
             try {
-                const user = await _postJSON(`${API_BASE}/users/login`, { email, password });
+                // Backend returns { access_token, user }; unwrap and keep the
+                // token so api.js's fetch override can attach it everywhere.
+                const resp = await _postJSON(`${API_BASE}/users/login`, { email, password });
+                const user = (resp && resp.user) ? resp.user : resp;
+                if (resp && resp.access_token) {
+                    localStorage.setItem('access_token', resp.access_token);
+                }
 
                 const isFirmPortal = ['firmadmin', 'intern'].includes(expectedRole);
                 const isFirmStaff = ['firmadmin', 'lawyer', 'intern'].includes(user.role.toLowerCase());
@@ -112,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             firmadmin: 'firm-consultation-dashboard.html',
             lawyer: 'firm-consultation-dashboard.html',
             intern: 'firm-consultation-dashboard.html',
-            superadmin: '../super-admin/index.html',
+            superadmin: 'superadmin-dashboard.html',
         };
         return roleRedirects[roleLower] || 'sign-in.html';
     }

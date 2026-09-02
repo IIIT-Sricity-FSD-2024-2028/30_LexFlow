@@ -3,7 +3,6 @@ const AuthService = (() => {
 
   function getSignInPath() {
     const pathname = (window.location && window.location.pathname) || '';
-    if (pathname.includes('/super-admin/') || pathname.includes('/super admin/') || pathname.includes('/super%20admin/')) return 'super-admin-login.html';
     if (pathname.includes('/pages/')) return 'sign-in.html';
     return 'pages/sign-in.html';
   }
@@ -53,8 +52,17 @@ const AuthService = (() => {
 
     logout() {
       localStorage.removeItem('currentUser');
+      localStorage.removeItem('access_token');
       // Redirect to the correct login page for the current folder.
       window.location.href = getSignInPath();
+    },
+
+    getDashboardPath(role) {
+      const r = (role || '').toLowerCase();
+      if (r === 'client') return 'client-consultation-dashboard.html';
+      if (['firmadmin', 'lawyer', 'intern'].includes(r)) return 'firm-consultation-dashboard.html';
+      if (r === 'superadmin') return 'superadmin-dashboard.html';
+      return getSignInPath();
     },
 
     requireAuth(allowedRoles) {
@@ -65,12 +73,13 @@ const AuthService = (() => {
         return null;
       }
 
+      // Superadmin can open every page — role lists gate staff/client views only.
       if (allowedRoles && allowedRoles.length > 0) {
         const userRoleLower = (user.role || '').toLowerCase();
         const allowedLower = allowedRoles.map(r => r.toLowerCase());
-        
-        if (!allowedLower.includes(userRoleLower)) {
-          window.location.href = getSignInPath();
+
+        if (userRoleLower !== 'superadmin' && !allowedLower.includes(userRoleLower)) {
+          window.location.href = this.getDashboardPath(userRoleLower);
           return null;
         }
       }

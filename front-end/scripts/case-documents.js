@@ -283,47 +283,53 @@ const CURRENT_CASE_ID = urlCaseId || '1';
   `;
   document.head.appendChild(styleEl);
 
-  const MEMORY_DB = {
-    users: [
-      { id: 'user-0', name: 'Super Admin', email: 'superadmin@lexflow.test', role: 'superAdmin' },
-      { id: 'user-1', name: 'Firm Admin', email: 'firmadmin@lexflow.test', role: 'firmAdmin', firmId: 'firm-1' },
-      { id: 'user-2', name: 'Client Alice', email: 'alice@client.test', role: 'client', phone: '+91-9000000001' },
-      { id: 'user-3', name: 'Lawyer Bob', email: 'bob@lawyer.test', role: 'lawyer', firmId: 'firm-1' },
-      { id: 'user-4', name: 'Intern Charlie', email: 'charlie@intern.test', role: 'intern', firmId: 'firm-1' },
-    ],
-    firms: [
-      { id: 'firm-1', name: 'Sharma & Associates', email: 'contact@sharma.law' },
-    ],
-    cases: [
-      { id: '1', title: 'State vs John Doe', cnr: 'PH010012342024', status: 'Active', clientId: 'user-2', lawyerId: 'user-3', firmId: 'firm-1', court: 'District Court' },
-      { id: '2', title: 'Sharma vs Gupta', cnr: 'DL020056782024', status: 'Active', clientId: 'user-2', lawyerId: 'user-3', firmId: 'firm-1', court: 'High Court' },
-      { id: '3', title: 'TechCorp vs SoftSystems', cnr: 'MH030099992024', status: 'Pending', clientId: 'user-2', lawyerId: 'user-3', firmId: 'firm-1', court: 'Supreme Court' },
-    ]
-  };
+  const API_BASE = window.LexFlowAPI.BASE_URL;
 
   async function bootApp() {
     try {
-      const users = [...MEMORY_DB.users];
-      const localUser = safeParse(localStorage.getItem('currentUser'), null);
-      if (localUser && localUser.email) {
-        const exists = users.find(u => u.email === localUser.email);
-        if (!exists) {
-          users.push({
-            id: localUser.id || `local-${Date.now()}`,
-            name: localUser.fullName || localUser.name || 'Current User',
-            email: localUser.email,
-            role: localUser.role || userRole,
-            firmId: localUser.firmId || null
-          });
-        }
-      }
+      const db = { users: [], cases: [], documents: [], firms: [] };
+      const role = (userRole || 'client').toLowerCase();
 
-      const db = {
-        users,
-        cases: MEMORY_DB.cases,
-        documents: [],
-        firms: MEMORY_DB.firms,
-      };
+      // Fetch the real case from the backend (never trust hardcoded ids)
+      try {
+        const r = await fetch(`${API_BASE}/cases/${CURRENT_CASE_ID}`, {
+          headers: { 'role': role },
+        });
+        if (r.ok) {
+          const c = await r.json();
+          const kase = {
+            id: String(c.id),
+            title: c.title || c.case_type || `Case ${c.id}`,
+            status: c.status || 'Active',
+            clientId: String(c.client_id ?? c.clientId ?? ''),
+            lawyerId: String(c.lawyer_id ?? c.lawyerId ?? ''),
+            firmId: String(c.firm_id ?? c.firmId ?? c.lawfirm_id ?? ''),
+            court: c.court || '—',
+          };
+          db.cases.push(kase);
+
+          // Resolve client/lawyer display names
+          await Promise.allSettled(
+            [kase.clientId, kase.lawyerId].filter(Boolean).map((uid) =>
+              fetch(`${API_BASE}/users/${uid}`, { headers: { 'role': role } })
+                .then((r2) => (r2.ok ? r2.json() : null))
+                .then((u) => {
+                  if (u) {
+                    db.users.push({
+                      id: String(u.id),
+                      name: u.fullName || u.name || uid,
+                      email: u.email,
+                      role: u.role,
+                      firmId: String(u.firmId ?? u.firm_id ?? ''),
+                    });
+                  }
+                })
+            )
+          );
+        }
+      } catch (e) {
+        console.error('Failed to load case from backend:', e);
+      }
 
       await init(db);
     } catch (err) {
@@ -337,24 +343,18 @@ const CURRENT_CASE_ID = urlCaseId || '1';
   async function init(db) {
     let CURRENT_USER = null;
     const localUser = safeParse(localStorage.getItem('currentUser'), null);
-    if (localUser && localUser.email) {
-      CURRENT_USER = db.users.find(u => u.email === localUser.email);
-    }
-    if (!CURRENT_USER) {
-      CURRENT_USER = db.users.find(u => u.email === CURRENT_USER_EMAIL);
-    }
-    if (!CURRENT_USER && localUser && localUser.email && localUser.role) {
+    if (localUser) {
       CURRENT_USER = {
-        id: localUser.id || 'USR-UNKNOWN',
-        name: localUser.fullName || localUser.name || localUser.email,
-        email: localUser.email,
-        role: localUser.role,
-        firmId: localUser.firmId || null,
+        id: String(localUser.id || 'USR-UNKNOWN'),
+        name: localUser.fullName || localUser.name || localUser.email || 'Current User',
+        email: localUser.email || '',
+        role: localUser.role || userRole,
+        firmId: String(localUser.firmId ?? ''),
         caseAccess: localUser.caseAccess || {},
       };
     }
     if (!CURRENT_USER) {
-      toast(`User "${CURRENT_USER_EMAIL}" not found.`, "error");
+      toast(`No logged-in user found. Please sign in.`, "error");
       return;
     }
     if (!CURRENT_USER.role) {
@@ -363,10 +363,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     }
     const ROLE = (CURRENT_USER.role || '').toLowerCase();
 
-    const CURRENT_FIRM = CURRENT_USER.firmId
-      ? (db.firms.find(f => f.id === CURRENT_USER.firmId) || { id: CURRENT_USER.firmId, name: CURRENT_USER.firmName || CURRENT_USER.firmId })
-      : null;
-    const FIRM_NAME = CURRENT_FIRM ? CURRENT_FIRM.name : "Independent";
+    const FIRM_NAME = CURRENT_USER.firmId || "Independent";
 
     const breadcrumb = document.querySelector(".breadcrumb");
     if (breadcrumb) {
@@ -376,7 +373,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     const CURRENT_CASE = db.cases.find(c => c.id === CURRENT_CASE_ID);
     if (!CURRENT_CASE) {
       renderAccessDenied(`Case "${CURRENT_CASE_ID}" does not exist.`, "CASE_NOT_FOUND");
-      renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
+
       return;
     }
 
@@ -392,52 +389,35 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       caseIdParagraph.innerHTML = `Case ID: <strong>${CURRENT_CASE_ID}</strong>`;
     }
 
+    // ── Access check against the REAL case from the backend ────────────────
     const userHasExplicitCaseAccess = !!(
       CURRENT_USER.caseAccess && CURRENT_USER.caseAccess[CURRENT_CASE_ID]
     );
 
-    if (ROLE !== "client") {
-      const caseFromOtherFirm = CURRENT_FIRM && CURRENT_CASE.firmId !== CURRENT_FIRM.id;
-      if (caseFromOtherFirm && !userHasExplicitCaseAccess) {
-        renderAccessDenied(
-          `${CURRENT_CASE_ID} belongs to a different firm and you have not been granted access.`,
-          "CROSS_FIRM_VIOLATION"
-        );
-        renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
-        return;
-      }
-    }
+    const isSuperadmin = ROLE === "superadmin";
+    const isClientOwner =
+      ROLE === "client" && CURRENT_CASE.clientId === CURRENT_USER.id;
+    const isFirmStaff =
+      ["firmadmin", "lawyer", "intern"].includes(ROLE) &&
+      CURRENT_USER.firmId &&
+      CURRENT_CASE.firmId === CURRENT_USER.firmId;
+    const isAssignedLawyer =
+      ROLE === "lawyer" && CURRENT_CASE.lawyerId === CURRENT_USER.id;
 
-    const caseAccess = CURRENT_USER.caseAccess || [];
-    const hasExplicitAccess = Array.isArray(caseAccess)
-      ? caseAccess.includes(CURRENT_CASE_ID)
-      : !!(caseAccess[CURRENT_CASE_ID]);
-
-    const isFullAccess =
-      ROLE === "superadmin" ||
-      (ROLE === "firmadmin" && CURRENT_FIRM && CURRENT_CASE.firmId === CURRENT_FIRM.id);
-
-    const isPartyToCase =
-      (ROLE === "client" && CURRENT_CASE.clientId === CURRENT_USER.id) ||
-      (ROLE === "lawyer" && CURRENT_CASE.lawyerId === CURRENT_USER.id) ||
-      (ROLE === "intern" && CURRENT_CASE.firmId === CURRENT_USER.firmId);
-
-    if (!isFullAccess && !isPartyToCase && !hasExplicitAccess) {
+    if (!isSuperadmin && !isClientOwner && !isFirmStaff && !isAssignedLawyer && !userHasExplicitCaseAccess) {
       renderAccessDenied(
         `You do not have access to Case ${CURRENT_CASE_ID}. Contact your firm administrator to request access.`,
         "NO_DOC_ACCESS"
       );
-      renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
+
       return;
     }
 
-    const allowedIds = (isFullAccess || isPartyToCase)
-      ? null
-      : new Set(Array.isArray(caseAccess) ? [] : (caseAccess[CURRENT_CASE_ID] || []));
+    const allowedIds = null; // full access to this case's documents
 
     let docsData = [];
     try {
-      const resp = await fetch(`http://localhost:3000/documents?caseId=${CURRENT_CASE_ID}`, {
+      const resp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents?caseId=${CURRENT_CASE_ID}`, {
         headers: {
           'role': ROLE,
           'x-user-email': CURRENT_USER_EMAIL,
@@ -459,7 +439,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
 
     // ── Load recent activity for side panel from backend ──────────────────
     try {
-      const actResp = await fetch(`http://localhost:3000/documents/activity?caseId=${CURRENT_CASE_ID}`, {
+      const actResp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents/activity?caseId=${CURRENT_CASE_ID}`, {
         headers: { 'role': ROLE, 'x-user-email': CURRENT_USER.email }
       });
       if (actResp.ok) {
@@ -499,7 +479,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
 
       // Persist to backend — no localStorage involved
       try {
-        await fetch("http://localhost:3000/documents/activity", {
+        await fetch(window.LexFlowAPI.BASE_URL + '/documents/activity', {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -513,7 +493,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       }
     }
 
-    renderRoleBadge(CURRENT_USER, ROLE, FIRM_NAME);
+
 
     const grid = document.querySelector(".documents-grid");
     const searchInput = document.querySelector(".search-box input");
@@ -644,7 +624,9 @@ const CURRENT_CASE_ID = urlCaseId || '1';
 
     function bindCardActions(el, d) {
       el.querySelectorAll("[data-action]").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           switch (btn.dataset.action) {
             case "view": openViewModal(d); break;
             case "download": downloadDoc(d); break;
@@ -677,9 +659,12 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         </div>
       </div>`;
     document.body.appendChild(viewOverlay);
+    let _viewModalOpenTime = 0;
     viewOverlay.querySelector(".view-modal-close").addEventListener("click", closeViewModal);
     viewOverlay.querySelector(".vm-close-btn").addEventListener("click", closeViewModal);
-    viewOverlay.addEventListener("click", e => { if (e.target === viewOverlay) closeViewModal(); });
+    viewOverlay.addEventListener("click", e => { 
+      if (e.target === viewOverlay && Date.now() - _viewModalOpenTime > 400) closeViewModal(); 
+    });
 
     let _currentViewDoc = null;
     viewOverlay.querySelector(".vm-dl-btn").addEventListener("click", () => {
@@ -704,6 +689,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         body.appendChild(iframe);
       }
       viewOverlay.classList.add("active");
+      _viewModalOpenTime = Date.now();
       document.body.style.overflow = "hidden";
       logActivity("viewed", d);
     }
@@ -720,6 +706,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       const a = document.createElement("a");
       a.href = src;
       a.download = d.name || "document";
+      a.target = "_blank";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -757,7 +744,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         }
 
         try {
-          const resp = await fetch(`http://localhost:3000/documents/${doc.id}`, {
+          const resp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents/${doc.id}`, {
             method: "DELETE",
             headers: {
               "role": ROLE,
@@ -916,7 +903,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
       updSaveBtn.textContent = 'Saving...';
 
       try {
-        const resp = await fetch(`http://localhost:3000/documents/${_updDoc.id}`, {
+        const resp = await fetch(`${window.LexFlowAPI.BASE_URL}/documents/${_updDoc.id}`, {
           method: "PATCH",
           headers: {
             "role": ROLE,
@@ -1228,7 +1215,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
         submitBtn.textContent = 'Uploading...';
 
         try {
-          const resp = await fetch("http://localhost:3000/documents", {
+          const resp = await fetch(window.LexFlowAPI.BASE_URL + '/documents', {
             method: "POST",
             headers: {
               "role": ROLE,
@@ -1328,32 +1315,7 @@ const CURRENT_CASE_ID = urlCaseId || '1';
     }
   }
 
-  function renderRoleBadge(user, role, firmName) {
-    const existing = document.getElementById("lex-role-badge");
-    if (existing) existing.remove();
-    const roleColors = {
-      lawyer: { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
-      intern: { bg: "#f1f5f9", color: "#475569", border: "#cbd5e1" },
-      client: { bg: "#fefce8", color: "#854d0e", border: "#fde68a" },
-      lawfirm_admin: { bg: "#f0fdf4", color: "#166534", border: "#86efac" },
-    };
-    const rc = roleColors[role] || roleColors.lawyer;
-    const badge = document.createElement("div");
-    badge.id = "lex-role-badge";
-    badge.style.cssText = `
-      position:fixed; top:16px; right:16px;
-      background:${rc.bg}; color:${rc.color}; border:1px solid ${rc.border};
-      padding:6px 14px; border-radius:999px;
-      font-size:0.78rem; font-weight:700; letter-spacing:0.04em;
-      z-index:9998; text-transform:uppercase;
-      box-shadow:0 2px 8px rgba(0,0,0,0.08); max-width: 420px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    `;
-    const firm = firmName ? ` · ${firmName}` : "";
-    badge.textContent = `👤 ${user.name} · ${role.replace("_", " ").toUpperCase()}${firm} · ${CURRENT_CASE_ID}`;
-    badge.title = badge.textContent;
-    document.body.appendChild(badge);
-  }
+
 
   function toast(msg, type = "success") {
     const t = document.createElement("div");

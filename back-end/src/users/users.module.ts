@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * Users Module
@@ -14,6 +15,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
  * - UsersController: Automatically registered with routes
  */
 @Module({
+  imports: [AuthModule],
   controllers: [UsersController],
   providers: [UsersService, RolesGuard],
   exports: [UsersService], // Allow other modules to inject UsersService

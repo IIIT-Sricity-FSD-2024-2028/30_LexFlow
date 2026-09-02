@@ -572,4 +572,60 @@ select.upload-modal__input {
     background: #1e3a8a;
     color: white;
     border: none;
+}/* ================= RESPONSIVE ================= */
+@media screen and (max-width: 1200px) {
+    .documents-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media screen and (max-width: 992px) {
+    .layout {
+        flex-direction: column;
+    }
+    .documents-grid {
+        width: 100%;
+    }
+    .side-panel {
+        width: 100%;
+        margin-left: 0;
+    }
+    .doc-card {
+        width: 100%;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .documents-grid {
+        grid-template-columns: 1fr;
+    }
+    .case-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .case-meta {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .case-meta div {
+        border-left: none;
+        padding: 0;
+        padding-right: 18px;
+    }
+    .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .toolbar {
+        flex-wrap: wrap;
+    }
+    .upload-modal__panel {
+        width: 95%;
+        margin: 10px;
+    }
+    .upload-modal__grid {
+        grid-template-columns: 1fr;
+    }
 }

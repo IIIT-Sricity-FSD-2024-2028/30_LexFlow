@@ -1,6 +1,6 @@
 (function () {
 
-  const BASE = "http://localhost:3000";
+  const BASE = window.LexFlowAPI.BASE_URL;
 
   function getCurrentUser() {
     try {

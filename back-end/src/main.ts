@@ -3,12 +3,40 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { AppModule } from './app.module';
+import helmet from 'helmet';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as cookieParser from 'cookie-parser';
+import { AppModule } from './app.module';
+import { AppLoggerService } from './common/logger/logger.service';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { csrfMiddleware } from './common/middleware/csrf.middleware';
+import { staticFilesMiddleware } from './common/middleware/static-files.middleware';
+import { initDb } from './db';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const logger = app.get(AppLoggerService);
+
+  // Connect to Postgres, apply the schema delta and seed demo data (no-ops
+  // when already applied/seeded) before any module touches the database.
+  await initDb();
+
+  // ── Security: Helmet HTTP headers ──────────────────────────────────────────
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // static docs are loaded cross-origin by the frontend
+  }));
+
+  // Parse cookies first so the CSRF middleware can use req.cookies
+  app.use(cookieParser());
+
+  // ── Security: CSRF (double-submit cookie; enforced only when a session cookie exists) ──
+  app.use(csrfMiddleware);
+
+  // ── Logging + Error Handling (global) ──────────────────────────────────────
+  app.useGlobalInterceptors(new LoggingInterceptor(logger));
+  app.useGlobalFilters(new AllExceptionsFilter(logger));
 
   // ── Global Validation Pipe ─────────────────────────────────────────────────
   app.useGlobalPipes(
@@ -44,10 +72,13 @@ async function bootstrap() {
       'x-user-name',
       'x-client-id',
       'x-user-email',
+      'x-csrf-token',
     ],
+    credentials: true,
   });
 
-  // Serve static files from the data/docs directory
+  // Serve static files from the data/docs directory (with access logging + 404 handling)
+  app.use('/data/docs', staticFilesMiddleware(logger));
   app.useStaticAssets(path.join(__dirname, '..', 'data', 'docs'), {
     prefix: '/data/docs/',
   });
@@ -87,8 +118,8 @@ async function bootstrap() {
 
   await app.listen(port, '0.0.0.0');
 
-  console.log(`🚀  LexFlow API running on  → http://localhost:${port}`);
-  console.log(`📚  Swagger UI available at → http://localhost:${port}/api/docs`);
+  console.log(`🚀  LexFlow API running on  → http://127.0.0.1:${port} (or http://localhost:${port})`);
+  console.log(`📚  Swagger UI available at → http://127.0.0.1:${port}/api/docs`);
   console.log(`✅  NestJS Backend listening on port ${port} (IPv4)`);
 }
 

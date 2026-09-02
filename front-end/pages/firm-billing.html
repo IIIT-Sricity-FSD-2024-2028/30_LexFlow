@@ -43,7 +43,7 @@
 
             <div class="summary-cards">
                 <div class="summary-card">
-                    <label>Total Revenue</label>
+                    <label>Total Amount Paid</label>
                     <div class="value text-blue" id="valTotalRevenue">---</div>
                 </div>
                 <div class="summary-card">
@@ -51,13 +51,42 @@
                     <div class="value text-blue" id="valPending">---</div>
                 </div>
                 <div class="summary-card">
-                    <label>Paid Invoices</label>
-                    <div class="value text-blue" id="valPaidInvoices">---</div>
+                    <label>Total Billed</label>
+                    <div class="value text-blue" id="valTotalBilled">---</div>
                 </div>
                 <div class="summary-card">
                     <label>Overdue Invoices</label>
                     <div class="value text-blue" id="valOverdueInvoices">---</div>
                 </div>
+            </div>
+
+            <div class="card subscription-charges-card" style="margin-bottom:20px;">
+                <h2 style="font-size:14px; font-weight:700; margin-bottom:4px;">Subscription Charges</h2>
+                <p style="font-size:12px; color:var(--clr-text-secondary,#86868b); margin-bottom:16px;">
+                    What your firm owes LexFlow for its plan, month by month.
+                </p>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>CHARGE</th>
+                            <th>PERIOD</th>
+                            <th>TIER</th>
+                            <th>AMOUNT</th>
+                            <th>STATUS</th>
+                            <th>ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subscriptionChargesList"></tbody>
+                </table>
+            </div>
+
+            <div class="card" style="margin-bottom:20px;">
+                <h2 style="font-size:14px; font-weight:700; margin-bottom:4px;">Your Plan</h2>
+                <p style="font-size:12px; color:var(--clr-text-secondary,#86868b); margin-bottom:12px;">
+                    Your current tier and its seat limits. Changing plan issues a one-time charge — pay it below to switch.
+                </p>
+                <div id="planInfo" style="font-size:13px; margin-bottom:10px;">Loading…</div>
+                <div id="planButtons" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
             </div>
 
             <div class="card my-invoices-card">
@@ -288,7 +317,8 @@
         </div>
     </div>
 
-    <script src="../scripts/storage.js"></script>
+    <script src="../scripts/api.js"></script>
+  <script src="../scripts/storage.js"></script>
     <script src="../scripts/storage-service.js"></script>
     <script src="../scripts/auth.js"></script>
     <script>
