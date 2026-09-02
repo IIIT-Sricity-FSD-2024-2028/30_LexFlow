@@ -5,11 +5,14 @@ import {
   Body,
   Query,
   Param,
+  Headers,
+  Req,
   HttpCode,
   HttpStatus,
   Put,
   Delete,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -96,7 +99,11 @@ export class UsersController {
   @ApiOperation({
     summary: 'Create a new user',
     description:
-      'Creates a new user with the specified role (client, lawyer, intern, firm, firmadmin, superadmin). Only firmadmins/superadmins can create users.',
+      'Creates a new user with the specified role. CLIENT is open self-service signup. ' +
+      'INTERN has no self-registration at all — it may only be created by the calling ' +
+      "firm's own firmadmin (or superadmin). SUPERADMIN may only be created by an " +
+      'existing superadmin — the highest-privilege role is never self-granted. ' +
+      'FIRMADMIN is separately blocked below — it only comes from firm onboarding.',
   })
   @ApiResponse({
     status: 201,
@@ -109,9 +116,39 @@ export class UsersController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - only firmadmin role can create users',
+    description:
+      'Forbidden - creating an intern requires a firmadmin/superadmin caller; ' +
+      'creating a superadmin requires a superadmin caller',
   })
-  async create(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
+  async create(
+    @Body() createUserDto: CreateUserDto,
+    @Req() req,
+    @Headers('role') role: string,
+  ): Promise<UserResponseDto> {
+    // A verified JWT role wins over the legacy header, matching every other
+    // caller-identity check in this app.
+    const callerRole = (req.user?.role ?? role ?? '').toLowerCase();
+
+    // Interns have no self-registration surface — only the firm that hires
+    // them creates their account.
+    if (
+      createUserDto.role === UserRole.INTERN &&
+      !['firmadmin', 'superadmin'].includes(callerRole)
+    ) {
+      throw new ForbiddenException(
+        'Only a firm admin can create an intern account — interns cannot self-register',
+      );
+    }
+
+    // Superadmin is the highest-privilege role on the platform — only an
+    // existing superadmin may grant it, never self-registered, never by a
+    // firmadmin.
+    if (createUserDto.role === UserRole.SUPERADMIN && callerRole !== 'superadmin') {
+      throw new ForbiddenException(
+        'Only an existing superadmin can create another superadmin account',
+      );
+    }
+
     return this.usersService.create(createUserDto);
   }
 

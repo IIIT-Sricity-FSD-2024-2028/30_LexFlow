@@ -219,6 +219,15 @@ export class UsersService {
 
     const hash = hashPassword(createUserDto.password);
     const created = await tx(async (c) => {
+      if (kind === 'sa') {
+        // Platform admins are global, not firm-scoped, and platform_admin has
+        // no is_active column — a superadmin is never "deactivated" this way.
+        const res = await c.query(
+          `INSERT INTO platform_admin (name, email, password_hash) VALUES ($1,$2,$3) RETURNING id, created_at`,
+          [createUserDto.fullName, createUserDto.email, hash],
+        );
+        return res.rows[0];
+      }
       if (kind === 'cl') {
         const res = await c.query(
           `INSERT INTO clients (client_type, name, contact_number, email_address, address, password_hash, is_active)

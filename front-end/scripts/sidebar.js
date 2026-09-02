@@ -144,14 +144,16 @@
       const isFirmStaff = ['firmAdmin', 'lawyer', 'intern'].includes(userRole);
       const isSuperAdmin = String(userRole).toLowerCase() === 'superadmin';
 
-      // Superadmin gets its own platform nav AND the firm nav, so every page
-      // is reachable. Firm pages resolve their links like staff views.
+      // Superadmin runs the platform, not a firm — it gets only its own nav
+      // (Overview/Revenue/Law Firms/…), not the firm/client one stacked
+      // underneath. One role, one nav, same as every other role here.
       const defaultNav = container.querySelector('.sidebar-nav:not(#sidebar-nav-superadmin)');
       const superAdminNav = container.querySelector('#sidebar-nav-superadmin');
 
       // .sidebar-nav sets display:flex, which wins over the `hidden`
       // attribute, so the swap has to go through style.display.
       if (isSuperAdmin) {
+        if (defaultNav) defaultNav.style.display = 'none';
         if (superAdminNav) {
           superAdminNav.hidden = false;
           superAdminNav.style.display = 'flex';
@@ -160,12 +162,10 @@
         superAdminNav.style.display = 'none';
       }
 
-      if (isSuperAdmin || isFirmStaff) {
-        if (isFirmStaff) {
-          // Firm staff don't prospect for law firms; superadmin keeps it.
-          const searchLink = document.getElementById('nav-search');
-          if (searchLink) searchLink.closest('a').style.display = 'none';
-        }
+      if (isFirmStaff) {
+        // Firm staff don't prospect for law firms.
+        const searchLink = document.getElementById('nav-search');
+        if (searchLink) searchLink.closest('a').style.display = 'none';
 
         const consultLink = document.getElementById('nav-consultations');
         if (consultLink) consultLink.href = 'firm-consultation-dashboard.html';
@@ -182,10 +182,10 @@
           }
         }
 
-        // Show and link User Management for firmAdmin and superadmin
+        // Show and link User Management for firmAdmin only.
         const userMgmtLink = document.getElementById('nav-usermanagement');
         if (userMgmtLink) {
-          if (userRole === 'firmAdmin' || isSuperAdmin) {
+          if (userRole === 'firmAdmin') {
             userMgmtLink.closest('a').style.display = 'flex';
             userMgmtLink.href = 'firm-user-management.html';
           } else {

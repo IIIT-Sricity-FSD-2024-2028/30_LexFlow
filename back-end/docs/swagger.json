@@ -128,7 +128,7 @@
     },
     "/users": {
       "post": {
-        "description": "Creates a new user with the specified role (client, lawyer, intern, firm, firmadmin, superadmin). Only firmadmins/superadmins can create users.",
+        "description": "Creates a new user with the specified role. CLIENT is open self-service signup. INTERN has no self-registration at all — it may only be created by the calling firm's own firmadmin (or superadmin). SUPERADMIN may only be created by an existing superadmin — the highest-privilege role is never self-granted. FIRMADMIN is separately blocked below — it only comes from firm onboarding.",
         "operationId": "UsersController_create",
         "parameters": [
           {
@@ -147,6 +147,14 @@
                 "superadmin",
                 "user"
               ]
+            }
+          },
+          {
+            "name": "role",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -175,7 +183,7 @@
             "description": "Invalid input data"
           },
           "403": {
-            "description": "Forbidden - only firmadmin role can create users"
+            "description": "Forbidden - creating an intern requires a firmadmin/superadmin caller; creating a superadmin requires a superadmin caller"
           }
         },
         "summary": "Create a new user",
