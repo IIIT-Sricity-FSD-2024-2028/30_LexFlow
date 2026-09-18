@@ -1,0 +1,23 @@
+{
+  "name": "lexflow-react-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "LexFlow legal consultation platform - React frontend (converted from vanilla JS)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "node src/lib/validators.check.js"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.1.4",
+    "vite": "^6.3.5"
+  }
+}
