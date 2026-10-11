@@ -1,11 +1,10 @@
 /**
  * pages/Landing.jsx - The public marketing page (replaces index.html).
  *
- * Sections: header w/ login dropdown, hero, features grid, pricing,
+ * Sections: header w/ login button, hero, features grid, pricing,
  * how-it-works steps, security card, law-firm CTA, footer.
  */
 
-import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import { navigate } from '../router.jsx';
 import Icon from '../components/Icon.jsx';
@@ -34,38 +33,13 @@ const STEPS = [
   ['04', 'Succeed', 'Resolve cases efficiently with organized workflows.'],
 ];
 
-/* The three choices in the "Login" dropdown. */
-const LOGIN_OPTIONS = [
-  { role: 'client', label: 'Client', sub: 'Book consultations & manage cases', icon: 'message' },
-  { role: 'firmadmin', label: 'Law Firm', sub: 'Manage your firm, lawyers & billing', icon: 'lock' },
-  { role: 'intern', label: 'Intern / Clerk', sub: 'Assist with case work and clerical tasks', icon: 'lock' },
-];
-
 export default function Landing() {
-  const { user, chooseLoginRole } = useApp();
-  const [loginOpen, setLoginOpen] = useState(false); // dropdown visible?
-  const dropdownRef = useRef(null);
-
-  /* Click outside (or Escape) closes the dropdown - same as vanilla. */
-  useEffect(() => {
-    const onDoc = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setLoginOpen(false); };
-    const onKey = (e) => e.key === 'Escape' && setLoginOpen(false);
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
-  }, []);
-
-  /* Picking a role in the dropdown remembers it and opens the sign-in page. */
-  const pickRole = (role) => {
-    chooseLoginRole(role);
-    navigate('/signin');
-  };
-
+  const { user } = useApp();
   /* Hero CTA: logged-in clients go straight to their dashboard,
-     everyone else is routed through sign-in as a client. */
+     everyone else goes to the sign-in page. */
   const requestConsultation = () => {
     if ((user?.role || '').toLowerCase() === 'client') navigate('/client/dashboard');
-    else { chooseLoginRole('client'); navigate('/signin'); }
+    else navigate('/signin');
   };
 
   return (
@@ -83,30 +57,7 @@ export default function Landing() {
             <a href="#security" className="hover:text-brand">Security</a>
           </nav>
 
-          {/* Login dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <Button variant="outline" onClick={() => setLoginOpen(!loginOpen)}>
-              Login <Icon name="chevronDown" size={14} className={`transition ${loginOpen ? 'rotate-180' : ''}`} />
-            </Button>
-            {loginOpen && (
-              <div className="absolute right-0 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
-                <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Continue as</p>
-                {LOGIN_OPTIONS.map((opt, i) => (
-                  <div key={opt.role}>
-                    {i > 0 && <div className="mx-3 border-t border-slate-100" />}
-                    <button onClick={() => pickRole(opt.role)}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-slate-50">
-                      <Icon name={opt.icon} size={20} className="text-slate-400" />
-                      <span>
-                        <span className="block text-sm font-semibold text-slate-800">{opt.label}</span>
-                        <span className="block text-xs text-slate-500">{opt.sub}</span>
-                      </span>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <Button variant="outline" onClick={() => navigate('/signin')}>Login</Button>
         </div>
       </header>
 

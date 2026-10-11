@@ -9,7 +9,7 @@ import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
 import { navigate } from '../../router.jsx';
 import {
-  Button, Card, Badge, PageHeader, Loading, ErrorBanner, EmptyState,
+  Button, Card, Badge, StatusBadge, PageHeader, Loading, ErrorBanner, EmptyState,
   Tabs, FilterDropdown, Pagination, Input, Select,
 } from '../../components/ui.jsx';
 import Icon from '../../components/Icon.jsx';

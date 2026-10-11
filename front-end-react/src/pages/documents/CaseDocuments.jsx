@@ -68,9 +68,11 @@ export default function CaseDocuments({ caseId }) {
       const c = await api.cases.getById(caseId, role);
 
       // 2. Access check (same rules as the vanilla page).
-      const isOwner = String(c.clientId) === String(user?.id);
-      const isFirmStaff = ['firmadmin', 'lawyer', 'intern'].includes(role) && String(c.firmId) === String(user?.firmId);
-      const isAssigned = String(c.lawyerId) === String(user?.id);
+      // The backend sends snake_case (client_id, lawyer_id, lawfirm_id).
+      const isOwner = String(c.client_id ?? c.clientId) === String(user?.id);
+      const isFirmStaff = ['firmadmin', 'lawyer', 'intern'].includes(role)
+        && String(c.lawfirm_id ?? c.firmId) === String(user?.firmId);
+      const isAssigned = String(c.lawyer_id ?? c.lawyerId) === String(user?.id);
       const hasGrant = !!user?.caseAccess?.[caseId];
       if (role !== 'superadmin' && !isOwner && !isFirmStaff && !isAssigned && !hasGrant) {
         setError('NO_DOC_ACCESS');
@@ -84,7 +86,11 @@ export default function CaseDocuments({ caseId }) {
       ]);
       setDocs(Array.isArray(d) ? d : []);
       setActivity(Array.isArray(a) ? a : []);
-      setCaseData(c);
+      // The case only has ids; look up the client and lawyer names.
+      const names = {};
+      await Promise.allSettled([c.client_id, c.lawyer_id].filter(Boolean).map((id) =>
+        api.users.getById(id, role).then((u) => { names[id] = u.fullName || u.name; })));
+      setCaseData({ ...c, clientName: names[c.client_id], lawyerName: names[c.lawyer_id] });
     } catch {
       setError('CASE_NOT_FOUND');
     } finally {
@@ -213,7 +219,7 @@ export default function CaseDocuments({ caseId }) {
 
       {/* case meta strip */}
       <Card className="mb-6 grid grid-cols-2 gap-4 p-4 text-sm sm:grid-cols-4">
-        {[['CLIENT ID', caseData.clientId || '—'], ['LAWYER', caseData.lawyerName || caseData.lawyer_name || '—'],
+        {[['CLIENT', caseData.clientName || caseData.client_id || '—'], ['LAWYER', caseData.lawyerName || caseData.lawyer_name || '—'],
           ['COURT', caseData.court || 'District Court'], ['STATUS', caseData.status || 'Active']].map(([l, v]) => (
           <div key={l}>
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{l}</p>

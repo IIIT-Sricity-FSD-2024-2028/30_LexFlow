@@ -2,11 +2,9 @@
  * pages/SignIn.jsx - The login form (replaces sign-in.html + signin.js).
  *
  * Flow:
- *  1. User picked a role on the landing page dropdown (stored as loginRole).
- *  2. POST /users/login with email + password.
- *  3. Check the returned role matches the portal (client portal rejects
- *     firm staff and vice-versa) - same rule as the vanilla app.
- *  4. Save user in context/localStorage and redirect to the role dashboard.
+ *  1. POST /users/login with email + password (no role is chosen up front).
+ *  2. The backend returns the user's role.
+ *  3. Save user in context/localStorage and redirect to that role's dashboard.
  */
 
 import { useState } from 'react';
@@ -17,17 +15,13 @@ import { Button, Card, Field, Input } from '../components/ui.jsx';
 import Icon from '../components/Icon.jsx';
 
 export default function SignIn() {
-  const { loginRole, signIn, toast } = useApp();
+  const { signIn, toast } = useApp();
 
   /* Form fields + UI state (submitting / error message). */
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-
-  /* The "Sign up" link points to the right onboarding based on chosen role. */
-  const isClientPortal = loginRole === 'client';
-  const signupHref = isClientPortal ? '#/onboarding/client/1' : '#/onboarding/firm/1';
 
   /* Handle the form submit. */
   const submit = async (e) => {
@@ -42,13 +36,6 @@ export default function SignIn() {
       // Ask the backend to verify the credentials.
       const user = await api.auth.login(email.trim(), password);
       const role = (user?.role || '').toLowerCase();
-
-      // Portal check: the client portal only accepts clients, and the
-      // firm portal only accepts firm staff (admin / lawyer / intern).
-      if (isClientPortal && role !== 'client') throw new Error('This login portal is only for clients.');
-      if (['firmadmin', 'intern'].includes(loginRole) && !['firmadmin', 'lawyer', 'intern'].includes(role)) {
-        throw new Error('This login portal is only for law firm staff (Admin/Lawyer/Intern).');
-      }
 
       signIn(user); // stores user + normalises role
       toast('Welcome back, ' + (user.fullName || user.name || 'User') + '!');
@@ -67,11 +54,6 @@ export default function SignIn() {
 
       <Card className="w-full max-w-md p-8">
         <h1 className="text-2xl font-bold text-slate-900">Sign-in</h1>
-        {loginRole && (
-          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-indigo-500">
-            {isClientPortal ? 'Client portal' : 'Law firm portal'}
-          </p>
-        )}
 
         <form onSubmit={submit} className="mt-6 space-y-4">
           <Field label="Email Address" required>
@@ -97,9 +79,10 @@ export default function SignIn() {
         </form>
 
         <p className="mt-6 text-center text-sm text-slate-500">
-          Do not have an account? Create One.
-          <br />
-          <a href={signupHref} className="font-semibold text-indigo-500 hover:underline">Sign Up</a>
+          Do not have an account? Sign up as a{' '}
+          <a href="#/onboarding/client/1" className="font-semibold text-indigo-500 hover:underline">Client</a>
+          {' '}or register your{' '}
+          <a href="#/onboarding/firm/1" className="font-semibold text-indigo-500 hover:underline">Law Firm</a>
         </p>
       </Card>
     </div>

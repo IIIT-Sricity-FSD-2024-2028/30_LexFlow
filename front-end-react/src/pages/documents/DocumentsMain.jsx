@@ -35,7 +35,17 @@ export default function DocumentsMain() {
           : role === 'lawyer' && user?.id ? { lawyerId: user.id }
           : user?.firmId ? { firmId: user.firmId } : {};
         const list = await api.cases.getAll(filters, role);
-        setCases(Array.isArray(list) ? list : []);
+        const arr = Array.isArray(list) ? list : [];
+        // Cases carry only client_id / lawyer_id; resolve them to names.
+        const ids = [...new Set(arr.flatMap((c) => [c.client_id, c.lawyer_id]).filter(Boolean))];
+        const names = {};
+        await Promise.allSettled(ids.map((id) =>
+          api.users.getById(id, role).then((u) => { names[id] = u.fullName || u.name; })));
+        setCases(arr.map((c) => ({
+          ...c,
+          client_name: c.client_name || names[c.client_id],
+          lawyer_name: c.lawyer_name || names[c.lawyer_id],
+        })));
       } catch (err) {
         setError(err.message);
       } finally {

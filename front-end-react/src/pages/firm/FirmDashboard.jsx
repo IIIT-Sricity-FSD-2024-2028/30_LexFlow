@@ -33,7 +33,7 @@ export default function FirmDashboard() {
       const filters = user?.firmId ? { firmId: user.firmId } : {};
       const [cons, law] = await Promise.all([
         api.consultations.getAll(filters, role),
-        api.users.getLawyers(user?.firmId, role),
+        role === 'firmadmin' ? api.users.getLawyers(user?.firmId, role) : [], // only admins assign lawyers
       ]);
       setConsultations(Array.isArray(cons) ? cons : []);
       setLawyers((Array.isArray(law) ? law : []).filter((u) => (u.role || '').toLowerCase() === 'lawyer'));
