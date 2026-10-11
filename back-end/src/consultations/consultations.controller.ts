@@ -102,9 +102,9 @@ export class ConsultationsController {
   // Firm-admin / lawyer / superadmin with optional filters
   // ──────────────────────────────────────────────────────────────────────────
   @Get()
-  @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.SUPERADMIN)
+  @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.INTERN, UserRole.SUPERADMIN)
   @ApiOperation({
-    summary: 'Get all consultations (firmadmin / lawyer / superadmin)',
+    summary: 'Get all consultations (firmadmin / lawyer / intern / superadmin)',
     description:
       'Returns all consultations. Supports optional query filters: clientId, firmId, status, lawyerId.',
   })

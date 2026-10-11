@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { CasesService } from './cases.service';
 import { CreateCaseDto } from './dto/create-case.dto';
 import { UpdateCaseDto } from './dto/update-case.dto';
@@ -12,6 +12,12 @@ import { UserRole } from '../users/dto';
 @UseGuards(RolesGuard)
 export class CasesController {
   constructor(private readonly casesService: CasesService) { }
+
+  // The logged-in user comes from the JWT (set by JwtAuthGuard).
+  private currentUser(req: any) {
+    if (!req.user) throw new UnauthorizedException('Login required');
+    return req.user;
+  }
 
   @Post()
   @Roles(UserRole.FIRMADMIN, UserRole.LAWYER)
@@ -29,14 +35,22 @@ export class CasesController {
     @Query('firmId') firmId?: string,
     @Query('clientId') clientId?: string,
     @Query('lawyerId') lawyerId?: string,
+    @Req() req?: any,
   ) {
-    return this.casesService.findAll({ firmId, clientId, lawyerId });
+    const user = this.currentUser(req);
+    return this.casesService
+      .findAll({ firmId, clientId, lawyerId })
+      .filter((c) => this.casesService.canSee(user, c));
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a case by ID' })
-  findOne(@Param('id') id: string) {
-    return this.casesService.findOne(+id);
+  findOne(@Param('id') id: string, @Req() req: any) {
+    const found = this.casesService.findOne(+id);
+    if (!this.casesService.canSee(this.currentUser(req), found)) {
+      throw new ForbiddenException('You do not have access to this case');
+    }
+    return found;
   }
 
   @Patch(':id')

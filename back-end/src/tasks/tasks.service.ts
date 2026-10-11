@@ -1,13 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { loadState, saveState } from '../db';
 import { Task, TaskPriority, TaskStatus } from './task.interface';
 
 @Injectable()
-export class TasksService {
+export class TasksService implements OnModuleInit {
   private tasks: Task[] = [];
   private idCounter = 4;
 
   constructor() {
     this.seedTasks();
+  }
+
+  // Runs once after the DB is ready: use the saved tasks if there are any.
+  async onModuleInit() {
+    this.tasks = await loadState('tasks', this.tasks);
+    const ids = this.tasks.map((t) => Number(t.id.replace('T-', '')) || 0);
+    this.idCounter = Math.max(this.idCounter, ...ids.map((n) => n + 1));
   }
 
   private seedTasks() {
@@ -97,6 +105,7 @@ export class TasksService {
       ...taskData,
     } as Task;
     this.tasks.push(newTask);
+    saveState('tasks', this.tasks);
     return newTask;
   }
 
@@ -104,6 +113,7 @@ export class TasksService {
     const idx = this.tasks.findIndex((t) => t.id === id);
     if (idx === -1) throw new NotFoundException(`Task ${id} not found`);
     this.tasks[idx] = { ...this.tasks[idx], ...updateData };
+    saveState('tasks', this.tasks);
     return this.tasks[idx];
   }
 
@@ -111,5 +121,6 @@ export class TasksService {
     const idx = this.tasks.findIndex((t) => t.id === id);
     if (idx === -1) throw new NotFoundException(`Task ${id} not found`);
     this.tasks.splice(idx, 1);
+    saveState('tasks', this.tasks);
   }
 }

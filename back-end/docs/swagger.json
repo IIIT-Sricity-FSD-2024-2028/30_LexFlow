@@ -1172,7 +1172,7 @@
             "description": "Forbidden – insufficient role"
           }
         },
-        "summary": "Get all consultations (firmadmin / lawyer / superadmin)",
+        "summary": "Get all consultations (firmadmin / lawyer / intern / superadmin)",
         "tags": [
           "consultations"
         ]

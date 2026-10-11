@@ -11,10 +11,14 @@ import {
   Headers,
   UseInterceptors,
   UploadedFile,
+  Req,
+  ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ActivityLogService, ActivityEntry } from './activity-log.service';
 import { DocumentsService, Document } from './documents.service';
+import { CasesService } from '../cases/cases.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import {
@@ -39,7 +43,17 @@ export class DocumentsController {
     private readonly documentsService: DocumentsService,
     private readonly activityLogService: ActivityLogService,
     private readonly logger: AppLoggerService,
+    private readonly casesService: CasesService,
   ) {}
+
+  // Throws unless the logged-in user (from the JWT) may see this case.
+  private checkCase(req: any, caseId: string): void {
+    if (!req.user) throw new UnauthorizedException('Login required');
+    const c = this.casesService.findOne(caseId);
+    if (!this.casesService.canSee(req.user, c)) {
+      throw new ForbiddenException('You do not have access to this case');
+    }
+  }
 
   // ─── Activity Log Routes ─────────────────────────────────────────────────
 
@@ -48,8 +62,12 @@ export class DocumentsController {
   @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
   @ApiQuery({ name: 'caseId', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Return activity log entries.' })
-  findActivity(@Query('caseId') caseId?: string): ActivityEntry[] {
-    return this.activityLogService.findAll(caseId);
+  findActivity(@Req() req: any, @Query('caseId') caseId?: string): ActivityEntry[] {
+    if (caseId) this.checkCase(req, caseId);
+    else if (req.user?.role !== 'superadmin') throw new ForbiddenException('caseId is required');
+    const entries = this.activityLogService.findAll(caseId);
+    // Interns only see SHARED documents, so hide activity about private ones too.
+    return req.user?.role === 'intern' ? entries.filter((e) => e.access !== 'PRIVATE') : entries;
   }
 
   @Post('activity')
@@ -59,7 +77,9 @@ export class DocumentsController {
   @ApiResponse({ status: 201, description: 'Activity entry created.' })
   createActivity(
     @Body() dto: Omit<ActivityEntry, 'id' | 'date'>,
+    @Req() req: any,
   ): ActivityEntry {
+    this.checkCase(req, dto.caseId);
     return this.activityLogService.create(dto);
   }
 
@@ -78,7 +98,9 @@ export class DocumentsController {
     @Body() createDocumentDto: CreateDocumentDto,
     @Headers('x-user-email') email?: string,
     @UploadedFile() file?: Express.Multer.File,
+    @Req() req?: any,
   ): Document {
+    this.checkCase(req, createDocumentDto.caseId);
     const uploaderEmail = email || 'unknown@lexflow.in';
     this.logger.upload('Document uploaded', {
       uploader: uploaderEmail,
@@ -95,8 +117,15 @@ export class DocumentsController {
   @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
   @ApiQuery({ name: 'caseId', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Return all matching documents.' })
-  findAll(@Query('caseId') caseId?: string): Document[] {
-    return this.documentsService.findAll(caseId);
+  findAll(@Req() req: any, @Query('caseId') caseId?: string): Document[] {
+    if (caseId) {
+      this.checkCase(req, caseId);
+      return this.documentsService.findAll(caseId);
+    }
+    // No caseId: only documents of cases this user can see.
+    return this.documentsService.findAll().filter((d) => {
+      try { this.checkCase(req, d.caseId); return true; } catch { return false; }
+    });
   }
 
   @Get(':id')
@@ -104,8 +133,10 @@ export class DocumentsController {
   @ApiHeader({ name: 'role', description: 'User role for RBAC', required: true })
   @ApiResponse({ status: 200, description: 'Return the document.' })
   @ApiResponse({ status: 404, description: 'Document not found.' })
-  findOne(@Param('id') id: string): Document {
-    return this.documentsService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: any): Document {
+    const doc = this.documentsService.findOne(id);
+    this.checkCase(req, doc.caseId);
+    return doc;
   }
 
   @Patch(':id')
@@ -122,7 +153,9 @@ export class DocumentsController {
     @Body() updateDocumentDto: UpdateDocumentDto,
     @Headers('x-user-email') email?: string,
     @UploadedFile() file?: Express.Multer.File,
+    @Req() req?: any,
   ): Document {
+    this.checkCase(req, this.documentsService.findOne(id).caseId);
     if (file) {
       this.logger.upload('Document file replaced', {
         documentId: id,
@@ -141,7 +174,8 @@ export class DocumentsController {
   @ApiResponse({ status: 200, description: 'The document has been successfully deleted.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'Document not found.' })
-  remove(@Param('id') id: string): void {
+  remove(@Param('id') id: string, @Req() req: any): void {
+    this.checkCase(req, this.documentsService.findOne(id).caseId);
     return this.documentsService.remove(id);
   }
 }

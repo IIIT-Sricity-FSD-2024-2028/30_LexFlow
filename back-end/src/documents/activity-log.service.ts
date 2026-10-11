@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { loadState, saveState } from '../db';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -26,7 +27,7 @@ const STORE_FILE = path.join(__dirname, '..', '..', 'data', 'activity-log.json')
  * log survives server restarts.
  */
 @Injectable()
-export class ActivityLogService {
+export class ActivityLogService implements OnModuleInit {
   private log: ActivityEntry[] = [];
   private counter = 1;
 
@@ -43,8 +44,15 @@ export class ActivityLogService {
     }
   }
 
+  // Runs once after the DB is ready: load the saved log.
+  async onModuleInit() {
+    this.log = await loadState('activity', this.log);
+    const ids = this.log.map((e) => Number(e.id.replace('ACT-', '')) || 0);
+    this.counter = Math.max(0, ...ids) + 1;
+  }
+
   private persist(): void {
-    // Disabled to prevent hot-reload loop and per user persistence request.
+    saveState('activity', this.log);
   }
 
   findAll(caseId?: string): ActivityEntry[] {

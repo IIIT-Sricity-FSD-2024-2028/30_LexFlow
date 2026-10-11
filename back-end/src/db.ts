@@ -2,7 +2,12 @@ import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as net from 'net';
 import { BASE_SCHEMA } from './schema-base';
+
+// Node 20+ gives each address 250ms before trying the next, which is shorter
+// than a Neon compute cold start and shows up as ETIMEDOUT on every address.
+net.setDefaultAutoSelectFamilyAttemptTimeout(5000);
 
 // ── .env loading (no dependency; existing env vars always win) ───────────────
 function loadDotEnv(): void {
@@ -67,6 +72,21 @@ export async function q<T extends QueryResultRow = QueryResultRow>(
   params: unknown[] = [],
 ): Promise<QueryResult<T>> {
   return pool.query<T>(sql, params);
+}
+
+/** Read a saved JSON snapshot; returns `fallback` if nothing was saved yet. */
+export async function loadState<T>(key: string, fallback: T): Promise<T> {
+  const { rows } = await q('SELECT data FROM app_state WHERE key = $1', [key]);
+  return rows.length ? rows[0].data : fallback;
+}
+
+/** Save a JSON snapshot (insert or overwrite). Not awaited by callers. */
+export function saveState(key: string, data: unknown): void {
+  q(
+    `INSERT INTO app_state (key, data) VALUES ($1, $2)
+     ON CONFLICT (key) DO UPDATE SET data = $2`,
+    [key, JSON.stringify(data)],
+  ).catch((err) => console.error(`[db] saveState(${key}) failed:`, err.message));
 }
 
 /** Run a unit of work in a transaction. */
@@ -203,6 +223,13 @@ CREATE INDEX IF NOT EXISTS invoices_status_idx   ON invoices(status);
 CREATE INDEX IF NOT EXISTS charges_firm_idx      ON subscription_charges(lawfirm_id);
 CREATE INDEX IF NOT EXISTS charges_status_idx    ON subscription_charges(status);
 CREATE INDEX IF NOT EXISTS consultations_firm_idx ON consultations(lawfirm_id);
+
+-- key -> JSON snapshot, so the in-memory services (cases, documents, tasks,
+-- activity log) survive a restart. See loadState / saveState below.
+CREATE TABLE IF NOT EXISTS app_state (
+    key   TEXT PRIMARY KEY,
+    data  JSONB NOT NULL
+);
 `;
 
 // ── Demo seed: mirrors the old in-memory seed so local dev works the same. ───
