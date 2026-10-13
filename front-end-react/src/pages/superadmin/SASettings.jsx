@@ -1,6 +1,6 @@
 /**
  * Superadmin - Platform Settings: tier pricing editor + business rules
- * (commission rate, support email, maintenance mode, signups).
+ * (commission rate, support email, signups).
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -74,7 +74,6 @@ export default function SASettings() {
         commissionRate: Number(settings.commissionRate),
         supportEmail: settings.supportEmail,
         currency: settings.currency || 'INR',
-        maintenanceMode: !!settings.maintenanceMode,
         disableSignup: !!settings.disableSignup,
       }, 'superadmin');
       toast('Platform settings saved');
@@ -138,12 +137,7 @@ export default function SASettings() {
               onChange={(e) => setSettings((s) => ({ ...s, supportEmail: e.target.value }))} />
           </Field>
 
-          {/* two toggle switches */}
-          <label className="flex items-center justify-between rounded-lg bg-slate-50 px-4 py-3 sm:col-span-2">
-            <span className="text-sm font-semibold text-slate-700">Maintenance mode</span>
-            <input type="checkbox" className="h-5 w-5 rounded border-slate-300" checked={!!settings?.maintenanceMode}
-              onChange={(e) => setSettings((s) => ({ ...s, maintenanceMode: e.target.checked }))} />
-          </label>
+          {/* signup toggle */}
           <label className="flex items-center justify-between rounded-lg bg-slate-50 px-4 py-3 sm:col-span-2">
             <span className="text-sm font-semibold text-slate-700">Disable new signups</span>
             <input type="checkbox" className="h-5 w-5 rounded border-slate-300" checked={!!settings?.disableSignup}

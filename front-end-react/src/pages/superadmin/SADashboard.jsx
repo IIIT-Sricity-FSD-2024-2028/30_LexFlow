@@ -62,7 +62,7 @@ export default function SADashboard() {
         <p className="mt-1 text-sm text-black/70">
           {s.activeSubscriptions || 0} active subscription(s) · {moneyShort(s.mrr || 0)} MRR
         </p>
-        <div className="mt-5 grid grid-cols-3 gap-4 border-t border-white/10 pt-4 text-sm">
+        <div className="mt-5 grid grid-cols-3 gap-4 border-t border-black/10 pt-4 text-sm">
           <div><p className="text-black/60">Subscriptions</p><p className="text-lg font-bold">{money(s.subscriptionRevenue?.collected, 0)}</p></div>
           <div><p className="text-black/60">Commission</p><p className="text-lg font-bold">{money(s.commissionRevenue?.collected, 0)}</p></div>
           <div><p className="text-black/60">Outstanding</p><p className="text-lg font-bold">{money(s.subscriptionRevenue?.outstanding, 0)}</p></div>
