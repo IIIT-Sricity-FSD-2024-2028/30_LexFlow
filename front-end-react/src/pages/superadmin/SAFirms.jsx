@@ -1,6 +1,6 @@
 /**
  * Superadmin - Law Firms: full CRUD over law firms + tier assignment,
- * optional admin-account provisioning, and inline "mark charge paid".
+ * optional admin-account provisioning.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -123,17 +123,6 @@ export default function SAFirms() {
     }
   };
 
-  /* Inline "mark paid" for the firm's current charge. */
-  const markChargePaid = async (charge) => {
-    try {
-      await api.platform.updateChargeStatus(charge.id, 'Paid', 'superadmin');
-      toast('Subscription charge marked paid.');
-      load();
-    } catch (err) {
-      toast(err.message || 'Update failed', 'error');
-    }
-  };
-
   if (loading) return <Loading text="Loading firms…" />;
   if (error) return <ErrorBanner message={error} onRetry={load} />;
 
@@ -190,12 +179,7 @@ export default function SAFirms() {
                   <Td>{sub ? money(sub.monthlyPrice, 0) : '—'}</Td>
                   <Td><StatusBadge status={String(sub?.status || '—').replace('_', ' ')} /></Td>
                   <Td>
-                    {!charge ? '—' : charge.status === 'Paid' ? <Badge variant="green">Paid</Badge> : (
-                      <span className="flex items-center gap-2">
-                        <StatusBadge status={charge.status} />
-                        <Button variant="outline" className="!px-2 !py-0.5 !text-[10px]" onClick={() => markChargePaid(charge)}>Mark paid</Button>
-                      </span>
-                    )}
+                    {!charge ? '—' : charge.status === 'Paid' ? <Badge variant="green">Paid</Badge> : <StatusBadge status={charge.status} />}
                   </Td>
                   <Td className="text-xs">{formatDate(f.createdAt)}</Td>
                   <Td>

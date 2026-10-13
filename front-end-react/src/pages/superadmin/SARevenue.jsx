@@ -1,13 +1,12 @@
 /**
  * Superadmin - Revenue page: full earnings breakdown, month-range chart,
- * plan mix, earnings by firm, and the subscription-charges table with
- * "mark paid / unpaid" toggles.
+ * plan mix, earnings by firm, and the subscription-charges table.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
-import { Card, Badge, StatusBadge, Loading, ErrorBanner, Table, Th, Td, Select, Button, StatCard } from '../../components/ui.jsx';
+import { Card, Badge, StatusBadge, Loading, ErrorBanner, Table, Th, Td, Select, StatCard } from '../../components/ui.jsx';
 import { money, moneyShort, initials } from '../../lib/format.js';
 import { RevenueChart } from './Chart.jsx';
 
@@ -56,18 +55,6 @@ export default function SARevenue() {
 
   useEffect(() => { load(); }, [load]);
 
-  /* Mark a subscription charge paid / unpaid. */
-  const toggleCharge = async (charge) => {
-    const status = charge.status === 'Paid' ? 'Pending' : 'Paid';
-    try {
-      await api.platform.updateChargeStatus(charge.id, status, 'superadmin');
-      toast('Charge updated.');
-      load(); // totals shift, so refresh everything
-    } catch (err) {
-      toast(err.message || 'Update failed', 'error');
-    }
-  };
-
   if (loading) return <Loading text="Loading revenue…" />;
   if (error) return <ErrorBanner message={error} onRetry={load} />;
 
@@ -99,7 +86,7 @@ export default function SARevenue() {
               <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-indigo-600" /> Subscriptions</span>
               <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-gold" /> Commission</span>
             </div>
-            <Select value={range} onChange={(e) => { setRange(Number(e.target.value)); drawChart(Number(e.target.value)); }} className="!w-32">
+            <Select value={range} onChange={(e) => setRange(Number(e.target.value))} className="!w-32">
               <option value={6}>Last 6 months</option>
               <option value={12}>Last 12 months</option>
               <option value={24}>Last 24 months</option>
@@ -174,10 +161,10 @@ export default function SARevenue() {
       <Card>
         <div className="border-b border-slate-100 p-5"><h2 className="font-bold text-slate-900">Subscription charges</h2></div>
         <Table>
-          <thead><tr><Th>Charge</Th><Th>Firm</Th><Th>Tier</Th><Th>Period</Th><Th>Amount</Th><Th>Status</Th><Th>Action</Th></tr></thead>
+          <thead><tr><Th>Charge</Th><Th>Firm</Th><Th>Tier</Th><Th>Period</Th><Th>Amount</Th><Th>Status</Th></tr></thead>
           <tbody>
             {charges.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">No charges recorded.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No charges recorded.</td></tr>
             ) : charges.map((c) => (
               <tr key={c.id} className="hover:bg-slate-50">
                 <Td className="font-mono text-xs font-bold">{c.id}</Td>
@@ -186,11 +173,6 @@ export default function SARevenue() {
                 <Td className="text-xs">{c.period}</Td>
                 <Td className="font-semibold">{money(c.amount, 0)}</Td>
                 <Td><StatusBadge status={c.status} /></Td>
-                <Td>
-                  <Button variant="outline" className="!px-3 !py-1 !text-xs" onClick={() => toggleCharge(c)}>
-                    {c.status === 'Paid' ? 'Mark unpaid' : 'Mark paid'}
-                  </Button>
-                </Td>
               </tr>
             ))}
           </tbody>

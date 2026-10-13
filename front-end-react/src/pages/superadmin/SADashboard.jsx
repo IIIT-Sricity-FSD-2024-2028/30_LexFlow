@@ -56,16 +56,16 @@ export default function SADashboard() {
       <p className="mb-6 text-sm text-slate-500">What LexFlow earns from the law firms running on it.</p>
 
       {/* ── Hero earnings card ── */}
-      <Card className="mb-6 bg-brand p-6 text-white">
-        <p className="text-xs font-bold uppercase tracking-widest text-white/60">Total earnings to date</p>
+      <Card className="mb-6 bg-brand p-6 text-black">
+        <p className="text-xs font-bold uppercase tracking-widest text-black/60">Total earnings to date</p>
         <p className="mt-1 text-4xl font-extrabold">{money(s.totalEarnings, 0)}</p>
-        <p className="mt-1 text-sm text-white/70">
+        <p className="mt-1 text-sm text-black/70">
           {s.activeSubscriptions || 0} active subscription(s) · {moneyShort(s.mrr || 0)} MRR
         </p>
-        <div className="mt-5 grid grid-cols-3 gap-4 border-t border-white/10 pt-4 text-sm">
-          <div><p className="text-white/60">Subscriptions</p><p className="text-lg font-bold">{money(s.subscriptionRevenue?.collected, 0)}</p></div>
-          <div><p className="text-white/60">Commission</p><p className="text-lg font-bold">{money(s.commissionRevenue?.collected, 0)}</p></div>
-          <div><p className="text-white/60">Outstanding</p><p className="text-lg font-bold">{money(s.subscriptionRevenue?.outstanding, 0)}</p></div>
+        <div className="mt-5 grid grid-cols-3 gap-4 border-t border-black/10 pt-4 text-sm">
+          <div><p className="text-black/60">Subscriptions</p><p className="text-lg font-bold">{money(s.subscriptionRevenue?.collected, 0)}</p></div>
+          <div><p className="text-black/60">Commission</p><p className="text-lg font-bold">{money(s.commissionRevenue?.collected, 0)}</p></div>
+          <div><p className="text-black/60">Outstanding</p><p className="text-lg font-bold">{money(s.subscriptionRevenue?.outstanding, 0)}</p></div>
         </div>
       </Card>
 

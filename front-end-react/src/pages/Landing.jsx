@@ -42,6 +42,10 @@ export default function Landing() {
     else navigate('/signin');
   };
 
+  /* The router owns the URL hash (#/signin ...), so "#features" would be a
+     404 route. Scroll to the section instead of changing the hash. */
+  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+
   return (
     <div className="min-h-screen bg-white">
       {/* ══════════════ HEADER ══════════════ */}
@@ -51,10 +55,10 @@ export default function Landing() {
 
           {/* Section anchors */}
           <nav className="hidden gap-7 text-sm font-medium text-slate-600 md:flex">
-            <a href="#features" className="hover:text-brand">Features</a>
-            <a href="#pricing" className="hover:text-brand">Pricing</a>
-            <a href="#how-it-works" className="hover:text-brand">How it works</a>
-            <a href="#security" className="hover:text-brand">Security</a>
+            <button type="button" onClick={() => scrollTo('features')} className="hover:text-brand">Features</button>
+            <button type="button" onClick={() => scrollTo('pricing')} className="hover:text-brand">Pricing</button>
+            <button type="button" onClick={() => scrollTo('how-it-works')} className="hover:text-brand">How it works</button>
+            <button type="button" onClick={() => scrollTo('security')} className="hover:text-brand">Security</button>
           </nav>
 
           <Button variant="outline" onClick={() => navigate('/signin')}>Login</Button>
@@ -96,7 +100,7 @@ export default function Landing() {
       </section>
 
       {/* ══════════════ FEATURES ══════════════ */}
-      <section id="features" className="mx-auto max-w-6xl px-4 py-20">
+      <section id="features" className="scroll-mt-16 mx-auto max-w-6xl px-4 py-20">
         <h2 className="text-center text-3xl font-bold text-brand">Comprehensive Legal Solutions</h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-slate-500">
           Our platform provides everything you need to manage your legal practice efficiently and securely.
@@ -113,7 +117,7 @@ export default function Landing() {
       </section>
 
       {/* ══════════════ PRICING ══════════════ */}
-      <section id="pricing" className="bg-page py-20">
+      <section id="pricing" className="scroll-mt-16 bg-page py-20">
         <div className="mx-auto max-w-6xl px-4">
           <h2 className="text-center text-3xl font-bold text-brand">Pricing Plans for Every Firm</h2>
           <p className="mx-auto mt-3 max-w-xl text-center text-slate-500">
@@ -152,7 +156,7 @@ export default function Landing() {
       </section>
 
       {/* ══════════════ HOW IT WORKS ══════════════ */}
-      <section id="how-it-works" className="mx-auto max-w-6xl px-4 py-20">
+      <section id="how-it-works" className="scroll-mt-16 mx-auto max-w-6xl px-4 py-20">
         <h2 className="text-center text-3xl font-bold text-brand">How It Works</h2>
         <p className="mt-3 text-center text-slate-500">Experience a seamless transition from consultation to resolution.</p>
         <ol className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -169,7 +173,7 @@ export default function Landing() {
       </section>
 
       {/* ══════════════ SECURITY ══════════════ */}
-      <section id="security" className="mx-auto max-w-6xl px-4 pb-20">
+      <section id="security" className="scroll-mt-16 mx-auto max-w-6xl px-4 pb-20">
         <div className="grid items-center gap-10 rounded-2xl bg-brand p-8 text-white md:grid-cols-2 md:p-12">
           <div>
             <div className="flex items-center gap-3">
