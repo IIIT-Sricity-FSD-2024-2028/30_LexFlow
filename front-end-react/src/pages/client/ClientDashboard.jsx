@@ -68,7 +68,8 @@ export default function ClientDashboard() {
 
   /* Split the list into the two sections. */
   const upcoming = consultations.filter((c) => UPCOMING.includes((c.status || '').toUpperCase()));
-  const past = consultations.filter((c) => ['COMPLETED', 'CANCELLED'].includes((c.status || '').toUpperCase()));
+  // Past = everything that is not upcoming (completed, cancelled, converted to a case...).
+  const past = consultations.filter((c) => !UPCOMING.includes((c.status || '').toUpperCase()));
 
   return (
     <>
@@ -133,11 +134,13 @@ export default function ClientDashboard() {
                       <Button variant="outline" className="flex-1 !py-1.5" onClick={() => openDetails(cons.id)}>
                         View Details
                       </Button>
+                      {/* Join Chat disabled (feature not wanted); kept here in case it returns.
                       {['SCHEDULED', 'CONFIRMED'].includes((cons.status || '').toUpperCase()) && (
                         <Button variant="ghost" className="!py-1.5" onClick={() => navigate(`/client/chat/${cons.id}`)}>
                           Join Chat
                         </Button>
                       )}
+                      */}
                       <Button variant="ghost" className="!py-1.5 !text-red-500 hover:!bg-red-50"
                         onClick={() => cancelConsultation(cons.id)}>
                         Cancel

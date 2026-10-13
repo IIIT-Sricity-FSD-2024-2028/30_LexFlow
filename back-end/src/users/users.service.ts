@@ -43,6 +43,7 @@ export interface Firm {
   experience?: string;
   bio?: string;
   practiceArea?: string;
+  practiceAreas?: string[];
   location?: string;
   avatar?: string;
   createdAt: Date;
@@ -73,8 +74,12 @@ function parseFirmId(firmId: string): number {
 
 const FIRM_SELECT = `
   SELECT f.id, f.tier, f.name, f.address, f.avg_rating, f.logo_url,
+         f.review_count, f.hourly_rate,
          f.created_at, f.updated_at,
-         cd.email, cd.website_url, cd.phone_number
+         cd.email, cd.website_url, cd.phone_number,
+         ARRAY(SELECT pa.name FROM lawfirm_practice_areas lpa
+               JOIN practice_areas pa ON pa.id = lpa.practice_area_id
+               WHERE lpa.lawfirm_id = f.id ORDER BY pa.name) AS practice_areas
   FROM lawfirm_meta f
   LEFT JOIN lawfirm_contact_details cd ON cd.lawfirm_id = f.id`;
 
@@ -89,13 +94,17 @@ function rowToFirm(r: Record<string, unknown>): Firm {
     email: emails[0] || '',
     phone: phones[0] || '',
     street: (r.address as string) || '',
-    city: '',
+    // The address is stored as one string; its last part is the city.
+    city: ((r.address as string) || '').split(',').pop()!.trim(),
     state: '',
     pinCode: '',
     logo: (r.logo_url as string) || undefined,
     primaryEmail: emails[0],
     website: websites[0],
     rating: r.avg_rating != null ? Number(r.avg_rating) : undefined,
+    reviews: r.review_count != null ? Number(r.review_count) : undefined,
+    price: r.hourly_rate != null ? Number(r.hourly_rate) : undefined,
+    practiceAreas: (r.practice_areas as string[] | null) || [],
     avatar: (r.logo_url as string) || undefined,
     createdAt: r.created_at as Date,
     updatedAt: r.updated_at as Date,

@@ -211,7 +211,9 @@ export default function FirmDashboard() {
                       <Td><StatusBadge status={cons.status} /></Td>
                       <Td>
                         <div className="flex flex-wrap gap-1.5">
+                          {/* Chat disabled (feature not wanted); kept here in case it returns.
                           <Button variant="ghost" className="!px-2 !py-1 !text-xs" onClick={() => navigate2Chat(cons.id)}>Chat</Button>
+                          */}
                           <Button variant="outline" className="!px-2 !py-1 !text-xs" onClick={() => convertToCase(cons)}>Convert to Case</Button>
                           <Button variant="ghost" className="!px-2 !py-1 !text-xs !text-red-500 hover:!bg-red-50" onClick={() => cancel(cons.id)}>Cancel</Button>
                         </div>

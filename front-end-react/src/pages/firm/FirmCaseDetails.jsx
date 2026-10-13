@@ -17,6 +17,7 @@ import {
 } from '../../components/ui.jsx';
 import Icon from '../../components/Icon.jsx';
 import { formatDate } from '../../lib/format.js';
+import { validateName, validateEmail, validateIndianPhone, normalizeIndianPhone } from '../../lib/validators.js';
 
 /* The five progress phases - each one covers 20% of progress. */
 const PHASES = ['Filing', 'Preparation', 'Discovery', 'Mediation', 'Trial'];
@@ -361,15 +362,19 @@ export default function FirmCaseDetails({ id }) {
             <Field label="Contact Person" required error={modalErrors.contact}>
               <Input value={editClient.contact} onChange={(e) => setEditClient((c) => ({ ...c, contact: e.target.value }))} error={!!modalErrors.contact} />
             </Field>
-            <Field label="Email"><Input type="email" value={editClient.email} onChange={(e) => setEditClient((c) => ({ ...c, email: e.target.value }))} /></Field>
-            <Field label="Phone"><Input value={editClient.phone} onChange={(e) => setEditClient((c) => ({ ...c, phone: e.target.value }))} /></Field>
+            <Field label="Email" required error={modalErrors.email}>
+              <Input type="email" value={editClient.email} onChange={(e) => setEditClient((c) => ({ ...c, email: e.target.value }))} error={!!modalErrors.email} />
+            </Field>
+            <Field label="Phone" required error={modalErrors.phone}>
+              <Input value={editClient.phone} onChange={(e) => setEditClient((c) => ({ ...c, phone: e.target.value }))} error={!!modalErrors.phone} />
+            </Field>
             <Field label="Account Type">
               <Select value={editClient.type} onChange={(e) => setEditClient((c) => ({ ...c, type: e.target.value }))}>
                 {['Corporate', 'Individual', 'SME'].map((t) => <option key={t}>{t}</option>)}
               </Select>
             </Field>
-            <Field label="Opposing Counsel">
-              <Input value={editClient.opposingParty} maxLength={150} onChange={(e) => setEditClient((c) => ({ ...c, opposingParty: e.target.value }))} />
+            <Field label="Opposing Counsel" error={modalErrors.opposingParty}>
+              <Input value={editClient.opposingParty} maxLength={150} onChange={(e) => setEditClient((c) => ({ ...c, opposingParty: e.target.value }))} error={!!modalErrors.opposingParty} />
             </Field>
           </div>
         )}
@@ -550,12 +555,17 @@ export default function FirmCaseDetails({ id }) {
 
   /* Save the edit-client modal. */
   async function saveClientModal() {
-    if (!editClient.contact.trim()) {
-      setModalErrors({ contact: 'Contact person is required' });
-      return;
-    }
+    // Same validators the onboarding forms use (each returns an error text or null).
+    const errors = {
+      contact: validateName(editClient.contact, { twoWords: false }),
+      email: validateEmail(editClient.email),
+      phone: validateIndianPhone(editClient.phone),
+      opposingParty: editClient.opposingParty.length > 150 ? 'Maximum 150 characters.' : null,
+    };
+    setModalErrors(errors);
+    if (Object.values(errors).some(Boolean)) return;
     try {
-      await saveCase({ ...caseData, client: editClient });
+      await saveCase({ ...caseData, client: { ...editClient, phone: normalizeIndianPhone(editClient.phone) } });
       toast('Client details updated.');
       setEditClient(null);
       load();

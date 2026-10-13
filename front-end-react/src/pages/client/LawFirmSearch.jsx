@@ -17,8 +17,8 @@ import Calendar from '../../components/Calendar.jsx';
 import { toLongDate } from '../../lib/format.js';
 
 /* Dropdown options (same values the backend expects). */
-const LOCATIONS = [['', 'Any Location'], ['mumbai', 'Mumbai'], ['bangalore', 'Bangalore'], ['chennai', 'Chennai'], ['remote', 'Remote']];
-const AREAS = [['', 'Any Practice Area'], ['corporate', 'Corporate'], ['family', 'Family'], ['ip', 'Intellectual Property'], ['criminal', 'Criminal']];
+const LOCATIONS = [['', 'Any Location'], ['new-delhi', 'New Delhi'], ['mumbai', 'Mumbai'], ['bangalore', 'Bangalore'], ['chennai', 'Chennai'], ['hyderabad', 'Hyderabad']];
+const AREAS = [['', 'Any Practice Area'], ['corporate', 'Corporate'], ['civil', 'Civil'], ['criminal', 'Criminal'], ['intellectual', 'Intellectual Property'], ['cyber', 'Cyber'], ['tax', 'Tax'], ['property', 'Property']];
 const SORTS = [['rating', 'Highest Rated'], ['price_asc', 'Lowest Price'], ['reviews', 'Most Reviews'], ['availability', 'Availability']];
 const TIME_SLOTS = ['09:00 AM', '10:30 AM', '01:00 PM', '02:30 PM', '04:00 PM', '05:30 PM'];
 
@@ -59,7 +59,13 @@ export default function LawFirmSearch() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []); // initial load
+  // Search as you type: reload whenever a filter changes (short delay so we
+  // don't send a request for every single keystroke).
+  useEffect(() => {
+    const t = setTimeout(load, 250);
+    return () => clearTimeout(t);
+    /* eslint-disable-next-line */
+  }, [keyword, location, area, sortBy]);
 
   /* Open the booking modal for a firm (resets the form each time). */
   const openBooking = (firm) => {
@@ -118,8 +124,7 @@ export default function LawFirmSearch() {
       <Card className="mb-8 p-5">
         <div className="grid gap-3 md:grid-cols-4">
           <Input placeholder="Search firm name, lawyer, or specialty..." value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && load()} className="md:col-span-2" />
+            onChange={(e) => setKeyword(e.target.value)} className="md:col-span-2" />
           <Select value={location} onChange={(e) => setLocation(e.target.value)}>
             {LOCATIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </Select>
@@ -127,9 +132,6 @@ export default function LawFirmSearch() {
             {AREAS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </Select>
         </div>
-        <Button className="mt-3 w-full md:w-auto" onClick={load}>
-          <Icon name="search" size={14} /> Search
-        </Button>
       </Card>
 
       {/* ── Results ── */}

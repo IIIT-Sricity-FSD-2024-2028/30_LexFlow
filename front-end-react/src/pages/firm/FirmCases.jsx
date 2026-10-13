@@ -90,7 +90,8 @@ export default function FirmCases() {
     if (!lawyerId) return;
     try {
       const lawyer = team.find((l) => l.id === lawyerId);
-      await api.cases.update(caseId, { lawyer_id: lawyerId, lawyer_name: lawyer?.fullName || lawyer?.name }, role);
+      // Only lawyer_id is sent: the backend rejects unknown fields like lawyer_name.
+      await api.cases.update(caseId, { lawyer_id: lawyerId }, role);
       setCases((cs) => cs.map((c) => (c.id === caseId ? { ...c, lawyer_id: lawyerId, lawyer_name: lawyer?.fullName } : c)));
       toast('Lawyer updated.');
     } catch (err) {

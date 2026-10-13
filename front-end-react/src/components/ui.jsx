@@ -275,11 +275,12 @@ export function StatCard({ label, value, hint, icon, tone = 'indigo' }) {
     blue: 'bg-blue-50 text-blue-600',
   }[tone];
   return (
-    <Card className="p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
+    <Card className="h-full p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          {/* min-h keeps room for 2 lines so every card's number sits at the same height */}
+          <p className="min-h-8 text-xs font-semibold uppercase leading-4 tracking-wide text-slate-500">{label}</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{value}</p>
           {hint && <p className="mt-0.5 text-[11px] text-slate-400">{hint}</p>}
         </div>
         {icon && <div className={`rounded-xl p-3 ${tones}`}><Icon name={icon} size={20} /></div>}

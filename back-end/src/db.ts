@@ -224,6 +224,9 @@ CREATE INDEX IF NOT EXISTS charges_firm_idx      ON subscription_charges(lawfirm
 CREATE INDEX IF NOT EXISTS charges_status_idx    ON subscription_charges(status);
 CREATE INDEX IF NOT EXISTS consultations_firm_idx ON consultations(lawfirm_id);
 
+ALTER TABLE lawfirm_meta ADD COLUMN IF NOT EXISTS review_count INT DEFAULT 0;
+ALTER TABLE lawfirm_meta ADD COLUMN IF NOT EXISTS hourly_rate  INT;
+
 -- key -> JSON snapshot, so the in-memory services (cases, documents, tasks,
 -- activity log) survive a restart. See loadState / saveState below.
 CREATE TABLE IF NOT EXISTS app_state (
@@ -380,6 +383,38 @@ async function seedDemoIfEmpty(): Promise<void> {
 
 let initPromise: Promise<void> | null = null;
 
+// Different rating / reviews / hourly rate / practice areas per demo firm.
+// Rating/reviews/rate are only set while empty; areas are topped up if missing.
+const FIRM_PROFILES: Array<[number, number, number, number, string[]]> = [
+  // [firm id, rating, reviews, hourly rate, practice areas]
+  [1, 4.8, 97, 180, ['Corporate Law', 'Contract Disputes', 'Civil Law']],
+  [2, 4.6, 142, 220, ['Banking & Finance', 'Corporate Law', 'Tax Law']],
+  [3, 4.9, 63, 160, ['Intellectual Property', 'Technology Law', 'Contract Disputes']],
+  [4, 4.4, 48, 120, ['Maritime Law', 'Property Law', 'Civil Law']],
+  [5, 4.7, 85, 200, ['Cyber Law', 'Data Privacy', 'Criminal Law']],
+];
+
+async function seedFirmProfiles(): Promise<void> {
+  for (const [id, rating, reviews, rate, areas] of FIRM_PROFILES) {
+    await q(
+      `UPDATE lawfirm_meta SET avg_rating = $2, review_count = $3, hourly_rate = $4
+       WHERE id = $1 AND hourly_rate IS NULL`,
+      [id, rating, reviews, rate],
+    );
+    // Link each area (skips ones already linked, and firms that don't exist).
+    for (const name of areas) {
+      await q(`INSERT INTO practice_areas (name) VALUES ($1) ON CONFLICT (name) DO NOTHING`, [name]);
+      await q(
+        `INSERT INTO lawfirm_practice_areas (lawfirm_id, practice_area_id)
+         SELECT $1, id FROM practice_areas
+         WHERE name = $2 AND EXISTS (SELECT 1 FROM lawfirm_meta WHERE id = $1)
+         ON CONFLICT DO NOTHING`,
+        [id, name],
+      );
+    }
+  }
+}
+
 /** Connect, apply the schema delta, seed demo data once per process. */
 export function initDb(): Promise<void> {
   if (!initPromise) {
@@ -389,6 +424,7 @@ export function initDb(): Promise<void> {
       await q(BASE_SCHEMA);
       await q(SCHEMA_DELTA);
       await seedDemoIfEmpty();
+      await seedFirmProfiles();
     })();
   }
   return initPromise;

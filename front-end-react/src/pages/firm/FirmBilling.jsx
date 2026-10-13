@@ -156,7 +156,10 @@ export default function FirmBilling() {
   /* Fill the hidden print template and open the browser print dialog. */
   const printInvoice = (inv) => {
     setViewing({ ...inv, printing: true });
-    setTimeout(() => window.print(), 100); // give React a moment to render the template
+    setTimeout(() => {
+      window.print(); // choose "Save as PDF" in the dialog; this waits until it closes
+      setViewing({ ...inv, printing: false }); // go back to the normal invoice view
+    }, 100); // give React a moment to render the template
   };
 
   /* ════════ SUBSCRIPTION ACTIONS ════════ */
