@@ -356,6 +356,26 @@ export function FilterDropdown({ label = 'Filters', children }) {
   );
 }
 
+/* One filter group: a small title and a row of clickable chips (selected = filled). */
+export function ChipGroup({ title, options, value, onChange }) {
+  return (
+    <div>
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-slate-400">{title}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((o) => (
+          <button key={o} type="button" onClick={() => onChange(o)}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+              value === o
+                ? 'border-brand bg-brand text-white'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+            {o}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ────────────────────────────────  TABS  ──────────────────────────────── */
 
 /** Row of tab buttons (e.g. "All Cases" / "Pending Tasks"). */

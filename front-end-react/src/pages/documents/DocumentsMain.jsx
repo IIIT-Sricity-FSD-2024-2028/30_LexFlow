@@ -16,6 +16,7 @@ import Icon from '../../components/Icon.jsx';
 export default function DocumentsMain() {
   const { user } = useApp();
   const role = (user?.role || 'client').toLowerCase();
+  const isClient = role === 'client'; // client view only: show the case, not the client's own name
 
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +69,7 @@ export default function DocumentsMain() {
       client: c.client_name || c.clientName || 'Unknown Client',
       status: mapStatus(c.status),
       caseType: c.case_type || c.title || 'Case',
+      caseName: c.brief_description || c.case_type || 'Case', // e.g. "Property dispute - Sharma vs Gupta"
       lawyer: c.lawyer_name || c.lawyerName || 'Unknown Lawyer',
       court: c.court || 'District Court',
     }));
@@ -75,7 +77,7 @@ export default function DocumentsMain() {
     // search over every text field
     const q = search.toLowerCase();
     if (q) list = list.filter((c) =>
-      `${c.client} ${c.id} ${c.cnr} ${c.caseType} ${c.lawyer} ${c.court}`.toLowerCase().includes(q));
+      `${c.client} ${c.id} ${c.cnr} ${c.caseName} ${c.caseType} ${c.lawyer} ${c.court}`.toLowerCase().includes(q));
 
     // status checkboxes
     if (statusFilter.length) list = list.filter((c) => statusFilter.includes(c.status));
@@ -121,11 +123,13 @@ export default function DocumentsMain() {
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="relative max-w-md flex-1">
           <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <Input className="!pl-9" placeholder="Search clients by name, case ID, or CNR" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input className="!pl-9" placeholder={isClient ? 'Search by case name, case ID, or CNR' : 'Search clients by name, case ID, or CNR'} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Button variant="outline" onClick={() => { setSortKey('client'); setSortAsc(sortKey === 'client' ? !sortAsc : true); }}>
-          Sort: Client {sortKey === 'client' ? (sortAsc ? '↑' : '↓') : ''}
-        </Button>
+        {!isClient && (
+          <Button variant="outline" onClick={() => { setSortKey('client'); setSortAsc(sortKey === 'client' ? !sortAsc : true); }}>
+            Sort: Client {sortKey === 'client' ? (sortAsc ? '↑' : '↓') : ''}
+          </Button>
+        )}
         <div className="flex overflow-hidden rounded-lg border border-slate-300">
           {[['grid', 'grid'], ['list', 'list']].map(([v, icon]) => (
             <button key={v} onClick={() => setView(v)} aria-label={`${v} view`}
@@ -150,9 +154,11 @@ export default function DocumentsMain() {
                 <Badge variant={statusTone(c.status)}>● {c.status}</Badge>
               </div>
               <div className="mt-4 flex items-center gap-3">
-                <Avatar name={c.client} className="h-10 w-10" />
+                {isClient
+                  ? <div className="rounded-xl bg-indigo-50 p-2.5 text-indigo-600"><Icon name="briefcase" size={20} /></div>
+                  : <Avatar name={c.client} className="h-10 w-10" />}
                 <div className="min-w-0">
-                  <h3 className="truncate font-bold text-slate-900">{c.client}</h3>
+                  <h3 className="truncate font-bold text-slate-900">{isClient ? c.caseName : c.client}</h3>
                   <p className="font-mono text-xs text-slate-400">CASE-{c.id} · {c.cnr}</p>
                 </div>
               </div>
@@ -175,9 +181,11 @@ export default function DocumentsMain() {
           {cards.map((c) => (
             <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 p-4 hover:bg-slate-50">
               <div className="flex min-w-0 items-center gap-3">
-                <Avatar name={c.client} />
+                {isClient
+                  ? <div className="rounded-xl bg-indigo-50 p-2 text-indigo-600"><Icon name="briefcase" size={18} /></div>
+                  : <Avatar name={c.client} />}
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-slate-800">{c.client} <span className="font-mono text-xs text-slate-400">CASE-{c.id}</span></p>
+                  <p className="truncate text-sm font-bold text-slate-800">{isClient ? c.caseName : c.client} <span className="font-mono text-xs text-slate-400">CASE-{c.id}</span></p>
                   <p className="text-xs text-slate-400">{c.caseType} · Adv. {c.lawyer} · {c.court}</p>
                 </div>
               </div>

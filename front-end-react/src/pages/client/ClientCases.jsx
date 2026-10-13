@@ -18,6 +18,7 @@ export default function ClientCases() {
   const { user } = useApp();
 
   const [cases, setCases] = useState([]);
+  const [firmNames, setFirmNames] = useState({}); // 'firm-1' -> 'Sharma & Associates'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
@@ -29,8 +30,14 @@ export default function ClientCases() {
     setError('');
     try {
       const filters = user?.id ? { clientId: user.id } : {};
-      const list = await api.cases.getAll(filters, (user?.role || 'client').toLowerCase());
+      const role = (user?.role || 'client').toLowerCase();
+      const list = await api.cases.getAll(filters, role);
       setCases(Array.isArray(list) ? list : []);
+      // Cases only hold the firm id, so load the firm directory to show names.
+      try {
+        const firms = await api.lawFirms.getAll({}, role);
+        setFirmNames(Object.fromEntries((Array.isArray(firms) ? firms : []).map((f) => [f.id, f.name])));
+      } catch { /* ids are still shown without names */ }
     } catch (err) {
       setError(`Could not load cases: ${err.message}`);
     } finally {
@@ -92,6 +99,9 @@ export default function ClientCases() {
                   <h3 className="mt-2 font-bold text-slate-900">{title}</h3>
                   <div className="mt-1.5 flex flex-wrap items-center gap-4 text-xs text-slate-500">
                     <span className="flex items-center gap-1"><Icon name="clock" size={12} /> CNR: <span className="font-mono">{c.cnr || '—'}</span></span>
+                    <span className="flex items-center gap-1">
+                      <Icon name="building" size={12} /> Law Firm: {firmNames[c.lawfirm_id] || '—'}
+                    </span>
                     <span className="flex max-w-[300px] items-center gap-1 truncate">
                       <Icon name="building" size={12} /> {c.brief_description || c.description || '—'}
                     </span>

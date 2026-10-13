@@ -12,11 +12,10 @@ import { navigate } from '../../router.jsx';
 import { Breadcrumb } from '../../components/Layout.jsx';
 import {
   Button, Card, Badge, StatusBadge, PageHeader, Loading, ErrorBanner,
-  Modal, Field, Input, Select, Textarea, Table, Th, Td,
+  Modal, Field, Input, Select,
 } from '../../components/ui.jsx';
 import Icon from '../../components/Icon.jsx';
 import { formatDate } from '../../lib/format.js';
-import { validateName, validateEmail, validateIndianPhone, normalizeIndianPhone } from '../../lib/validators.js';
 
 export default function FirmCaseDetails({ id }) {
   const { user, toast } = useApp();
@@ -33,7 +32,6 @@ export default function FirmCaseDetails({ id }) {
   const [editCase, setEditCase] = useState(null);       // edit case details form
   const [editClient, setEditClient] = useState(null);   // edit client details form
   const [addTask, setAddTask] = useState(null);         // new task form
-  const [uploadDoc, setUploadDoc] = useState(null);     // upload document form
   const [modalErrors, setModalErrors] = useState({});   // per-modal validation errors
 
   /* ── Load the case + related data ── */
@@ -52,11 +50,15 @@ export default function FirmCaseDetails({ id }) {
       }
       if (!data) throw new Error('Case not found');
 
-      // Documents live in their own endpoint - overlay them onto the case.
-      try {
-        const docs = await api.documents.listByCase(data.id, role, user?.email);
-        if (Array.isArray(docs)) data.documents = docs;
-      } catch { /* keep whatever documents the case object already had */ }
+      // The case only holds ids, so look up the law firm and lawyer names.
+      const [firms, lawyer, clientUser] = await Promise.all([
+        api.users.getAllFirms(role).catch(() => []),
+        data.lawyer_id ? api.users.getById(data.lawyer_id, role).catch(() => null) : null,
+        data.client_id ? api.users.getById(data.client_id, role).catch(() => null) : null,
+      ]);
+      data.clientUser = clientUser; // the client's real account (name, email, phone)
+      data.firmName = (Array.isArray(firms) ? firms : []).find((f) => f.id === data.lawfirm_id)?.name;
+      data.lawyerName = lawyer?.fullName || lawyer?.name;
 
       setCaseData(data);
 
@@ -74,16 +76,17 @@ export default function FirmCaseDetails({ id }) {
 
   useEffect(() => { load(); }, [load]);
 
-  /* Firm members for the assignee dropdown. */
+  /* Firm members for the assignee dropdown. Firm admins can assign to lawyers
+     and interns; a lawyer can assign only to interns. */
   useEffect(() => {
-    api.users.getLawyers(user?.firmId, role)
-      .then((l) => setFirmMembers(Array.isArray(l) ? l : []))
+    const assignable = role === 'lawyer' ? ['intern'] : ['lawyer', 'intern'];
+    api.users.getByFirm(user?.firmId, role)
+      .then((l) => setFirmMembers((Array.isArray(l) ? l : []).filter((u) => assignable.includes(u.role))))
       .catch(() => {});
   }, [role, user?.firmId]);
 
   /* ── Derived values ── */
-  const pendingTasks = (tasks || []).filter((t) => t.status !== 'Completed');
-  const documents = caseData?.documents || [];
+  const pendingTasks = (tasks || []).filter((t) => t.status !== 'Completed' && String(t.caseId) === String(caseData?.id));
   const client = caseData?.client || {};
 
   /* PATCH helper. The API rejects unknown fields (forbidNonWhitelisted) and documents
@@ -114,12 +117,15 @@ export default function FirmCaseDetails({ id }) {
       <Card className="mb-6 flex flex-wrap items-center justify-between gap-4 p-6">
         <div>
           <StatusBadge status={caseData.status || 'Ongoing'} />
-          <h1 className="mt-2 text-2xl font-bold text-slate-900">{title}</h1>
-          <p className="text-sm text-slate-500">{title} | Opened: {formatDate(caseData.filed_date || caseData.filedDate)}</p>
+          <h1 className="mt-2 text-2xl font-bold text-slate-900">{caseData.brief_description || title}</h1>
+          <p className="text-sm text-slate-500">{title} | CNR: {caseData.cnr || '—'} | Opened: {formatDate(caseData.filed_date || caseData.filedDate)}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => { setModalErrors({}); setEditCase({ title, status: caseData.status || 'Ongoing' }); }}>
             Edit Details
+          </Button>
+          <Button variant="outline" onClick={() => navigate(`/documents/${caseData.id}`)}>
+            <Icon name="document" size={14} /> Manage Documents
           </Button>
           <Button variant="outline" onClick={() => exportCSV(caseData)}>
             <Icon name="download" size={14} /> Export
@@ -135,18 +141,17 @@ export default function FirmCaseDetails({ id }) {
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-bold text-slate-900">Client Details</h2>
               <button className="text-xs font-semibold text-indigo-600 hover:underline"
-                onClick={() => { setModalErrors({}); setEditClient({
-                  contact: client.contact || '', email: client.email || '', phone: client.phone || '',
-                  type: client.type || 'Corporate', opposingParty: client.opposingParty || '',
-                }); }}>
+                onClick={() => { setModalErrors({}); setEditClient({ opposingParty: client.opposingParty || '' }); }}>
                 Edit
               </button>
             </div>
-            <InfoRow label="Contact" value={client.contact || 'Data Pending'} />
-            <InfoRow label="Email" value={client.email || '—'} />
-            <InfoRow label="Phone" value={client.phone || '—'} />
-            <InfoRow label="Account Type" value={client.type || 'Corporate'} />
-            <InfoRow label="Opposing Party" value={client.opposingParty || '—'} />
+            {/* name / email / phone come from the client's real account */}
+            <InfoRow label="Client" value={caseData.clientUser?.fullName || '—'} />
+            <InfoRow label="Email" value={caseData.clientUser?.email || '—'} />
+            <InfoRow label="Phone" value={caseData.clientUser?.phone || '—'} />
+            <InfoRow label="Address" value={caseData.clientUser?.address || '—'} />
+            <InfoRow label="Account Type" value={caseData.clientUser?.accountType || '—'} />
+            <InfoRow label="Opposing Party" value={client.opposingParty || 'Not added yet'} />
           </Card>
 
           {/* pending tasks card */}
@@ -177,7 +182,7 @@ export default function FirmCaseDetails({ id }) {
                 ))}
               </div>
             )}
-            <Button variant="outline" className="mt-4 w-full !text-xs" onClick={() => navigate('/firm/tasks')}>
+            <Button variant="outline" className="mt-4 w-full !text-xs" onClick={() => navigate(`/firm/tasks/${caseData.id}`)}>
               View All Tasks
             </Button>
           </Card>
@@ -185,51 +190,18 @@ export default function FirmCaseDetails({ id }) {
 
         {/* ════════ RIGHT COLUMN ════════ */}
         <div className="space-y-6 lg:col-span-2">
-          {/* document management card */}
+          {/* case information card */}
           <Card className="p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-bold text-slate-900">Document Management</h2>
-              <Button variant="outline" className="!px-3 !py-1.5 !text-xs"
-                onClick={() => { setModalErrors({}); setUploadDoc({ file: null, type: 'PDF', access: 'Firm Only', description: '', busy: false }); }}>
-                + Add Document
-              </Button>
+            <h2 className="mb-4 font-bold text-slate-900">Case Information</h2>
+            <div className="grid gap-x-6 sm:grid-cols-2">
+              <InfoRow label="CNR Number" value={caseData.cnr || '—'} />
+              <InfoRow label="Case Type" value={title} />
+              <InfoRow label="Status" value={caseData.status || 'Ongoing'} />
+              <InfoRow label="Filed Date" value={formatDate(caseData.filed_date || caseData.filedDate)} />
+              <InfoRow label="Law Firm" value={caseData.firmName || '—'} />
+              <InfoRow label="Assigned Lawyer" value={caseData.lawyerName || 'Not assigned yet'} />
             </div>
-            {documents.length === 0 ? (
-              <p className="text-sm text-slate-400">No documents uploaded yet.</p>
-            ) : (
-              <Table>
-                <thead>
-                  <tr><Th>Document Name</Th><Th>Uploaded Date</Th><Th>Status</Th><Th>Actions</Th></tr>
-                </thead>
-                <tbody>
-                  {documents.map((doc, i) => (
-                    <tr key={doc.id || i} className="hover:bg-slate-50">
-                      <Td>
-                        <span className="flex items-center gap-2">
-                          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
-                            {String(doc.type || 'PDF').slice(0, 4).toUpperCase()}
-                          </span>
-                          {doc.name}
-                        </span>
-                      </Td>
-                      <Td>{fmtDate(doc.date)}</Td>
-                      <Td><StatusBadge status={doc.status || 'Verified'} /></Td>
-                      <Td>
-                        <div className="flex items-center gap-2">
-                          <button className="text-xs font-medium text-indigo-600 hover:underline" onClick={() => downloadDoc(doc)}>
-                            Download
-                          </button>
-                          <button className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500" aria-label="Delete document"
-                            onClick={() => deleteDocument(doc, i)}>
-                            <Icon name="trash" size={13} />
-                          </button>
-                        </div>
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            )}
+            <InfoRow label="Description" value={caseData.brief_description || '—'} />
           </Card>
         </div>
       </div>
@@ -265,21 +237,10 @@ export default function FirmCaseDetails({ id }) {
         </>}>
         {editClient && (
           <div className="space-y-4">
-            <Field label="Contact Person" required error={modalErrors.contact}>
-              <Input value={editClient.contact} onChange={(e) => setEditClient((c) => ({ ...c, contact: e.target.value }))} error={!!modalErrors.contact} />
-            </Field>
-            <Field label="Email" required error={modalErrors.email}>
-              <Input type="email" value={editClient.email} onChange={(e) => setEditClient((c) => ({ ...c, email: e.target.value }))} error={!!modalErrors.email} />
-            </Field>
-            <Field label="Phone" required error={modalErrors.phone}>
-              <Input value={editClient.phone} onChange={(e) => setEditClient((c) => ({ ...c, phone: e.target.value }))} error={!!modalErrors.phone} />
-            </Field>
-            <Field label="Account Type">
-              <Select value={editClient.type} onChange={(e) => setEditClient((c) => ({ ...c, type: e.target.value }))}>
-                {['Corporate', 'Individual', 'SME'].map((t) => <option key={t}>{t}</option>)}
-              </Select>
-            </Field>
-            <Field label="Opposing Counsel" error={modalErrors.opposingParty}>
+            <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
+              Name, email, phone, address and account type come from the client's account and can't be edited here.
+            </p>
+            <Field label="Opposing Party" error={modalErrors.opposingParty}>
               <Input value={editClient.opposingParty} maxLength={150} onChange={(e) => setEditClient((c) => ({ ...c, opposingParty: e.target.value }))} error={!!modalErrors.opposingParty} />
             </Field>
           </div>
@@ -319,43 +280,6 @@ export default function FirmCaseDetails({ id }) {
         )}
       </Modal>
 
-      {/* Upload document */}
-      <Modal open={!!uploadDoc} onClose={() => setUploadDoc(null)} title="Upload New Document"
-        footer={<>
-          <Button variant="ghost" onClick={() => setUploadDoc(null)}>Cancel</Button>
-          <Button loading={!!uploadDoc?.busy} onClick={saveDocumentModal}>+ Upload New Document</Button>
-        </>}>
-        {uploadDoc && (
-          <div className="space-y-4">
-            <Field label="Client Name"><Input value={title.split('vs.')[0].trim()} readOnly className="!bg-slate-50" /></Field>
-            <Field label="Case CNR"><Input value={caseData.cnr || caseData.id} readOnly className="!bg-slate-50" /></Field>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Document Type">
-                <Select value={uploadDoc.type} onChange={(e) => setUploadDoc((d) => ({ ...d, type: e.target.value }))}>
-                  <option>PDF</option><option>DOC</option><option>ZIP</option>
-                </Select>
-              </Field>
-              <Field label="Confidential Level">
-                <Select value={uploadDoc.access} onChange={(e) => setUploadDoc((d) => ({ ...d, access: e.target.value }))}>
-                  <option>Firm Only</option><option>Client Visible</option><option>Public</option>
-                </Select>
-              </Field>
-            </div>
-            <Field label="Uploader"><Input value={user?.fullName || user?.name || 'Firm Admin'} readOnly className="!bg-slate-50" /></Field>
-            <Field label="Description">
-              <Textarea rows={2} value={uploadDoc.description} onChange={(e) => setUploadDoc((d) => ({ ...d, description: e.target.value }))} />
-            </Field>
-            {/* click-to-browse file zone */}
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 p-6 text-center hover:border-slate-400">
-              <Icon name="upload" size={20} className="text-slate-400" />
-              <span className="text-sm font-semibold text-slate-600">
-                {uploadDoc.file ? `Selected: ${uploadDoc.file.name}` : 'Click to browse files'}
-              </span>
-              <input type="file" className="hidden" onChange={(e) => setUploadDoc((d) => ({ ...d, file: e.target.files[0] || null }))} />
-            </label>
-          </div>
-        )}
-      </Modal>
     </>
   );
 
@@ -391,17 +315,16 @@ export default function FirmCaseDetails({ id }) {
 
   /* Save the edit-client modal. */
   async function saveClientModal() {
-    // Same validators the onboarding forms use (each returns an error text or null).
+    // Only the case-specific fields are editable (the rest is the client's real account).
+    const opposing = editClient.opposingParty.trim();
     const errors = {
-      contact: validateName(editClient.contact, { twoWords: false }),
-      email: validateEmail(editClient.email),
-      phone: validateIndianPhone(editClient.phone),
-      opposingParty: editClient.opposingParty.length > 150 ? 'Maximum 150 characters.' : null,
+      opposingParty: opposing && (opposing.length < 2 || opposing.length > 150 || !/[A-Za-z]/.test(opposing))
+        ? 'Enter a valid name (2-150 characters, including letters).' : null,
     };
     setModalErrors(errors);
     if (Object.values(errors).some(Boolean)) return;
     try {
-      await saveCase({ ...caseData, client: { ...editClient, phone: normalizeIndianPhone(editClient.phone) } });
+      await saveCase({ ...caseData, client: { opposingParty: opposing } });
       toast('Client details updated.');
       setEditClient(null);
       load();
@@ -439,46 +362,6 @@ export default function FirmCaseDetails({ id }) {
     }
   }
 
-  /* Upload a document (multipart form, like the vanilla page). */
-  async function saveDocumentModal() {
-    if (!uploadDoc.file) {
-      toast('Please choose a file to upload.', 'error');
-      return;
-    }
-    setUploadDoc((d) => ({ ...d, busy: true }));
-    try {
-      const ext = (uploadDoc.file.name.split('.').pop() || 'BIN').toUpperCase().slice(0, 3);
-      const typeMap = { PDF: 'CLIENT PROOF', DOC: 'CONTRACT', ZIP: 'CASE EVIDENCE' };
-      const created = await api.documents.upload(uploadDoc.file, {
-        name: uploadDoc.file.name,
-        caseId: caseData.id,
-        type: typeMap[uploadDoc.type] || uploadDoc.type,
-        fileType: ext,
-        access: uploadDoc.access.includes('Firm') ? 'PRIVATE' : 'SHARED',
-      }, role, user?.email);
-      setCaseData((c) => ({ ...c, documents: [...(c.documents || []), created] }));
-      toast(`${uploadDoc.file.name} uploaded successfully`);
-      setUploadDoc(null);
-    } catch (err) {
-      toast(`Upload failed: ${err.message}`, 'error');
-      setUploadDoc((d) => ({ ...d, busy: false }));
-    }
-  }
-
-  /* Delete a document (server call first, then local splice). */
-  async function deleteDocument(doc, index) {
-    if (!window.confirm(`Delete "${doc.name}"? This cannot be undone.`)) return;
-    try {
-      if (String(doc.id || '').startsWith('DOC-')) {
-        await api.documents.remove(doc.id, role, user?.email);
-      }
-    } catch (err) {
-      toast(`Delete failed: ${err.message}`, 'error'); // don't hide it: it would reappear on reload
-      return;
-    }
-    setCaseData((c) => ({ ...c, documents: c.documents.filter((_, i) => i !== index) }));
-    toast('Document removed.');
-  }
 }
 
 /* ── Small helpers used above ── */
@@ -498,17 +381,6 @@ function fmtDate(v) {
   if (!v) return '—';
   const d = new Date(v);
   return isNaN(d) ? v : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-/* Download a placeholder file for a document (same as the client page). */
-function downloadDoc(doc) {
-  const text = `LexFlow document download\nFile: ${doc.name}\nDownloaded on: ${new Date().toISOString()}`;
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = doc.name;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 /* Export the case as a CSV file (vanilla had the function but never wired it

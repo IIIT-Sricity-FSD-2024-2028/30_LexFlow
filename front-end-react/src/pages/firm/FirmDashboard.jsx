@@ -10,6 +10,7 @@ import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
 import {
   Button, Card, Badge, StatusBadge, PageHeader, Loading, ErrorBanner, EmptyState, Table, Th, Td, Select, StatCard,
+  Input, FilterDropdown, ChipGroup,
 } from '../../components/ui.jsx';
 import Icon from '../../components/Icon.jsx';
 
@@ -24,6 +25,11 @@ export default function FirmDashboard() {
   const [chosen, setChosen] = useState({});          // consultationId -> lawyerId
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  /* Search + filters (applied on this page, to both the requests and the table). */
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All'); // active table only
+  const [modeFilter, setModeFilter] = useState('All');     // VIDEO | CHAT | INPERSON
 
   /* Load consultations + the firm's lawyers. */
   const load = useCallback(async () => {
@@ -50,6 +56,19 @@ export default function FirmDashboard() {
   const pending = consultations.filter((c) => (c.status || '').toUpperCase() === 'PENDING');
   const active = consultations.filter((c) => ACTIVE.includes((c.status || '').toUpperCase()));
   const completed = consultations.filter((c) => (c.status || '').toUpperCase() === 'COMPLETED');
+
+  /* What the search box and filters let through. */
+  const matches = (c) => {
+    const q = search.toLowerCase();
+    const okSearch = !q
+      || `${c.id} ${c.clientName} ${c.lawyerName} ${c.caseDescription}`.toLowerCase().includes(q);
+    const okMode = modeFilter === 'All' || (c.type || '').toUpperCase() === modeFilter;
+    return okSearch && okMode;
+  };
+  const shownPending = pending.filter(matches);
+  const shownActive = active.filter(matches)
+    .filter((c) => statusFilter === 'All' || (c.status || '').toUpperCase() === statusFilter);
+  const activeFilters = [statusFilter, modeFilter].filter((f) => f !== 'All').length;
 
   /* ACCEPT a request: needs a lawyer chosen in the row's dropdown. */
   const accept = async (cons) => {
@@ -133,6 +152,29 @@ export default function FirmDashboard() {
         <StatCard label="Completed" value={completed.length} icon="check" tone="green" />
       </div>
 
+      {/* ── Search + filters ── */}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <div className="relative max-w-md flex-1">
+          <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Input className="!pl-9" placeholder="Search by client, lawyer, ID or description"
+            value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <FilterDropdown label={activeFilters ? `Filters · ${activeFilters}` : 'Filters'}>
+          <div className="space-y-4">
+            <ChipGroup title="Status (active table)" value={statusFilter} onChange={setStatusFilter}
+              options={['All', 'SCHEDULED', 'CONFIRMED', 'IN PROGRESS']} />
+            <ChipGroup title="Mode" value={modeFilter} onChange={setModeFilter}
+              options={['All', 'VIDEO', 'CHAT', 'INPERSON']} />
+          </div>
+          {activeFilters > 0 && (
+            <button className="mt-4 text-xs font-semibold text-indigo-600 hover:underline"
+              onClick={() => { setStatusFilter('All'); setModeFilter('All'); }}>
+              Clear filters
+            </button>
+          )}
+        </FilterDropdown>
+      </div>
+
       {loading && <Loading text="Loading consultations…" />}
       {!loading && error && <ErrorBanner message={error} onRetry={load} />}
 
@@ -143,11 +185,11 @@ export default function FirmDashboard() {
             <h2 className="mb-1 text-lg font-bold text-slate-900">Incoming Requests</h2>
             <p className="mb-4 text-sm text-slate-500">New consultation requests waiting for approval.</p>
 
-            {pending.length === 0 ? (
-              <EmptyState icon="calendar" title="No pending requests at the moment." />
+            {shownPending.length === 0 ? (
+              <EmptyState icon="calendar" title={pending.length ? 'No requests match your search.' : 'No pending requests at the moment.'} />
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {pending.map((cons) => (
+                {shownPending.map((cons) => (
                   <Card key={cons.id} className="p-5">
                     <div className="flex items-center justify-between">
                       <Badge variant="indigo">{cons.id}</Badge>
@@ -188,14 +230,16 @@ export default function FirmDashboard() {
               <Table>
                 <thead>
                   <tr>
-                    <Th>ID</Th><Th>Client</Th><Th>Assigned Lawyer</Th><Th>Case Type</Th>
+                    <Th>ID</Th><Th>Client</Th><Th>Assigned Lawyer</Th><Th>Description</Th>
                     <Th>Scheduled</Th><Th>Mode</Th><Th>Status</Th><Th>Actions</Th>
                   </tr>
                 </thead>
                 <tbody>
-                  {active.length === 0 ? (
-                    <tr><Td colSpan={8} className="!text-center text-slate-400">No active consultations at the moment.</Td></tr>
-                  ) : active.map((cons) => (
+                  {shownActive.length === 0 ? (
+                    <tr><Td colSpan={8} className="!text-center text-slate-400">
+                      {active.length ? 'No consultations match your search.' : 'No active consultations at the moment.'}
+                    </Td></tr>
+                  ) : shownActive.map((cons) => (
                     <tr key={cons.id} className="hover:bg-slate-50">
                       <Td className="font-mono text-xs font-bold">{cons.id}</Td>
                       <Td className="font-semibold">{cons.clientName || '—'}</Td>
@@ -205,7 +249,7 @@ export default function FirmDashboard() {
                           {cons.lawyerName || 'Unassigned'}
                         </span>
                       </Td>
-                      <Td>{(cons.type || '').toUpperCase() || '—'}</Td>
+                      <Td className="max-w-[220px] truncate text-xs text-slate-600" title={cons.caseDescription}>{cons.caseDescription || '—'}</Td>
                       <Td className="text-xs">{cons.date}<br /><span className="text-slate-400">{cons.time}</span></Td>
                       <Td><Badge variant="blue">{(cons.type || 'chat').toUpperCase()}</Badge></Td>
                       <Td><StatusBadge status={cons.status} /></Td>
@@ -214,8 +258,13 @@ export default function FirmDashboard() {
                           {/* Chat disabled (feature not wanted); kept here in case it returns.
                           <Button variant="ghost" className="!px-2 !py-1 !text-xs" onClick={() => navigate2Chat(cons.id)}>Chat</Button>
                           */}
-                          <Button variant="outline" className="!px-2 !py-1 !text-xs" onClick={() => convertToCase(cons)}>Convert to Case</Button>
-                          <Button variant="ghost" className="!px-2 !py-1 !text-xs !text-red-500 hover:!bg-red-50" onClick={() => cancel(cons.id)}>Cancel</Button>
+                          {/* The backend only lets firm admins cancel and firm admins/lawyers convert. */}
+                          {role !== 'intern' && (
+                            <Button variant="outline" className="!px-2 !py-1 !text-xs" onClick={() => convertToCase(cons)}>Convert to Case</Button>
+                          )}
+                          {role === 'firmadmin' && (
+                            <Button variant="ghost" className="!px-2 !py-1 !text-xs !text-red-500 hover:!bg-red-50" onClick={() => cancel(cons.id)}>Cancel</Button>
+                          )}
                         </div>
                       </Td>
                     </tr>

@@ -1,6 +1,6 @@
 /**
  * Case Details (client view) - general info, next hearing banner,
- * progress bar, timeline and the related documents table.
+ * progress bar, timeline. Documents live on their own page (button below).
  * The :id route segment can be either a case id or a CNR number
  * (vanilla supported both via ?id= and ?cnr=).
  */
@@ -11,7 +11,7 @@ import { useApp } from '../../context/AppContext.jsx';
 import { navigate } from '../../router.jsx';
 import { Breadcrumb } from '../../components/Layout.jsx';
 import {
-  Button, Card, Badge, StatusBadge, PageHeader, Loading, ErrorBanner, EmptyState, Table, Th, Td,
+  Button, Card, Badge, StatusBadge, PageHeader, Loading, ErrorBanner,
 } from '../../components/ui.jsx';
 import Icon from '../../components/Icon.jsx';
 
@@ -38,11 +38,13 @@ export default function ClientCaseDetails({ id }) {
       }
       if (!data) throw new Error('Case not found');
 
-      // Also fetch the case documents from the documents endpoint.
-      try {
-        const docs = await api.documents.listByCase(data.id, role, user?.email);
-        if (Array.isArray(docs) && docs.length) data.documents = docs;
-      } catch { /* keep whatever documents the case object already had */ }
+      // The case only holds ids, so look up the law firm and lawyer names.
+      const [firm, lawyer] = await Promise.all([
+        data.lawfirm_id ? api.lawFirms.getById(data.lawfirm_id, role).catch(() => null) : null,
+        data.lawyer_id ? api.users.getById(data.lawyer_id, role).catch(() => null) : null,
+      ]);
+      data.firmName = firm?.name;
+      data.lawyer_name = lawyer?.fullName || lawyer?.name;
 
       setCaseData(data);
     } catch (err) {
@@ -64,23 +66,11 @@ export default function ClientCaseDetails({ id }) {
   const progress = caseData.progress || 0;
   const hearing = caseData.nextHearing || {};
   const timeline = caseData.timeline || [];
-  const documents = caseData.documents || [];
 
   /* Split "15 Aug 2026" into the banner's big day + month. */
   const d = hearing.date ? new Date(hearing.date) : null;
   const hearingMonth = d && !isNaN(d) ? d.toLocaleString('en-US', { month: 'short' }).toUpperCase() : '—';
   const hearingDay = d && !isNaN(d) ? d.getDate() : '—';
-
-  /* Download a placeholder file for a document (same behaviour as vanilla). */
-  const downloadDoc = (doc) => {
-    const text = `LexFlow document download\nFile: ${doc.name}\nDownloaded on: ${new Date().toISOString()}`;
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' })); // temp file
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = doc.name;
-    a.click();
-    URL.revokeObjectURL(url); // clean up
-  };
 
   return (
     <>
@@ -89,7 +79,12 @@ export default function ClientCaseDetails({ id }) {
         { label: `CNR: ${caseData.cnr || 'N/A'}` },
       ]} />
 
-      <PageHeader title="Case Details" subtitle={title} />
+      <PageHeader title="Case Details" subtitle={title}
+        actions={
+          <Button onClick={() => navigate(`/documents/${caseData.id}`)}>
+            <Icon name="document" size={14} /> View Documents
+          </Button>
+        } />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* ── Left: general information + hearing banner ── */}
@@ -109,13 +104,11 @@ export default function ClientCaseDetails({ id }) {
                 })()
               } />
               <FieldBox label="Status" value={<StatusBadge status={status} />} />
+              <FieldBox label="Law Firm" value={caseData.firmName || '—'} />
               <FieldBox label="Assigned Lawyer" value={
-                caseData.lawyer_id || caseData.lawyerId ? (
-                  <button className="font-semibold text-indigo-600 hover:underline"
-                    onClick={() => navigate(`/client/advocate/${caseData.lawyer_id || caseData.lawyerId}`)}>
-                    {caseData.lawyer_name || caseData.lawyerName || 'View Advocate'}
-                  </button>
-                ) : 'Not assigned yet'
+                caseData.lawyer_id || caseData.lawyerId
+                  ? (caseData.lawyer_name || caseData.lawyerName || '—')
+                  : 'Not assigned yet'
               } />
             </div>
           </Card>
@@ -133,42 +126,6 @@ export default function ClientCaseDetails({ id }) {
               </div>
             </Card>
           )}
-
-          {/* Documents table */}
-          <Card className="p-6">
-            <h2 className="mb-4 font-bold text-slate-900">Related Documents</h2>
-            {documents.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-400">No documents available.</p>
-            ) : (
-              <Table>
-                <thead>
-                  <tr><Th>Document Name</Th><Th>Uploaded Date</Th><Th>Status</Th><Th>Action</Th></tr>
-                </thead>
-                <tbody>
-                  {documents.map((doc, i) => (
-                    <tr key={doc.id || i} className="hover:bg-slate-50">
-                      <Td>
-                        <span className="flex items-center gap-2">
-                          <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600">
-                            {(doc.type || 'PDF').toString().slice(0, 4).toUpperCase()}
-                          </span>
-                          {doc.name}
-                        </span>
-                      </Td>
-                      <Td>{doc.date || '—'}</Td>
-                      <Td><StatusBadge status={doc.status || 'Verified'} /></Td>
-                      <Td>
-                        <button className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:underline"
-                          onClick={() => downloadDoc(doc)}>
-                          <Icon name="download" size={14} /> Download
-                        </button>
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            )}
-          </Card>
         </div>
 
         {/* ── Right column: progress + timeline ── */}

@@ -91,6 +91,7 @@ export default function App() {
   else if (m('/firm/cases')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmCases /></Layout>;
   else if (m('/firm/cases/:id')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmCaseDetails {...m('/firm/cases/:id')} /></Layout>;
   else if (m('/firm/tasks')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmTasks /></Layout>;
+  else if (m('/firm/tasks/:caseId')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmTasks {...m('/firm/tasks/:caseId')} /></Layout>;
   else if (m('/firm/billing')) page = <Layout roles={['firmadmin', 'lawyer']}><FirmBilling /></Layout>;
   else if (m('/firm/users')) page = <Layout roles={['firmadmin']}><FirmUsers /></Layout>;
   else if (m('/firm/chat')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><ConsultationChat staff /></Layout>;

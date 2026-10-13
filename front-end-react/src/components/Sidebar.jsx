@@ -4,7 +4,7 @@
  * One component replaces the vanilla sidebar.html + sidebar.js pair.
  * The links it shows depend on the signed-in role:
  *   client     -> Consultations, Cases, Documents, Billing, Find a Law Firm
- *   firm staff -> Consultations, Cases, Documents, Billing (not intern), User Mgmt (admin only)
+ *   firm staff -> Consultations, Cases, Tasks, Documents, Billing (not intern), User Mgmt (admin only)
  *   superadmin -> Overview, Revenue, Law Firms, Lawyers, Users, Consultations, Invoices, Settings
  */
 
@@ -26,6 +26,7 @@ const CLIENT_NAV = [
 const FIRM_NAV = [
   { to: '/firm/dashboard', label: 'Consultations', icon: 'calendar' },
   { to: '/firm/cases', label: 'Cases', icon: 'briefcase' },
+  { to: '/firm/tasks', label: 'Tasks', icon: 'check' },
   { to: '/documents', label: 'Documents', icon: 'document' },
   { to: '/firm/billing', label: 'Billing', icon: 'dollar' },
   { to: '/firm/users', label: 'User Management', icon: 'users', onlyAdmin: true },

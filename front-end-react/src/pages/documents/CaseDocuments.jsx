@@ -43,11 +43,10 @@ export default function CaseDocuments({ caseId }) {
   const [accessFilter, setAccessFilter] = useState([]); // PRIVATE / SHARED
   const [view, setView] = useState('grid');
 
-  /* Modals: upload / update / delete / preview */
+  /* Modals: upload / update / delete */
   const [uploading, setUploading] = useState(null);
   const [updating, setUpdating] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  const [previewing, setPreviewing] = useState(null);
 
   /* Log one audit entry to the backend (fire-and-forget). */
   const log = useCallback((action, doc) => {
@@ -86,11 +85,13 @@ export default function CaseDocuments({ caseId }) {
       ]);
       setDocs(Array.isArray(d) ? d : []);
       setActivity(Array.isArray(a) ? a : []);
-      // The case only has ids; look up the client and lawyer names.
+      // The case only has ids; look up the client, lawyer and law firm names.
       const names = {};
       await Promise.allSettled([c.client_id, c.lawyer_id].filter(Boolean).map((id) =>
         api.users.getById(id, role).then((u) => { names[id] = u.fullName || u.name; })));
-      setCaseData({ ...c, clientName: names[c.client_id], lawyerName: names[c.lawyer_id] });
+      const firms = await api.users.getAllFirms(role).catch(() => []);
+      const firm = (Array.isArray(firms) ? firms : []).find((f) => f.id === c.lawfirm_id);
+      setCaseData({ ...c, clientName: names[c.client_id], lawyerName: names[c.lawyer_id], firmName: firm?.name });
     } catch {
       setError('CASE_NOT_FOUND');
     } finally {
@@ -160,22 +161,16 @@ export default function CaseDocuments({ caseId }) {
     setDeleting(null);
   };
 
-  /* Download + write an audit entry. */
-  const download = (doc) => {
+  /* Open the document in a new browser tab (same link the old Download used)
+     and write an audit entry. */
+  const openDoc = (doc) => {
     const url = doc.blobUrl || doc.filePath;
-    if (url) {
-      const a = document.createElement('a');
-      a.href = url; a.download = doc.name; a.click();
-    } else {
-      // No stored file (or it lives only on the server) -> placeholder text file.
-      const text = `LexFlow document download\nFile: ${doc.name}\nDownloaded on: ${new Date().toISOString()}`;
-      const blob = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
-      const a = document.createElement('a');
-      a.href = blob; a.download = doc.name; a.click();
-      URL.revokeObjectURL(blob);
+    if (!url) {
+      toast('No file is stored for this document.', 'error');
+      return;
     }
-    log('downloaded', doc);
-    toast(`⬇ Downloading ${doc.name}`);
+    window.open(url, '_blank', 'noopener');
+    log('viewed', doc);
   };
 
   /* Access denied / case not found screens. */
@@ -218,8 +213,8 @@ export default function CaseDocuments({ caseId }) {
       />
 
       {/* case meta strip */}
-      <Card className="mb-6 grid grid-cols-2 gap-4 p-4 text-sm sm:grid-cols-4">
-        {[['CLIENT', caseData.clientName || caseData.client_id || '—'], ['LAWYER', caseData.lawyerName || caseData.lawyer_name || '—'],
+      <Card className="mb-6 grid grid-cols-2 gap-4 p-4 text-sm sm:grid-cols-5">
+        {[['LAW FIRM', caseData.firmName || '—'], ['CLIENT', caseData.clientName || caseData.client_id || '—'], ['LAWYER', caseData.lawyerName || caseData.lawyer_name || '—'],
           ['COURT', caseData.court || 'District Court'], ['STATUS', caseData.status || 'Active']].map(([l, v]) => (
           <div key={l}>
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{l}</p>
@@ -281,11 +276,8 @@ export default function CaseDocuments({ caseId }) {
                   <p className="mt-0.5 font-mono text-[11px] text-slate-400">{d.id} · v{d.version || 1}</p>
                   <p className="mt-1 text-xs text-slate-500">{d.uploader || 'Unknown'} · {formatDate(d.date)}</p>
                   <div className="mt-auto flex gap-1.5 pt-3">
-                    <Button variant="outline" className="!px-2 !py-1 !text-xs" onClick={() => { setPreviewing(d); log('viewed', d); }}>
+                    <Button variant="outline" className="!px-2 !py-1 !text-xs" onClick={() => openDoc(d)}>
                       View
-                    </Button>
-                    <Button variant="ghost" className="!px-2 !py-1 !text-xs" onClick={() => download(d)}>
-                      <Icon name="download" size={13} />
                     </Button>
                     {can(role, 'update') && (
                       <Button variant="ghost" className="!px-2 !py-1 !text-xs" onClick={() => setUpdating({
@@ -313,8 +305,7 @@ export default function CaseDocuments({ caseId }) {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Badge variant={d.access === 'PRIVATE' ? 'red' : 'green'}>{d.access}</Badge>
-                    <Button variant="outline" className="!px-2 !py-1 !text-xs" onClick={() => { setPreviewing(d); log('viewed', d); }}>View</Button>
-                    <Button variant="ghost" className="!px-2 !py-1 !text-xs" onClick={() => download(d)}><Icon name="download" size={13} /></Button>
+                    <Button variant="outline" className="!px-2 !py-1 !text-xs" onClick={() => openDoc(d)}>View</Button>
                     {can(role, 'update') && <Button variant="ghost" className="!px-2 !py-1 !text-xs" onClick={() => setUpdating({ id: d.id, name: d.name, access: d.access || 'PRIVATE', version: d.version || 1, file: null })}><Icon name="edit" size={13} /></Button>}
                     {can(role, 'delete') && <Button variant="ghost" className="!px-2 !py-1 !text-xs !text-red-500" onClick={() => setDeleting(d)}><Icon name="trash" size={13} /></Button>}
                   </div>
@@ -353,7 +344,8 @@ export default function CaseDocuments({ caseId }) {
           <Card className="bg-amber-50 p-5 !border-amber-200">
             <h2 className="mb-1 font-bold text-amber-800">Quick Note</h2>
             <p className="text-xs leading-relaxed text-amber-700">
-              Remember to upload signed documents before the next hearing. Clients can see documents marked SHARED.
+              Remember to upload signed documents before the next hearing. New uploads are PRIVATE
+              by default; mark a document SHARED to make it visible to interns.
             </p>
           </Card>
         </div>
@@ -431,28 +423,6 @@ export default function CaseDocuments({ caseId }) {
         <p className="text-sm text-slate-600">
           Are you sure you want to delete <b>{deleting?.name}</b>? This action cannot be undone.
         </p>
-      </Modal>
-
-      {/* Preview */}
-      <Modal open={!!previewing} onClose={() => setPreviewing(null)} wide
-        title={previewing ? `${previewing.name} · v${previewing.version || 1}` : ''}>
-        {previewing && (
-          <div>
-            {/\.(jpe?g|png|gif|webp|svg)$/i.test(previewing.filePath || previewing.name) ? (
-              <img src={previewing.blobUrl || previewing.filePath} alt={previewing.name} className="max-h-[60vh] w-full rounded-lg object-contain" />
-            ) : previewing.filePath ? (
-              <iframe src={previewing.blobUrl || previewing.filePath} title={previewing.name} className="h-[60vh] w-full rounded-lg border" />
-            ) : (
-              <div className="flex h-[40vh] flex-col items-center justify-center gap-2 rounded-lg bg-slate-50 text-slate-400">
-                <Icon name="document" size={36} />
-                <p className="text-sm">No file preview available for this document.</p>
-              </div>
-            )}
-            <div className="mt-4 flex justify-end">
-              <Button onClick={() => download(previewing)}><Icon name="download" size={14} /> Download</Button>
-            </div>
-          </div>
-        )}
       </Modal>
     </>
   );

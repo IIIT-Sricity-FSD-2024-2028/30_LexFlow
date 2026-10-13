@@ -38,6 +38,8 @@ export default function FirmBilling() {
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [payingId, setPayingId] = useState(null);   // charge being paid (blocks double clicks)
+  const [planBusy, setPlanBusy] = useState(false);   // a plan request is in flight
 
   /* Extra headers the billing endpoints expect. */
   const hdrs = () => ({ 'x-user-id': user?.id || '' });
@@ -79,6 +81,18 @@ export default function FirmBilling() {
   }, [role, user?.firmId, user?.id]);
 
   useEffect(() => { load(); }, [load]);
+
+  /* Re-read charges + subscription from the backend (the source of truth).
+     Used after every payment / plan request, without the full-page spinner. */
+  const reloadSubscription = async () => {
+    const [ch, sub] = await Promise.all([
+      api.platform.getCharges(role, user?.firmId, user?.id),
+      api.platform.getSubscription(user.firmId, role, user?.id),
+    ]);
+    setCharges(Array.isArray(ch) ? ch : []);
+    setSubscription(sub);
+    return sub;
+  };
 
   /* ── Summary maths ── */
   const totalBilled = invoices.reduce((s, i) => s + Number(i.amount || 0), 0);
@@ -169,28 +183,50 @@ export default function FirmBilling() {
 
   /* ════════ SUBSCRIPTION ACTIONS ════════ */
 
-  /* Pay one subscription charge. */
+  /* Pay one subscription charge. The backend decides whether the pending plan
+     becomes active; we just show what it persisted. */
   const payCharge = async (charge) => {
+    if (payingId) return; // ignore double clicks while a payment is running
+    setPayingId(charge.id);
     try {
-      const updated = await api.platform.updateChargeStatus(charge.id, 'Paid', role, user?.id);
-      setCharges((list) => list.map((c) => (c.id === charge.id ? { ...c, ...updated } : c)));
-      toast('Subscription charge marked paid.');
-      // paying a tier-change charge applies the new tier, so refresh "Your Plan"
-      if (charge.kind === 'tier_change') setSubscription(await api.platform.getSubscription(user.firmId, role, user?.id));
+      await api.platform.updateChargeStatus(charge.id, 'Paid', role, user?.id);
+      const before = subscription;
+      const sub = await reloadSubscription();
+      if (before?.pendingTier && !sub.pendingTier && sub.tier === before.pendingTier) {
+        toast(`Payment recorded. Your plan is now ${sub.tier}.`);
+      } else if (sub.pendingTier) {
+        const left = (sub.requiredChargeIds || []).length;
+        toast(`Payment recorded. ${left} more charge${left === 1 ? '' : 's'} must be paid before ${sub.pendingTier} becomes active.`);
+      } else {
+        toast('Payment recorded.');
+      }
     } catch (err) {
       toast(`Payment failed: ${err.message}`, 'error');
+      try { await reloadSubscription(); } catch { /* keep what we have */ }
+    } finally {
+      setPayingId(null);
     }
   };
 
-  /* Request a tier change (the backend issues a one-time charge). */
+  /* Request a plan change (the backend creates a pending change + one charge;
+     requesting the active plan again cancels an unpaid request). */
   const switchPlan = async (tier) => {
-    if (!window.confirm(`Switch plan to ${tier.tier}? A one-time charge of ₹${tier.monthlyPrice} will be issued — pay it below to apply the change.`)) return;
+    if (planBusy) return;
+    const cancelling = tier.tier === subscription.tier;
+    const msg = cancelling
+      ? 'Cancel the pending plan change?'
+      : `Request a change to ${tier.tier}? A charge of ₹${Number(tier.monthlyPrice).toLocaleString('en-IN')} will be issued. ${tier.tier} becomes active only after ALL outstanding charges are paid.`;
+    if (!window.confirm(msg)) return;
+    setPlanBusy(true);
     try {
       await api.platform.requestTierChange(user.firmId, tier.tier, role, user?.id);
-      toast('Plan change requested. Pay the new charge below to apply it.');
-      load(); // refresh charges + subscription
+      await reloadSubscription();
+      toast(cancelling ? 'Pending plan change cancelled.' : `Plan change to ${tier.tier} requested. Pay the charges below to activate it.`);
     } catch (err) {
       toast(`Plan change failed: ${err.message}`, 'error');
+      try { await reloadSubscription(); } catch { /* keep what we have */ }
+    } finally {
+      setPlanBusy(false);
     }
   };
 
@@ -220,7 +256,10 @@ export default function FirmBilling() {
           <div className="grid gap-6 lg:grid-cols-2">
             {/* ── Subscription charges ── */}
             <Card>
-              <div className="border-b border-slate-100 p-5"><h2 className="font-bold text-slate-900">Subscription Charges</h2></div>
+              <div className="border-b border-slate-100 p-5">
+                <h2 className="font-bold text-slate-900">Subscription Charges</h2>
+                <p className="text-xs text-slate-400">Demo payments: no real money is moved, they are recorded as "simulated".</p>
+              </div>
               <Table fit>
                 <thead><tr><Th>Charge</Th><Th>Period</Th><Th>Tier</Th><Th>Amount</Th><Th>Status</Th><Th>Action</Th></tr></thead>
                 <tbody>
@@ -234,9 +273,23 @@ export default function FirmBilling() {
                       <Td className="font-semibold">{money(c.amount)}</Td>
                       <Td><StatusBadge status={c.status} /></Td>
                       <Td>
-                        {c.status === 'Paid'
-                          ? <span className="text-xs text-slate-400">Settled</span>
-                          : <Button className="!px-3 !py-1 !text-xs" onClick={() => payCharge(c)}>Pay now</Button>}
+                        {c.status === 'Paid' ? (
+                          <span className="text-xs text-slate-400">
+                            Settled{c.paymentMode ? ` · ${c.paymentMode}` : ''}
+                          </span>
+                        ) : (
+                          <div className="flex flex-col items-start gap-1">
+                            <Button className="!px-3 !py-1 !text-xs" loading={payingId === c.id}
+                              disabled={!!payingId} onClick={() => payCharge(c)}>
+                              Pay now
+                            </Button>
+                            {subscription?.requiredChargeIds?.includes(c.id) && (
+                              <span className="text-[10px] font-semibold text-amber-600">
+                                Required for {subscription.pendingTier}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </Td>
                     </tr>
                   ))}
@@ -247,28 +300,63 @@ export default function FirmBilling() {
             {/* ── Your plan ── */}
             <Card className="p-5">
               <h2 className="font-bold text-slate-900">Your Plan</h2>
-              {subscription ? (
-                <>
-                  <p className="mt-2 text-sm text-slate-600">
-                    Current tier: <b>{subscription.tier}</b> — {money(subscription.monthlyPrice, 0)}/month
-                  </p>
-                  {subscription.pendingTier && (
-                    <p className="mt-1 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
-                      {subscription.pendingTier} pending: pay the charge below to switch.
+              {subscription ? (() => {
+                const required = charges.filter((c) => subscription.requiredChargeIds?.includes(c.id));
+                const totalDue = required.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+                const pendingCharge = charges.find((c) => c.id === subscription.pendingChargeId);
+                const locked = pendingCharge?.status === 'Paid'; // paid, waiting for other dues
+                return (
+                  <>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Active plan: <b>{subscription.tier}</b> — {money(subscription.monthlyPrice, 0)}/month
                     </p>
-                  )}
-                  {/* one button per other tier */}
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {tiers.filter((t) => t.tier !== subscription.tier).map((t) => (
-                      <Button key={t.tier} variant="outline" className="!text-xs"
-                        onClick={() => switchPlan(t)}>
-                        Switch to {t.tier} — ₹{Number(t.monthlyPrice).toLocaleString('en-IN')}/mo
-                        ({t.lawyerSeats >= 10000 ? '∞' : t.lawyerSeats} lawyers)
-                      </Button>
-                    ))}
-                  </div>
-                </>
-              ) : (
+
+                    {subscription.pendingTier && (
+                      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                        <p className="font-bold">
+                          Pending: {subscription.pendingTier} (not active yet)
+                        </p>
+                        <p className="mt-1">
+                          {subscription.pendingTier} becomes active only after these {required.length} charge
+                          {required.length === 1 ? '' : 's'} {required.length === 1 ? 'is' : 'are'} paid
+                          {required.length > 0 && <> — total <b>{money(totalDue)}</b></>}:
+                        </p>
+                        <ul className="mt-1 list-disc pl-4">
+                          {required.map((c) => (
+                            <li key={c.id}>
+                              {c.kind === 'tier_change' ? `Upgrade to ${c.targetTier}` : `Monthly ${c.period}`} · {money(c.amount)} · {c.status}
+                            </li>
+                          ))}
+                        </ul>
+                        {!locked && (
+                          <Button variant="ghost" className="mt-2 !px-2 !py-1 !text-xs" loading={planBusy}
+                            disabled={planBusy || !!payingId}
+                            onClick={() => switchPlan({ tier: subscription.tier, monthlyPrice: subscription.monthlyPrice })}>
+                            Cancel pending change
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* one button per other tier */}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {tiers.filter((t) => t.tier !== subscription.tier && t.tier !== subscription.pendingTier).map((t) => (
+                        <Button key={t.tier} variant="outline" className="!text-xs"
+                          disabled={planBusy || !!payingId || locked}
+                          onClick={() => switchPlan(t)}>
+                          {subscription.pendingTier ? 'Change request to' : 'Switch to'} {t.tier} — ₹{Number(t.monthlyPrice).toLocaleString('en-IN')}/mo
+                          ({t.lawyerSeats >= 10000 ? '∞' : t.lawyerSeats} lawyers)
+                        </Button>
+                      ))}
+                    </div>
+                    {locked && (
+                      <p className="mt-2 text-xs text-slate-400">
+                        The {subscription.pendingTier} upgrade charge is paid; it activates as soon as the remaining dues are settled.
+                      </p>
+                    )}
+                  </>
+                );
+              })() : (
                 <p className="mt-2 text-sm text-slate-400">Subscription information unavailable.</p>
               )}
             </Card>

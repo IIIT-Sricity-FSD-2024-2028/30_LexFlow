@@ -49,4 +49,10 @@ export class UserResponseDto {
 
   @ApiProperty({ required: false, example: 'available' })
   availability?: 'available' | 'unavailable';
+
+  @ApiProperty({ required: false, example: 'Individual', description: 'Clients only: Individual | Business' })
+  accountType?: string;
+
+  @ApiProperty({ required: false, description: 'Clients only' })
+  address?: string;
 }

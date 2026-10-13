@@ -41,6 +41,7 @@ export class CasesService implements OnModuleInit {
         lawfirm_id: 'firm-1',
         client_id: 'cl-1', // Client Alice
         lawyer_id: 'lw-1', // Lawyer Bob
+        client: { opposingParty: 'State of Maharashtra' },
       },
       {
         id: this.idCounter++,
@@ -53,6 +54,7 @@ export class CasesService implements OnModuleInit {
         lawfirm_id: 'firm-1',
         client_id: 'cl-1', // Client Alice
         lawyer_id: 'lw-1', // Lawyer Bob
+        client: { opposingParty: 'Gupta Estates Pvt Ltd' },
       },
       {
         id: this.idCounter++,
@@ -65,6 +67,7 @@ export class CasesService implements OnModuleInit {
         lawfirm_id: 'firm-1',
         client_id: 'cl-1', // Client Alice
         lawyer_id: 'lw-1', // Lawyer Bob
+        client: { opposingParty: 'SoftSystems Ltd' },
       },
     ];
   }

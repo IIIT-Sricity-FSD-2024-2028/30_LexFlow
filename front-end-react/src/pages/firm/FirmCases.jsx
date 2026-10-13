@@ -10,7 +10,7 @@ import { useApp } from '../../context/AppContext.jsx';
 import { navigate } from '../../router.jsx';
 import {
   Button, Card, Badge, StatusBadge, PageHeader, Loading, ErrorBanner, EmptyState,
-  Tabs, FilterDropdown, Pagination, Input, Select,
+  Tabs, FilterDropdown, ChipGroup, Pagination, Input, Select,
 } from '../../components/ui.jsx';
 import Icon from '../../components/Icon.jsx';
 
@@ -23,6 +23,7 @@ export default function FirmCases() {
 
   const [cases, setCases] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [clientNames, setClientNames] = useState({}); // 'cl-1' -> 'Client Alice'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -51,6 +52,12 @@ export default function FirmCases() {
       ]);
       setCases(Array.isArray(c) ? c : []);
       setTasks(Array.isArray(t) ? t : []);
+      // Cases only hold the client id, so look the names up.
+      const names = {};
+      const ids = [...new Set((Array.isArray(c) ? c : []).map((x) => x.client_id).filter(Boolean))];
+      await Promise.allSettled(ids.map((cid) =>
+        api.users.getById(cid, role).then((u) => { names[cid] = u.fullName || u.name; })));
+      setClientNames(names);
     } catch (err) {
       setError(`Could not load cases: ${err.message}`);
     } finally {
@@ -64,11 +71,12 @@ export default function FirmCases() {
   const filteredCases = useMemo(() => {
     const q = search.toLowerCase();
     return cases.filter((c) => {
-      const okSearch = !q || `${c.case_type || c.title} ${c.cnr}`.toLowerCase().includes(q);
+      const okSearch = !q
+        || `${c.case_type || c.title} ${c.brief_description || ''} ${clientNames[c.client_id] || ''} ${c.cnr}`.toLowerCase().includes(q);
       const okStatus = statusFilter === 'All' || c.status === statusFilter;
       return okSearch && okStatus;
     });
-  }, [cases, search, statusFilter]);
+  }, [cases, search, statusFilter, clientNames]);
 
   const filteredTasks = useMemo(() => {
     const q = search.toLowerCase();
@@ -108,6 +116,9 @@ export default function FirmCases() {
   }, [role, user?.firmId]);
 
   const pendingCount = tasks.filter((t) => t.status === 'Pending').length;
+  // How many filters on the current tab are not "All" (shown on the Filters button).
+  const activeFilters = (tab === 'all' ? [statusFilter] : [priorityFilter, taskStatusFilter])
+    .filter((f) => f !== 'All').length;
 
   return (
     <>
@@ -119,7 +130,7 @@ export default function FirmCases() {
           <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <Input
             className="!pl-9"
-            placeholder={tab === 'all' ? 'Enter CNR to search cases' : 'Enter Task Name to search'}
+            placeholder={tab === 'all' ? 'Search by case name, client or CNR' : 'Enter Task Name to search'}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
@@ -132,20 +143,23 @@ export default function FirmCases() {
           active={tab}
           onChange={(id) => { setTab(id); setSearch(''); setPage(1); }}
         />
-        <FilterDropdown>
+        <FilterDropdown label={activeFilters ? `Filters · ${activeFilters}` : 'Filters'}>
           {tab === 'all' ? (
-            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              {['All', 'Active', 'Ongoing', 'Evidence Stage', 'Completed', 'Closed'].map((s) => <option key={s}>{s}</option>)}
-            </Select>
+            <ChipGroup title="Status" value={statusFilter} onChange={setStatusFilter}
+              options={['All', 'Active', 'Ongoing', 'Evidence Stage', 'Completed', 'Closed']} />
           ) : (
-            <div className="space-y-3">
-              <Select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
-                {['All', 'HIGH', 'MEDIUM', 'LOW'].map((s) => <option key={s}>{s}</option>)}
-              </Select>
-              <Select value={taskStatusFilter} onChange={(e) => setTaskStatusFilter(e.target.value)}>
-                {['All', 'Pending', 'Completed'].map((s) => <option key={s}>{s}</option>)}
-              </Select>
+            <div className="space-y-4">
+              <ChipGroup title="Priority" value={priorityFilter} onChange={setPriorityFilter}
+                options={['All', 'HIGH', 'MEDIUM', 'LOW']} />
+              <ChipGroup title="Task status" value={taskStatusFilter} onChange={setTaskStatusFilter}
+                options={['All', 'Pending', 'Completed']} />
             </div>
+          )}
+          {activeFilters > 0 && (
+            <button className="mt-4 text-xs font-semibold text-indigo-600 hover:underline"
+              onClick={() => { setStatusFilter('All'); setPriorityFilter('All'); setTaskStatusFilter('All'); }}>
+              Clear filters
+            </button>
           )}
         </FilterDropdown>
       </div>
@@ -158,14 +172,17 @@ export default function FirmCases() {
 
       {/* ── Case cards ── */}
       {tab === 'all' && visible.map((c) => (
-        <Card key={c.id} className="mb-4 flex flex-wrap items-center justify-between gap-4 p-5 transition hover:shadow-md"
+        <Card key={c.id} className="mb-4 flex cursor-pointer flex-wrap items-center justify-between gap-4 p-5 transition hover:shadow-md"
           onClick={() => navigate(`/firm/cases/${c.id}`)}>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={c.status || 'Active'} />
               <Badge>{c.case_type || c.title || 'Case'}</Badge>
             </div>
-            <h3 className="mt-2 font-bold text-slate-900">{c.case_type || c.title}</h3>
+            <h3 className="mt-2 font-bold text-slate-900">{c.brief_description || c.case_type || c.title}</h3>
+            <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+              <Icon name="user" size={12} /> Client: <span className="font-semibold text-slate-700">{clientNames[c.client_id] || '—'}</span>
+            </p>
             <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
               <Icon name="clock" size={12} /> CNR: <span className="font-mono">{c.cnr || '—'}</span>
               {c.nextHearing?.date && <span className="ml-3 flex items-center gap-1"><Icon name="calendar" size={12} /> Next hearing: {c.nextHearing.date}</span>}

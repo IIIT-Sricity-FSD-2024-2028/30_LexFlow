@@ -63,9 +63,15 @@ export class DocumentsController {
   @ApiQuery({ name: 'caseId', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Return activity log entries.' })
   findActivity(@Req() req: any, @Query('caseId') caseId?: string): ActivityEntry[] {
-    if (caseId) this.checkCase(req, caseId);
-    else if (req.user?.role !== 'superadmin') throw new ForbiddenException('caseId is required');
-    const entries = this.activityLogService.findAll(caseId);
+    let entries = this.activityLogService.findAll(caseId);
+    if (caseId) {
+      this.checkCase(req, caseId);
+    } else {
+      // No caseId (the Activity Log page): only entries of cases this user can see.
+      entries = entries.filter((e) => {
+        try { this.checkCase(req, e.caseId); return true; } catch { return false; }
+      });
+    }
     // Interns only see SHARED documents, so hide activity about private ones too.
     return req.user?.role === 'intern' ? entries.filter((e) => e.access !== 'PRIVATE') : entries;
   }

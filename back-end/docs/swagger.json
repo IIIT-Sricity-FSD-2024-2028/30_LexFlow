@@ -3363,6 +3363,15 @@
           "availability": {
             "type": "string",
             "example": "available"
+          },
+          "accountType": {
+            "type": "string",
+            "example": "Individual",
+            "description": "Clients only: Individual | Business"
+          },
+          "address": {
+            "type": "string",
+            "description": "Clients only"
           }
         },
         "required": [

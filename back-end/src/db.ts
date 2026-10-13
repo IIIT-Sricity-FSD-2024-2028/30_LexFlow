@@ -183,9 +183,26 @@ CREATE TABLE IF NOT EXISTS subscription_charges (
     CONSTRAINT charge_belongs_to_subscription
         FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE,
     CONSTRAINT charge_belongs_to_firm
-        FOREIGN KEY (lawfirm_id) REFERENCES lawfirm_meta(id) ON DELETE CASCADE,
-    CONSTRAINT one_monthly_charge_per_period
-        UNIQUE (subscription_id, period, kind)
+        FOREIGN KEY (lawfirm_id) REFERENCES lawfirm_meta(id) ON DELETE CASCADE
+);
+
+-- One row per settled subscription charge. UNIQUE(charge_id) is what makes
+-- paying idempotent. mode says HOW it was settled: 'simulated' = the demo
+-- "Pay now" button (no real money moved), 'manual' = marked paid by the
+-- platform admin, 'gateway' = reserved for a verified payment gateway.
+CREATE TABLE IF NOT EXISTS subscription_payments (
+    id          TEXT PRIMARY KEY,
+    charge_id   TEXT NOT NULL UNIQUE,
+    lawfirm_id  INT NOT NULL,
+    amount      NUMERIC(12,2) NOT NULL,
+    mode        VARCHAR(20) NOT NULL CHECK (mode IN ('simulated','manual','gateway')),
+    reference   TEXT,
+    paid_by     TEXT,
+    paid_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT payment_settles_charge
+        FOREIGN KEY (charge_id) REFERENCES subscription_charges(id) ON DELETE CASCADE,
+    CONSTRAINT payment_belongs_to_firm
+        FOREIGN KEY (lawfirm_id) REFERENCES lawfirm_meta(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS tier_pricing (
@@ -415,6 +432,36 @@ async function seedFirmProfiles(): Promise<void> {
   }
 }
 
+// Phone / address / account type for the demo clients. Only fills blanks, so
+// real edits are never overwritten.
+const CLIENT_PROFILES: Array<[string, string, string, string]> = [
+  // [email, phone, address, 'Individual' | 'Business']
+  ['alice@client.test', '9876500001', '14, Lodhi Road, New Delhi', 'Individual'],
+  ['naveen@cyber.test', '9876500002', '8, Hitech City, Hyderabad', 'Individual'],
+  ['dave@client.test', '9876500003', '22, Bandra West, Mumbai', 'Individual'],
+  ['eve@client.test', '9876500004', '5, Nariman Point, Mumbai', 'Business'],
+  ['frank@client.test', '9876500005', '31, Koramangala, Bangalore', 'Business'],
+  ['grace@client.test', '9876500006', '12, Anna Salai, Chennai', 'Individual'],
+  ['henry@client.test', '9876500007', '40, Connaught Place, New Delhi', 'Individual'],
+  ['irene@client.test', '9876500008', '9, MG Road, Bangalore', 'Individual'],
+  ['jake@client.test', '9876500009', '27, Jubilee Hills, Hyderabad', 'Business'],
+  ['laura@client.test', '9876500010', '3, Marine Drive, Mumbai', 'Individual'],
+  ['mark@client.test', '9876500011', '18, T Nagar, Chennai', 'Individual'],
+];
+
+async function seedClientProfiles(): Promise<void> {
+  for (const [email, phone, address, type] of CLIENT_PROFILES) {
+    await q(
+      `UPDATE clients SET
+         contact_number = CASE WHEN contact_number = '' THEN $2 ELSE contact_number END,
+         address        = CASE WHEN address IN ('', '-') THEN $3 ELSE address END,
+         client_type    = CASE WHEN contact_number = '' THEN $4 ELSE client_type END
+       WHERE email_address = $1`,
+      [email, phone, address, type],
+    );
+  }
+}
+
 /** Connect, apply the schema delta, seed demo data once per process. */
 export function initDb(): Promise<void> {
   if (!initPromise) {
@@ -423,8 +470,26 @@ export function initDb(): Promise<void> {
       // the delta tables/columns on top, then demo data.
       await q(BASE_SCHEMA);
       await q(SCHEMA_DELTA);
+      // One MONTHLY charge per subscription per period. This used to be a table
+      // constraint over (subscription_id, period, kind), which also stopped a firm
+      // from having two plan-change charges in the same month (HTTP 500 on the
+      // second plan change). Plan-change charges are limited by the index below.
+      await q(`ALTER TABLE subscription_charges DROP CONSTRAINT IF EXISTS one_monthly_charge_per_period`);
+      await q(
+        `CREATE UNIQUE INDEX IF NOT EXISTS one_monthly_charge_per_period
+           ON subscription_charges (subscription_id, period) WHERE kind = 'monthly'`,
+      );
+      // At most ONE unpaid tier-change charge per subscription, enforced by the
+      // database itself (guards against double clicks and concurrent requests).
+      // Guarded separately: if old data already violates it we warn, not crash.
+      await q(
+        `CREATE UNIQUE INDEX IF NOT EXISTS one_open_tier_change_per_subscription
+           ON subscription_charges (subscription_id)
+           WHERE kind = 'tier_change' AND status <> 'Paid'`,
+      ).catch((e) => console.warn('[db] one_open_tier_change index not created:', e.message));
       await seedDemoIfEmpty();
       await seedFirmProfiles();
+      await seedClientProfiles();
     })();
   }
   return initPromise;

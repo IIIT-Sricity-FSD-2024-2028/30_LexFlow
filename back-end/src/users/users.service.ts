@@ -64,6 +64,8 @@ interface ActorRow {
   contact_number: string | null;
   is_active: boolean;
   created_at: Date;
+  client_type?: string | null; // clients only
+  address?: string | null;     // clients only
 }
 
 function parseFirmId(firmId: string): number {
@@ -121,6 +123,8 @@ function rowToActor(r: Record<string, unknown>): ActorRow {
     contact_number: (r.contact_number as string) || null,
     is_active: r.is_active !== false,
     created_at: r.created_at as Date,
+    client_type: (r.client_type as string) || null,
+    address: (r.address as string) || null,
   };
 }
 
@@ -144,6 +148,8 @@ function actorToResponse(a: ActorRow): UserResponseDto {
     firmId: a.lawfirm_id ? `firm-${a.lawfirm_id}` : undefined,
     accountStatus: a.is_active ? 'active' : 'inactive',
     availability: 'available',
+    accountType: a.client_type || undefined,
+    address: a.address && a.address !== '-' ? a.address : undefined,
   };
 }
 
@@ -153,23 +159,24 @@ function actorToResponse(a: ActorRow): UserResponseDto {
  */
 export const ACTORS_UNION = `
   SELECT id, name, email, password_hash, NULL::int AS lawfirm_id,
-         NULL::varchar AS contact_number, TRUE AS is_active, created_at, 'sa'::text AS kind
+         NULL::varchar AS contact_number, TRUE AS is_active, created_at, 'sa'::text AS kind,
+         NULL::varchar AS client_type, NULL::text AS address
     FROM platform_admin
   UNION ALL
   SELECT id, name, email, password_hash, lawfirm_id,
-         NULL::varchar, is_active, created_at, 'fa'::text
+         NULL::varchar, is_active, created_at, 'fa'::text, NULL::varchar, NULL::text
     FROM lawfirm_admin
   UNION ALL
   SELECT id, name, email, password_hash, lawfirm_id,
-         contact_number, is_active, created_at, 'lw'::text
+         contact_number, is_active, created_at, 'lw'::text, NULL::varchar, NULL::text
     FROM lawyers
   UNION ALL
   SELECT id, name, email, password_hash, lawfirm_id,
-         contact_number, is_active, created_at, 'in'::text
+         contact_number, is_active, created_at, 'in'::text, NULL::varchar, NULL::text
     FROM interns
   UNION ALL
   SELECT id, name, email_address AS email, password_hash, NULL::int,
-         contact_number, is_active, created_at, 'cl'::text
+         contact_number, is_active, created_at, 'cl'::text, client_type, address
     FROM clients`;
 
 @Injectable()

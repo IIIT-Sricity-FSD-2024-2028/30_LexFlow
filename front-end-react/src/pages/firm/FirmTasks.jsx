@@ -8,15 +8,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { navigate } from '../../router.jsx';
 import {
   Button, Card, Badge, PageHeader, Loading, ErrorBanner, EmptyState,
-  Modal, Field, Input, Select, Textarea, FilterDropdown, Pagination, Table, Th, Td, Avatar,
+  Modal, Field, Input, Select, Textarea, FilterDropdown, ChipGroup, Pagination, Table, Th, Td, Avatar,
 } from '../../components/ui.jsx';
 import Icon from '../../components/Icon.jsx';
 
 const PER_PAGE = 5;
 
-export default function FirmTasks() {
+export default function FirmTasks({ caseId }) {
   const { user, toast } = useApp();
   const role = (user?.role || 'firmadmin').toLowerCase();
   const isLawyer = role === 'lawyer';
@@ -32,6 +33,7 @@ export default function FirmTasks() {
   const [search, setSearch] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [caseFilter, setCaseFilter] = useState(caseId || 'All'); // a case id, or 'All'
   const [page, setPage] = useState(1);
 
   /* ── Modals ── */
@@ -44,36 +46,53 @@ export default function FirmTasks() {
     setLoading(true);
     setError('');
     try {
-      const taskFilters = isLawyer
-        ? { assignedUser: user.fullName || user.name, firmId: user?.firmId }
-        : { firmId: user?.firmId };
+      // A lawyer works only on the cases assigned to them (the server also enforces this).
+      const caseFilters = isLawyer ? { lawyerId: user.id } : user?.firmId ? { firmId: user.firmId } : {};
       const [t, c, m] = await Promise.all([
-        api.tasks.getAll(taskFilters, role),
-        api.cases.getAll(user?.firmId ? { firmId: user.firmId } : {}, role),
-        api.users.getLawyers(user?.firmId, role).catch(() => []),
+        api.tasks.getAll({ firmId: user?.firmId }, role),
+        api.cases.getAll(caseFilters, role),
+        api.users.getByFirm(user?.firmId, role).catch(() => []), // the firm's whole team
       ]);
       setTasks(Array.isArray(t) ? t : []);
       setCases(Array.isArray(c) ? c : []);
-      setMembers(Array.isArray(m) ? m : []);
+      // Firm admins can assign to lawyers and interns; a lawyer only to interns.
+      const assignable = isLawyer ? ['intern'] : ['lawyer', 'intern'];
+      setMembers((Array.isArray(m) ? m : []).filter((u) => assignable.includes(u.role)));
     } catch (err) {
       setError(`Could not load tasks: ${err.message}`);
     } finally {
       setLoading(false);
     }
-  }, [role, isLawyer, user?.firmId, user?.fullName, user?.name]);
+  }, [role, isLawyer, user?.id, user?.firmId]);
 
   useEffect(() => { load(); }, [load]);
+
+  /* Opening /firm/tasks/<caseId> (from a case page) shows that case's tasks. */
+  useEffect(() => { setCaseFilter(caseId || 'All'); setPage(1); }, [caseId]);
+
+  /* A readable case name for the page title and the task rows. */
+  const caseName = (c) => c.brief_description || c.case_type || c.title || `Case ${c.id}`;
+  const selectedCase = cases.find((c) => String(c.id) === String(caseFilter));
+  /* "Case name · CNR 100001" shown under each task. */
+  const caseLabel = (t) => {
+    const c = cases.find((x) => String(x.id) === String(t.caseId));
+    if (c) return `${caseName(c)} · CNR ${c.cnr || c.id}`;
+    return `${t.caseTitle || 'General'}${t.caseCnr ? ` · CNR ${t.caseCnr}` : ''}`;
+  };
+  const activeFilters = [priorityFilter, statusFilter].filter((f) => f !== 'All').length;
 
   /* ── Filtering + pagination (client-side) ── */
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return tasks.filter((t) => {
-      const okSearch = !q || `${t.name} ${t.caseTitle} ${t.id}`.toLowerCase().includes(q);
+      const okSearch = !q || `${t.name} ${t.id} ${t.caseId} ${caseLabel(t)}`.toLowerCase().includes(q);
       const okPriority = priorityFilter === 'All' || t.priority === priorityFilter;
       const okStatus = statusFilter === 'All' || t.status === statusFilter;
-      return okSearch && okPriority && okStatus;
+      const okCase = caseFilter === 'All' || String(t.caseId) === String(caseFilter);
+      return okSearch && okPriority && okStatus && okCase;
     });
-  }, [tasks, search, priorityFilter, statusFilter]);
+  }, [tasks, cases, search, priorityFilter, statusFilter, caseFilter]);
+
 
   const pages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const safePage = Math.min(page, pages);
@@ -157,29 +176,40 @@ export default function FirmTasks() {
   return (
     <>
       <PageHeader
-        title={isLawyer ? 'My Tasks' : 'Firm Tasks'}
-        subtitle={isLawyer ? 'Monitor and manage all your assigned legal responsibilities.' : 'Create, assign and track tasks across the firm.'}
-        actions={<Button onClick={() => { setErrors({}); setForm({ name: '', caseInput: '', assignee: '', priority: 'LOW', dueDate: '', description: '' }); }}>
-          <Icon name="plus" size={14} /> New Task
-        </Button>}
+        title={selectedCase ? `Tasks: ${caseName(selectedCase)}` : isLawyer ? 'My Tasks' : 'Firm Tasks'}
+        subtitle={selectedCase
+          ? `Tasks for case ${selectedCase.cnr || selectedCase.id} only.`
+          : isLawyer ? 'Monitor and manage all your assigned legal responsibilities.' : 'Create, assign and track tasks across the firm.'}
+        actions={<div className="flex gap-2">
+          {selectedCase && (
+            <Button variant="outline" onClick={() => { setCaseFilter('All'); navigate('/firm/tasks'); }}>All Tasks</Button>
+          )}
+          <Button onClick={() => { setErrors({}); setForm({ name: '', caseInput: selectedCase ? String(selectedCase.id) : '', assignee: '', priority: 'LOW', dueDate: '', description: '' }); }}>
+            <Icon name="plus" size={14} /> New Task
+          </Button>
+        </div>}
       />
 
       {/* toolbar: search + filters */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="relative max-w-md flex-1">
           <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <Input className="!pl-9" placeholder="Search by name or case..." value={search}
+          <Input className="!pl-9" placeholder="Search by task, case name or CNR..." value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         </div>
-        <FilterDropdown>
-          <div className="space-y-3">
-            <Select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
-              {['All', 'HIGH', 'MEDIUM', 'LOW'].map((p) => <option key={p}>{p}</option>)}
-            </Select>
-            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              {['All', 'Pending', 'Completed'].map((s) => <option key={s}>{s}</option>)}
-            </Select>
+        <FilterDropdown label={activeFilters ? `Filters · ${activeFilters}` : 'Filters'}>
+          <div className="space-y-4">
+            <ChipGroup title="Priority" value={priorityFilter} onChange={(v) => { setPriorityFilter(v); setPage(1); }}
+              options={['All', 'HIGH', 'MEDIUM', 'LOW']} />
+            <ChipGroup title="Status" value={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1); }}
+              options={['All', 'Pending', 'Completed']} />
           </div>
+          {activeFilters > 0 && (
+            <button className="mt-4 text-xs font-semibold text-indigo-600 hover:underline"
+              onClick={() => { setPriorityFilter('All'); setStatusFilter('All'); setPage(1); }}>
+              Clear filters
+            </button>
+          )}
         </FilterDropdown>
       </div>
 
@@ -198,7 +228,7 @@ export default function FirmTasks() {
                 <tr key={t.id} className="hover:bg-slate-50">
                   <Td>
                     <p className="font-semibold text-slate-800">{t.name}</p>
-                    <p className="text-xs text-slate-400">{t.caseTitle || 'General'}</p>
+                    <p className="text-xs text-slate-400">{caseLabel(t)}</p>
                   </Td>
                   <Td className="font-mono text-xs">{t.id}</Td>
                   <Td>
