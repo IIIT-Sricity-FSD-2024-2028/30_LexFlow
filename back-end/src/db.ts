@@ -61,9 +61,14 @@ function cleanDatabaseUrl(url: string): string {
 
 const USE_SSL = process.env.DB_SSL !== 'false' && !isLocalHost(DATABASE_URL);
 
+// Server time = IST: Node's Date (local getters, month keys, today's date) and
+// every Postgres session (CURRENT_TIMESTAMP / CURRENT_DATE).
+process.env.TZ = 'Asia/Kolkata';
+
 export const pool = new Pool({
   connectionString: cleanDatabaseUrl(DATABASE_URL),
   ...(USE_SSL ? { ssl: { rejectUnauthorized: false } } : {}),
+  options: '-c timezone=Asia/Kolkata', // not accepted by Neon's -pooler host; use the direct host
 });
 
 /** Run one parameterised query. */

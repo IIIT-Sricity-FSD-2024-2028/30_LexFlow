@@ -338,9 +338,9 @@ export default function FirmBilling() {
                       </div>
                     )}
 
-                    {/* one button per other tier */}
+                    {/* one button per higher tier (upgrades only, there is no refund flow) */}
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {tiers.filter((t) => t.tier !== subscription.tier && t.tier !== subscription.pendingTier).map((t) => (
+                      {tiers.filter((t, i) => i > tiers.findIndex((x) => x.tier === subscription.tier) && t.tier !== subscription.pendingTier).map((t) => (
                         <Button key={t.tier} variant="outline" className="!text-xs"
                           disabled={planBusy || !!payingId || locked}
                           onClick={() => switchPlan(t)}>
@@ -349,6 +349,9 @@ export default function FirmBilling() {
                         </Button>
                       ))}
                     </div>
+                    {tiers.length > 0 && tiers[tiers.length - 1].tier === subscription.tier && (
+                      <p className="mt-2 text-xs text-slate-400">You are on the highest plan.</p>
+                    )}
                     {locked && (
                       <p className="mt-2 text-xs text-slate-400">
                         The {subscription.pendingTier} upgrade charge is paid; it activates as soon as the remaining dues are settled.

@@ -100,7 +100,7 @@ export class TasksService implements OnModuleInit {
       name: taskData.name || 'Untitled Task',
       assignedUser: taskData.assignedUser || 'Unassigned',
       priority: taskData.priority || TaskPriority.LOW,
-      dueDate: taskData.dueDate || new Date().toISOString().split('T')[0],
+      dueDate: taskData.dueDate || new Date().toLocaleDateString('en-CA'),
       status: taskData.status || TaskStatus.PENDING,
       ...taskData,
     } as Task;

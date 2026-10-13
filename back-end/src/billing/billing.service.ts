@@ -353,7 +353,7 @@ export class BillingService {
       clientName: inv.clientName,
       firmId: inv.firmId,
       amount: inv.amount,
-      paymentDate: new Date().toISOString().split('T')[0],
+      paymentDate: new Date().toLocaleDateString('en-CA'),
       paymentMethod: paymentMethod || 'Credit Card',
       status: 'Completed',
     };
@@ -368,7 +368,7 @@ function rowToPayment(r: Record<string, unknown>): PaymentRecord {
     clientName: r.client_name as string,
     firmId: r.lawfirm_id != null ? `firm-${r.lawfirm_id}` : undefined,
     amount: Number(r.amount),
-    paymentDate: new Date(r.paid_on as Date).toISOString().split('T')[0],
+    paymentDate: new Date(r.paid_on as Date).toLocaleDateString('en-CA'),
     paymentMethod: (r.method as string) || 'Credit Card',
     status: 'Completed',
   };

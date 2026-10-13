@@ -779,6 +779,12 @@ export class PlatformService implements OnModuleInit {
       );
       const row = cur.rows[0];
 
+      // Upgrades only: there is no refund flow, so a firm cannot move to a cheaper plan.
+      const order = Object.keys(TIER_LIMITS);
+      if (order.indexOf(targetTier) < order.indexOf(row.tier)) {
+        throw new BadRequestException('Plan downgrades are not supported. You can only upgrade to a higher plan.');
+      }
+
       if (row.pending_tier) {
         if (row.pending_tier === targetTier && targetTier !== row.tier) {
           return row.pending_charge_id as string; // repeated request: nothing new

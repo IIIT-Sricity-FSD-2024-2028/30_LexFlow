@@ -52,7 +52,7 @@ export default function ClientCases() {
     const q = search.toLowerCase();
     if (!q) return cases;
     return cases.filter((c) =>
-      ((c.case_type || c.title || '') + ' ' + (c.cnr || '')).toLowerCase().includes(q)
+      ((c.case_type || c.title || '') + ' ' + (c.brief_description || '') + ' ' + (c.cnr || '')).toLowerCase().includes(q)
     );
   }, [cases, search]);
 
@@ -83,7 +83,8 @@ export default function ClientCases() {
       {/* Case cards */}
       <div className="space-y-4">
         {visible.map((c) => {
-          const title = c.case_type || c.title || 'Untitled Case';
+          const title = c.brief_description || c.case_type || c.title || 'Untitled Case';
+          const caseType = c.case_type || c.title;
           const status = c.status || 'Ongoing';
           // Prefer the next hearing date; fall back to the filed date.
           const hearingDate = c.nextHearing?.date || c.filed_date || c.filedDate;
@@ -94,16 +95,13 @@ export default function ClientCases() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={status.toLowerCase() === 'ongoing' ? 'amber' : 'green'}>{status}</Badge>
-                    <Badge>{title}</Badge>
+                    {caseType && <Badge>{caseType}</Badge>}
                   </div>
                   <h3 className="mt-2 font-bold text-slate-900">{title}</h3>
                   <div className="mt-1.5 flex flex-wrap items-center gap-4 text-xs text-slate-500">
                     <span className="flex items-center gap-1"><Icon name="clock" size={12} /> CNR: <span className="font-mono">{c.cnr || '—'}</span></span>
                     <span className="flex items-center gap-1">
                       <Icon name="building" size={12} /> Law Firm: {firmNames[c.lawfirm_id] || '—'}
-                    </span>
-                    <span className="flex max-w-[300px] items-center gap-1 truncate">
-                      <Icon name="building" size={12} /> {c.brief_description || c.description || '—'}
                     </span>
                   </div>
                 </div>

@@ -245,7 +245,7 @@ export class DocumentsService implements OnModuleInit {
       fileType: createDto.fileType,
       access: createDto.access,
       version: Number(createDto.version) || 1,
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toLocaleDateString('en-CA'),
       uploader: uploaderEmail.split('@')[0],
       uploaderEmail,
       iconColor: 'blue',
@@ -269,7 +269,7 @@ export class DocumentsService implements OnModuleInit {
     const updatedDoc = {
       ...this.documents[idx],
       ...updateDto,
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toLocaleDateString('en-CA'),
     };
 
     if (file) {

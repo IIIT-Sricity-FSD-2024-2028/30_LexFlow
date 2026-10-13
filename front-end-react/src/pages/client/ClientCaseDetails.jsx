@@ -79,7 +79,7 @@ export default function ClientCaseDetails({ id }) {
         { label: `CNR: ${caseData.cnr || 'N/A'}` },
       ]} />
 
-      <PageHeader title="Case Details" subtitle={title}
+      <PageHeader title="Case Details" subtitle={caseData.brief_description || title}
         actions={
           <Button onClick={() => navigate(`/documents/${caseData.id}`)}>
             <Icon name="document" size={14} /> View Documents

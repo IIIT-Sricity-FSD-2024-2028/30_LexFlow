@@ -192,7 +192,7 @@ export default function CaseDocuments({ caseId }) {
   if (loading) return <Loading text="Loading documents…" />;
   if (!caseData) return null;
 
-  const title = caseData.title || caseData.case_type || `Case ${caseId}`;
+  const title = caseData.brief_description || caseData.title || caseData.case_type || `Case ${caseId}`;
 
   return (
     <>
