@@ -130,7 +130,7 @@ export default function FirmDashboard() {
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
         <StatCard label="Pending Requests" value={pending.length} icon="clock" tone="amber" />
         <StatCard label="Active Consultations" value={active.length} icon="check" tone="blue" />
-        <StatCard label="Completed This Month" value={completed.length} icon="check" tone="green" />
+        <StatCard label="Completed" value={completed.length} icon="check" tone="green" />
       </div>
 
       {loading && <Loading text="Loading consultations…" />}
@@ -160,7 +160,7 @@ export default function FirmDashboard() {
                       <span className="flex items-center gap-1"><Icon name="clock" size={12} /> {(cons.time || '').split(' - ')[0]}</span>
                     </div>
                     {/* lawyer picker + actions */}
-                    <div className="mt-4 space-y-2">
+                    {role === 'firmadmin' && <div className="mt-4 space-y-2">
                       <Select value={chosen[cons.id] || ''} onChange={(e) => setChosen((c) => ({ ...c, [cons.id]: e.target.value }))}>
                         <option value="">Assign a lawyer…</option>
                         {lawyers.map((l) => (
@@ -173,7 +173,7 @@ export default function FirmDashboard() {
                           Reject
                         </Button>
                       </div>
-                    </div>
+                    </div>}
                   </Card>
                 ))}
               </div>

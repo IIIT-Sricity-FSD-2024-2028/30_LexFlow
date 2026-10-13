@@ -1,9 +1,8 @@
 /**
  * Case Details (firm + lawyer) - the richest page in the app.
- * Sections: header (edit), progress bar with 5 phases, client details,
- * pending tasks, core team, editable timeline, document management.
- * Modals: edit case, edit client, edit team, add task, upload document,
- * timeline event editor.
+ * Sections: header (edit), client details,
+ * pending tasks, document management.
+ * Modals: edit case, edit client, add task, upload document.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -19,10 +18,6 @@ import Icon from '../../components/Icon.jsx';
 import { formatDate } from '../../lib/format.js';
 import { validateName, validateEmail, validateIndianPhone, normalizeIndianPhone } from '../../lib/validators.js';
 
-/* The five progress phases - each one covers 20% of progress. */
-const PHASES = ['Filing', 'Preparation', 'Discovery', 'Mediation', 'Trial'];
-const phaseIndex = (p) => Math.min(4, Math.floor(Number(p || 0) / 20));
-
 export default function FirmCaseDetails({ id }) {
   const { user, toast } = useApp();
   const role = (user?.role || 'firmadmin').toLowerCase();
@@ -30,17 +25,15 @@ export default function FirmCaseDetails({ id }) {
   /* ── Page data ── */
   const [caseData, setCaseData] = useState(null);   // the case itself
   const [tasks, setTasks] = useState([]);           // tasks attached to this case
-  const [firmMembers, setFirmMembers] = useState([]); // for assignee/team dropdowns
+  const [firmMembers, setFirmMembers] = useState([]); // for the assignee dropdown
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   /* ── Modal state (null = closed) ── */
   const [editCase, setEditCase] = useState(null);       // edit case details form
   const [editClient, setEditClient] = useState(null);   // edit client details form
-  const [editTeam, setEditTeam] = useState(null);       // edit team form
   const [addTask, setAddTask] = useState(null);         // new task form
   const [uploadDoc, setUploadDoc] = useState(null);     // upload document form
-  const [editTimeline, setEditTimeline] = useState(null); // timeline event form
   const [modalErrors, setModalErrors] = useState({});   // per-modal validation errors
 
   /* ── Load the case + related data ── */
@@ -81,7 +74,7 @@ export default function FirmCaseDetails({ id }) {
 
   useEffect(() => { load(); }, [load]);
 
-  /* Firm members for the team/assignee dropdowns. */
+  /* Firm members for the assignee dropdown. */
   useEffect(() => {
     api.users.getLawyers(user?.firmId, role)
       .then((l) => setFirmMembers(Array.isArray(l) ? l : []))
@@ -91,16 +84,16 @@ export default function FirmCaseDetails({ id }) {
   /* ── Derived values ── */
   const pendingTasks = (tasks || []).filter((t) => t.status !== 'Completed');
   const documents = caseData?.documents || [];
-  const team = caseData?.team || [];
-  const timeline = caseData?.timeline || [];
   const client = caseData?.client || {};
-  const progress = caseData?.progress || 0;
-  const pIdx = phaseIndex(progress);
-  const phaseSuffix = pIdx === 0 ? ' & Documentation' : pIdx === 2 ? ' & Evidence Collection' : '';
 
-  /* PATCH helper: send the whole case object back (vanilla did the same). */
+  /* PATCH helper. The API rejects unknown fields (forbidNonWhitelisted) and documents
+     have their own endpoint, so send only the fields UpdateCaseDto allows. */
   const saveCase = async (updated) => {
-    const { id: _skip, created_at: _skip2, ...body } = updated; // id + createdAt stay out
+    const body = {};
+    for (const k of ['consultation_id', 'lawfirm_id', 'lawyer_id', 'client_id', 'cnr', 'case_type',
+      'brief_description', 'status', 'client', 'filed_date']) {
+      if (updated[k] !== undefined && updated[k] !== null) body[k] = updated[k];
+    }
     const saved = await api.cases.update(updated.id, body, role);
     setCaseData((c) => ({ ...c, ...saved }));
     return saved;
@@ -125,28 +118,12 @@ export default function FirmCaseDetails({ id }) {
           <p className="text-sm text-slate-500">{title} | Opened: {formatDate(caseData.filed_date || caseData.filedDate)}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => { setModalErrors({}); setEditCase({ title, status: caseData.status || 'Ongoing', progress }); }}>
+          <Button variant="outline" onClick={() => { setModalErrors({}); setEditCase({ title, status: caseData.status || 'Ongoing' }); }}>
             Edit Details
           </Button>
           <Button variant="outline" onClick={() => exportCSV(caseData)}>
             <Icon name="download" size={14} /> Export
           </Button>
-        </div>
-      </Card>
-
-      {/* ── Progress bar with the five phases ── */}
-      <Card className="mb-6 p-6">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="font-bold text-slate-900">Phase {pIdx + 1}: {PHASES[pIdx]}{phaseSuffix}</p>
-          <p className="text-sm font-bold text-brand">{progress}% Completed</p>
-        </div>
-        <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-          <div className="h-full rounded-full bg-brand transition-all duration-700" style={{ width: `${progress}%` }} />
-        </div>
-        <div className="mt-4 flex flex-wrap justify-between gap-2 text-xs font-semibold">
-          {PHASES.map((p, i) => (
-            <span key={p} className={i <= pIdx ? 'text-brand' : 'text-slate-300'}>{p}</span>
-          ))}
         </div>
       </Card>
 
@@ -184,7 +161,7 @@ export default function FirmCaseDetails({ id }) {
               </button>
             </div>
             {pendingTasks.length === 0 ? (
-              <p className="text-sm text-slate-400">No pending tasks. 🎉</p>
+              <p className="text-sm text-slate-400">No pending tasks.</p>
             ) : (
               <div className="space-y-3">
                 {pendingTasks.map((t) => (
@@ -204,77 +181,10 @@ export default function FirmCaseDetails({ id }) {
               View All Tasks
             </Button>
           </Card>
-
-          {/* core team card */}
-          <Card className="p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-bold text-slate-900">Core Team</h2>
-              <button className="text-xs font-semibold text-indigo-600 hover:underline"
-                onClick={() => setEditTeam({ list: [...team], newId: '', newRole: 'Legal Counsel' })}>
-                Edit
-              </button>
-            </div>
-            <div className="space-y-3">
-              {team.length === 0 && <p className="text-sm text-slate-400">No team members assigned.</p>}
-              {team.map((m, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ${i === 0 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                    {initials(m.name)}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">{m.name}</p>
-                    <p className="text-xs text-slate-400">{m.role}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
         </div>
 
         {/* ════════ RIGHT COLUMN ════════ */}
         <div className="space-y-6 lg:col-span-2">
-          {/* timeline card */}
-          <Card className="p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-bold text-slate-900">Case Timeline</h2>
-              <Button variant="outline" className="!px-3 !py-1.5 !text-xs"
-                onClick={() => { setModalErrors({}); setEditTimeline({ index: null, title: '', date: '', note: '', upcoming: false }); }}>
-                + Add Timeline Event
-              </Button>
-            </div>
-            {timeline.length === 0 ? (
-              <p className="text-sm text-slate-400">No timeline events recorded.</p>
-            ) : (
-              <ol className="relative space-y-5 border-l-2 border-slate-100 pl-5">
-                {timeline.map((t, i) => (
-                  <li key={i} className="relative">
-                    <span className="absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-white bg-brand" />
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className={`text-sm font-bold ${t.grey ? 'text-slate-400' : 'text-slate-800'}`}>{t.title}</p>
-                        <p className="text-xs text-slate-400">{t.date}</p>
-                        {t.note && <p className="mt-1 text-xs text-slate-500">{t.note}</p>}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {t.upcoming && <Badge variant="amber">UPCOMING</Badge>}
-                        <button className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-indigo-600" aria-label="Edit event"
-                          onClick={() => { setModalErrors({}); setEditTimeline({
-                            index: i, title: t.title, date: toISODate(t.date), note: t.note || '', upcoming: !!t.upcoming,
-                          }); }}>
-                          <Icon name="edit" size={13} />
-                        </button>
-                        <button className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-red-500" aria-label="Delete event"
-                          onClick={() => deleteTimeline(i)}>
-                          <Icon name="trash" size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </Card>
-
           {/* document management card */}
           <Card className="p-6">
             <div className="mb-4 flex items-center justify-between">
@@ -343,10 +253,6 @@ export default function FirmCaseDetails({ id }) {
                 {['Active', 'Ongoing', 'Closed'].map((s) => <option key={s}>{s}</option>)}
               </Select>
             </Field>
-            <Field label="Progress (0-100)" required error={modalErrors.progress}>
-              <Input type="number" min="0" max="100" value={editCase.progress}
-                onChange={(e) => setEditCase((c) => ({ ...c, progress: e.target.value }))} error={!!modalErrors.progress} />
-            </Field>
           </div>
         )}
       </Modal>
@@ -376,45 +282,6 @@ export default function FirmCaseDetails({ id }) {
             <Field label="Opposing Counsel" error={modalErrors.opposingParty}>
               <Input value={editClient.opposingParty} maxLength={150} onChange={(e) => setEditClient((c) => ({ ...c, opposingParty: e.target.value }))} error={!!modalErrors.opposingParty} />
             </Field>
-          </div>
-        )}
-      </Modal>
-
-      {/* Edit core team */}
-      <Modal open={!!editTeam} onClose={() => setEditTeam(null)} title="Edit Core Team"
-        footer={<>
-          <Button variant="ghost" onClick={() => setEditTeam(null)}>Done</Button>
-          <Button onClick={saveTeamModal}>Save Team</Button>
-        </>}>
-        {editTeam && (
-          <div className="space-y-4">
-            {/* current members with remove buttons */}
-            {editTeam.list.map((m, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{m.name}</p>
-                  <p className="text-xs text-slate-400">{m.role}</p>
-                </div>
-                <button className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500" aria-label="Remove member"
-                  onClick={() => setEditTeam((t) => ({ ...t, list: t.list.filter((_, j) => j !== i) }))}>
-                  <Icon name="x" size={14} />
-                </button>
-              </div>
-            ))}
-            {/* add-member row */}
-            <div className="flex gap-2">
-              <Select className="flex-1" value={editTeam.newId} onChange={(e) => setEditTeam((t) => ({ ...t, newId: e.target.value }))}>
-                <option value="">Select member…</option>
-                {firmMembers.map((u) => <option key={u.id} value={u.id}>{u.fullName || u.name}</option>)}
-              </Select>
-              <Input className="!w-32" placeholder="Role" value={editTeam.newRole}
-                onChange={(e) => setEditTeam((t) => ({ ...t, newRole: e.target.value }))} />
-              <Button variant="outline" onClick={() => {
-                const u = firmMembers.find((x) => String(x.id) === String(editTeam.newId));
-                if (!u) return; // nothing selected
-                setEditTeam((t) => ({ ...t, list: [...t.list, { id: u.id, name: u.fullName || u.name, role: t.newRole || 'Legal Counsel' }], newId: '' }));
-              }}>Add</Button>
-            </div>
           </div>
         )}
       </Modal>
@@ -489,35 +356,6 @@ export default function FirmCaseDetails({ id }) {
           </div>
         )}
       </Modal>
-
-      {/* Timeline event editor (adds OR edits, depending on index) */}
-      <Modal open={!!editTimeline} onClose={() => setEditTimeline(null)}
-        title={editTimeline?.index != null ? 'Edit Timeline Event' : 'Add Timeline Event'}
-        footer={<>
-          <Button variant="ghost" onClick={() => setEditTimeline(null)}>Cancel</Button>
-          <Button onClick={saveTimeline}>Save Event</Button>
-        </>}>
-        {editTimeline && (
-          <div className="space-y-4">
-            <Field label="Event Title" required error={modalErrors.tlTitle}>
-              <Input value={editTimeline.title} maxLength={120}
-                onChange={(e) => setEditTimeline((t) => ({ ...t, title: e.target.value }))} error={!!modalErrors.tlTitle} />
-            </Field>
-            <Field label="Date" required error={modalErrors.tlDate}>
-              <Input type="date" value={editTimeline.date}
-                onChange={(e) => setEditTimeline((t) => ({ ...t, date: e.target.value }))} error={!!modalErrors.tlDate} />
-            </Field>
-            <Field label="Notes">
-              <Textarea rows={2} value={editTimeline.note} onChange={(e) => setEditTimeline((t) => ({ ...t, note: e.target.value }))} />
-            </Field>
-            <label className="flex items-center gap-2 text-sm text-slate-600">
-              <input type="checkbox" className="h-4 w-4 rounded border-slate-300" checked={editTimeline.upcoming}
-                onChange={(e) => setEditTimeline((t) => ({ ...t, upcoming: e.target.checked }))} />
-              Mark as upcoming
-            </label>
-          </div>
-        )}
-      </Modal>
     </>
   );
 
@@ -538,13 +376,11 @@ export default function FirmCaseDetails({ id }) {
   async function saveCaseModal() {
     const er = {
       title: editCase.title.trim() ? null : 'Case title is required',
-      progress: (editCase.progress !== '' && !isNaN(editCase.progress) && editCase.progress >= 0 && editCase.progress <= 100)
-        ? null : 'Progress must be between 0 and 100',
     };
     setModalErrors(er);
     if (Object.values(er).some(Boolean)) return;
     try {
-      await saveCase({ ...caseData, case_type: editCase.title, status: editCase.status, progress: Number(editCase.progress) });
+      await saveCase({ ...caseData, case_type: editCase.title, status: editCase.status });
       toast('Case updated.');
       setEditCase(null);
       load();
@@ -569,17 +405,6 @@ export default function FirmCaseDetails({ id }) {
       toast('Client details updated.');
       setEditClient(null);
       load();
-    } catch (err) {
-      toast(`Save failed: ${err.message}`, 'error');
-    }
-  }
-
-  /* Save the edited team list. */
-  async function saveTeamModal() {
-    try {
-      await saveCase({ ...caseData, team: editTeam.list });
-      toast('Team updated.');
-      setEditTeam(null);
     } catch (err) {
       toast(`Save failed: ${err.message}`, 'error');
     }
@@ -647,48 +472,12 @@ export default function FirmCaseDetails({ id }) {
       if (String(doc.id || '').startsWith('DOC-')) {
         await api.documents.remove(doc.id, role, user?.email);
       }
-    } catch { /* local removal happens regardless, like vanilla */ }
+    } catch (err) {
+      toast(`Delete failed: ${err.message}`, 'error'); // don't hide it: it would reappear on reload
+      return;
+    }
     setCaseData((c) => ({ ...c, documents: c.documents.filter((_, i) => i !== index) }));
     toast('Document removed.');
-  }
-
-  /* Save a timeline event (add when index is null, edit otherwise). */
-  async function saveTimeline() {
-    const er = {
-      tlTitle: editTimeline.title.trim() ? null : 'Event title is required',
-      tlDate: editTimeline.date ? null : 'Date is required',
-    };
-    setModalErrors(er);
-    if (Object.values(er).some(Boolean)) return;
-
-    const event = {
-      title: editTimeline.title.trim(),
-      date: new Date(editTimeline.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
-      note: editTimeline.note,
-      upcoming: editTimeline.upcoming,
-    };
-    const list = [...timeline];                 // copy the current array
-    if (editTimeline.index != null) list[editTimeline.index] = event; // edit in place
-    else list.unshift(event);                                          // newest first
-
-    try {
-      await saveCase({ ...caseData, timeline: list });
-      toast('Timeline updated.');
-      setEditTimeline(null);
-    } catch (err) {
-      toast(`Save failed: ${err.message}`, 'error');
-    }
-  }
-
-  /* Delete a timeline event. */
-  async function deleteTimeline(index) {
-    if (!window.confirm('Delete this event?')) return;
-    try {
-      await saveCase({ ...caseData, timeline: timeline.filter((_, i) => i !== index) });
-      toast('Event deleted.');
-    } catch (err) {
-      toast(`Delete failed: ${err.message}`, 'error');
-    }
   }
 }
 
@@ -711,12 +500,6 @@ function fmtDate(v) {
   return isNaN(d) ? v : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-/* Parse a display date back into YYYY-MM-DD for <input type="date">. */
-function toISODate(v) {
-  const d = new Date(v);
-  return isNaN(d) ? '' : d.toISOString().split('T')[0];
-}
-
 /* Download a placeholder file for a document (same as the client page). */
 function downloadDoc(doc) {
   const text = `LexFlow document download\nFile: ${doc.name}\nDownloaded on: ${new Date().toISOString()}`;
@@ -736,11 +519,7 @@ function exportCSV(caseData) {
     ['CNR', caseData.cnr || ''],
     ['Case Type', caseData.case_type || caseData.title || ''],
     ['Status', caseData.status || ''],
-    ['Progress', `${caseData.progress || 0}%`],
     ['Filed Date', caseData.filed_date || caseData.filedDate || ''],
-    [],
-    ['Timeline Title', 'Date', 'Note'],
-    ...(caseData.timeline || []).map((t) => [t.title, t.date, t.note || '']),
   ];
   const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));

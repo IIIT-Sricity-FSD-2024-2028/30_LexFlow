@@ -135,7 +135,7 @@ export default function FirmCases() {
         <FilterDropdown>
           {tab === 'all' ? (
             <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              {['All', 'Active', 'Ongoing', 'Evidence Stage', 'Completed'].map((s) => <option key={s}>{s}</option>)}
+              {['All', 'Active', 'Ongoing', 'Evidence Stage', 'Completed', 'Closed'].map((s) => <option key={s}>{s}</option>)}
             </Select>
           ) : (
             <div className="space-y-3">
@@ -173,11 +173,13 @@ export default function FirmCases() {
           </div>
           <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
             {/* inline lawyer reassignment (admin convenience) */}
-            <Select value={c.lawyer_id || c.lawyerId || ''} className="!w-44 !text-xs"
-              onChange={(e) => changeLawyer(c.id, e.target.value)}>
-              <option value="">Assign lawyer…</option>
-              {team.map((l) => <option key={l.id} value={l.id}>{l.fullName || l.name}</option>)}
-            </Select>
+            {!isLawyer && (
+              <Select value={c.lawyer_id || c.lawyerId || ''} className="!w-44 !text-xs"
+                onChange={(e) => changeLawyer(c.id, e.target.value)}>
+                <option value="">Assign lawyer…</option>
+                {team.map((l) => <option key={l.id} value={l.id}>{l.fullName || l.name}</option>)}
+              </Select>
+            )}
             <Button variant="outline" className="!text-xs" onClick={() => navigate(`/firm/cases/${c.id}`)}>
               View Details →
             </Button>
