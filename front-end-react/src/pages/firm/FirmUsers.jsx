@@ -76,6 +76,10 @@ export default function FirmUsers() {
       toast('Name, email and role are required.', 'error');
       return;
     }
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+      toast('Please enter a valid email address.', 'error');
+      return;
+    }
     setBusy(true);
     try {
       if (form.id) {
@@ -103,6 +107,10 @@ export default function FirmUsers() {
 
   /* ── Delete ── */
   const deleteUser = async (u) => {
+    if (u.id === user.id) {
+      toast('You cannot remove your own account.', 'error');
+      return;
+    }
     if (!window.confirm(`Are you sure you want to remove ${u.fullName || u.name}?`)) return;
     try {
       await api.users.remove(u.id, 'firmadmin');
@@ -187,7 +195,7 @@ export default function FirmUsers() {
                     <span className="flex items-center gap-2 text-xs">
                       <span className={`h-2 w-2 rounded-full ${u.availability !== 'unavailable' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                       {u.availability === 'unavailable' ? 'Unavailable' : 'Available'}
-                      <Badge variant={u.accountStatus === 'inactive' ? 'red' : 'green'}>{u.accountStatus || 'Active'}</Badge>
+                      <Badge variant={u.accountStatus === 'inactive' ? 'red' : 'green'} className="capitalize">{u.accountStatus || 'active'}</Badge>
                     </span>
                   </Td>
                   <Td>

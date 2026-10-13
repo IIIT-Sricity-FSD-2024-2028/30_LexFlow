@@ -182,10 +182,10 @@ export function Textarea({ error = null, className = '', ...rest }) {
 /* ────────────────────────────────  TABLE  ─────────────────────────────── */
 
 /** A consistently-styled table. Children are <thead>/<tbody> written per page. */
-export function Table({ children }) {
+export function Table({ children, fit = false }) {
   return (
     <div className="thin-scroll overflow-x-auto">
-      <table className="w-full min-w-[640px] text-left text-sm">{children}</table>
+      <table className={`w-full text-left text-sm ${fit ? '' : 'min-w-[640px]'}`}>{children}</table>
     </div>
   );
 }

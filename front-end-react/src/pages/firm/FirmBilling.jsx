@@ -114,7 +114,8 @@ export default function FirmBilling() {
         clientId: c.clientId, caseName: c.caseName.trim(),
         amount: Number(c.amount), status: c.status, dueDate: c.dueDate,
       }, role, hdrs());
-      setInvoices((list) => [created, ...list]); // newest on top
+      // keep the names picked in the form in case the API response omits them
+      setInvoices((list) => [{ clientName: c.clientName, clientEmail: c.clientEmail, ...created }, ...list]); // newest on top
       toast('Invoice created.');
       setCreating(null);
     } catch (err) {
@@ -126,6 +127,10 @@ export default function FirmBilling() {
 
   const saveEdit = async () => {
     const e = editing;
+    if (!e.clientId || !e.caseName.trim() || !Number(e.amount) || !e.dueDate) {
+      toast('Please fill client, case name, amount and due date.', 'error');
+      return;
+    }
     setBusy(true);
     try {
       const updated = await api.billing.updateInvoice(e.id, {
@@ -156,7 +161,10 @@ export default function FirmBilling() {
   /* Fill the hidden print template and open the browser print dialog. */
   const printInvoice = (inv) => {
     setViewing({ ...inv, printing: true });
-    setTimeout(() => window.print(), 100); // give React a moment to render the template
+    setTimeout(() => {
+      window.print(); // blocks until the dialog closes
+      setViewing(inv); // drop the full-screen print overlay, back to the details modal
+    }, 100); // give React a moment to render the template
   };
 
   /* ════════ SUBSCRIPTION ACTIONS ════════ */
@@ -167,6 +175,8 @@ export default function FirmBilling() {
       const updated = await api.platform.updateChargeStatus(charge.id, 'Paid', role, user?.id);
       setCharges((list) => list.map((c) => (c.id === charge.id ? { ...c, ...updated } : c)));
       toast('Subscription charge marked paid.');
+      // paying a tier-change charge applies the new tier, so refresh "Your Plan"
+      if (charge.kind === 'tier_change') setSubscription(await api.platform.getSubscription(user.firmId, role, user?.id));
     } catch (err) {
       toast(`Payment failed: ${err.message}`, 'error');
     }
@@ -211,14 +221,14 @@ export default function FirmBilling() {
             {/* ── Subscription charges ── */}
             <Card>
               <div className="border-b border-slate-100 p-5"><h2 className="font-bold text-slate-900">Subscription Charges</h2></div>
-              <Table>
+              <Table fit>
                 <thead><tr><Th>Charge</Th><Th>Period</Th><Th>Tier</Th><Th>Amount</Th><Th>Status</Th><Th>Action</Th></tr></thead>
                 <tbody>
                   {sortedCharges.length === 0 ? (
                     <tr><Td colSpan={6} className="!text-center text-slate-400">No charges yet.</Td></tr>
                   ) : sortedCharges.map((c) => (
                     <tr key={c.id} className="hover:bg-slate-50">
-                      <Td className="font-mono text-xs font-bold">{c.id}</Td>
+                      <Td className="break-all font-mono text-xs font-bold">{c.id}</Td>
                       <Td className="text-xs">{c.period}</Td>
                       <Td><Badge variant="blue">{c.tier}</Badge></Td>
                       <Td className="font-semibold">{money(c.amount)}</Td>
@@ -286,7 +296,7 @@ export default function FirmBilling() {
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><Td colSpan={6} className="!text-center text-slate-400">No invoices found.</Td></tr>
+                  <tr><Td colSpan={7} className="!text-center text-slate-400">No invoices found.</Td></tr>
                 ) : filtered.map((inv) => (
                   <tr key={inv.id} className="hover:bg-slate-50">
                     <Td>

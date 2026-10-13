@@ -99,9 +99,14 @@ export default function FirmTasks() {
     if (Object.values(er).some(Boolean)) return;
 
     const resolved = resolveCase(form.caseInput.trim());
+    if (!form.id && !resolved) { // a new task must be attached to a real case
+      setErrors({ caseInput: 'No matching case. Use a case id, CNR or title.' });
+      return;
+    }
     const payload = {
       name: form.name.trim(),
-      caseTitle: form.caseInput.trim(),
+      // store the case title, not whatever was typed (a CNR/id would show as the "case" in the table)
+      caseTitle: resolved ? (resolved.case_type || resolved.title || form.caseInput.trim()) : form.caseInput.trim(),
       assignedUser: form.assignee,
       priority: form.priority,
       dueDate: form.dueDate,
