@@ -1,6 +1,7 @@
 /**
- * components/Calendar.jsx - Small month calendar used in the
- * "Book Consultation" modal (pick a date).
+ * components/Calendar.jsx - Small month calendar used in two places:
+ *   1. The "Book Consultation" modal (pick a date)
+ *   2. The Schedule Management page (browse the month)
  *
  * Props:
  *   selected  - Date that should look highlighted (optional)
