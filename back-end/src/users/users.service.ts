@@ -43,6 +43,7 @@ export interface Firm {
   experience?: string;
   bio?: string;
   practiceArea?: string;
+  practiceAreas?: string[];
   location?: string;
   avatar?: string;
   createdAt: Date;
@@ -63,6 +64,8 @@ interface ActorRow {
   contact_number: string | null;
   is_active: boolean;
   created_at: Date;
+  client_type?: string | null; // clients only
+  address?: string | null;     // clients only
 }
 
 function parseFirmId(firmId: string): number {
@@ -73,8 +76,12 @@ function parseFirmId(firmId: string): number {
 
 const FIRM_SELECT = `
   SELECT f.id, f.tier, f.name, f.address, f.avg_rating, f.logo_url,
+         f.review_count, f.hourly_rate,
          f.created_at, f.updated_at,
-         cd.email, cd.website_url, cd.phone_number
+         cd.email, cd.website_url, cd.phone_number,
+         ARRAY(SELECT pa.name FROM lawfirm_practice_areas lpa
+               JOIN practice_areas pa ON pa.id = lpa.practice_area_id
+               WHERE lpa.lawfirm_id = f.id ORDER BY pa.name) AS practice_areas
   FROM lawfirm_meta f
   LEFT JOIN lawfirm_contact_details cd ON cd.lawfirm_id = f.id`;
 
@@ -89,13 +96,17 @@ function rowToFirm(r: Record<string, unknown>): Firm {
     email: emails[0] || '',
     phone: phones[0] || '',
     street: (r.address as string) || '',
-    city: '',
+    // The address is stored as one string; its last part is the city.
+    city: ((r.address as string) || '').split(',').pop()!.trim(),
     state: '',
     pinCode: '',
     logo: (r.logo_url as string) || undefined,
     primaryEmail: emails[0],
     website: websites[0],
     rating: r.avg_rating != null ? Number(r.avg_rating) : undefined,
+    reviews: r.review_count != null ? Number(r.review_count) : undefined,
+    price: r.hourly_rate != null ? Number(r.hourly_rate) : undefined,
+    practiceAreas: (r.practice_areas as string[] | null) || [],
     avatar: (r.logo_url as string) || undefined,
     createdAt: r.created_at as Date,
     updatedAt: r.updated_at as Date,
@@ -112,6 +123,8 @@ function rowToActor(r: Record<string, unknown>): ActorRow {
     contact_number: (r.contact_number as string) || null,
     is_active: r.is_active !== false,
     created_at: r.created_at as Date,
+    client_type: (r.client_type as string) || null,
+    address: (r.address as string) || null,
   };
 }
 
@@ -135,6 +148,8 @@ function actorToResponse(a: ActorRow): UserResponseDto {
     firmId: a.lawfirm_id ? `firm-${a.lawfirm_id}` : undefined,
     accountStatus: a.is_active ? 'active' : 'inactive',
     availability: 'available',
+    accountType: a.client_type || undefined,
+    address: a.address && a.address !== '-' ? a.address : undefined,
   };
 }
 
@@ -144,23 +159,24 @@ function actorToResponse(a: ActorRow): UserResponseDto {
  */
 export const ACTORS_UNION = `
   SELECT id, name, email, password_hash, NULL::int AS lawfirm_id,
-         NULL::varchar AS contact_number, TRUE AS is_active, created_at, 'sa'::text AS kind
+         NULL::varchar AS contact_number, TRUE AS is_active, created_at, 'sa'::text AS kind,
+         NULL::varchar AS client_type, NULL::text AS address
     FROM platform_admin
   UNION ALL
   SELECT id, name, email, password_hash, lawfirm_id,
-         NULL::varchar, is_active, created_at, 'fa'::text
+         NULL::varchar, is_active, created_at, 'fa'::text, NULL::varchar, NULL::text
     FROM lawfirm_admin
   UNION ALL
   SELECT id, name, email, password_hash, lawfirm_id,
-         contact_number, is_active, created_at, 'lw'::text
+         contact_number, is_active, created_at, 'lw'::text, NULL::varchar, NULL::text
     FROM lawyers
   UNION ALL
   SELECT id, name, email, password_hash, lawfirm_id,
-         contact_number, is_active, created_at, 'in'::text
+         contact_number, is_active, created_at, 'in'::text, NULL::varchar, NULL::text
     FROM interns
   UNION ALL
   SELECT id, name, email_address AS email, password_hash, NULL::int,
-         contact_number, is_active, created_at, 'cl'::text
+         contact_number, is_active, created_at, 'cl'::text, client_type, address
     FROM clients`;
 
 @Injectable()

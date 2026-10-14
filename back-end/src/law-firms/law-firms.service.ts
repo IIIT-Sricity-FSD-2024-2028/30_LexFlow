@@ -55,29 +55,24 @@ export class LawFirmsService implements OnModuleInit {
     const realFirmEntries: LawFirm[] = realFirms.map((f) => ({
       id: f.id,                   // e.g. 'firm-1' — MUST match firmId used in consultations
       name: f.name,               // 'Sharma & Associates'
-      subtitle: `Corporate & Civil Law • ${f.city}, ${f.state}`,
+      subtitle: `${(f.practiceAreas || []).slice(0, 2).join(' & ') || 'General Practice'} • ${f.city}`,
       description:
-        `${f.name} is a full-service law firm based in ${f.city}, ${f.state}. ` +
-        `Offering expert legal counsel across corporate, civil, and litigation matters. ` +
+        `${f.name} is a law firm based in ${f.city}. ` +
+        `Practice areas: ${(f.practiceAreas || []).join(', ') || 'general practice'}. ` +
         `Verified and registered on the LexFlow platform.`,
       location: f.city.toLowerCase().replace(/\s+/g, '-'),
-      locationLabel: `${f.city}, ${f.state}`,
-      practiceArea: 'corporate',
+      locationLabel: f.city,
+      practiceArea: (f.practiceAreas?.[0] || 'general').toLowerCase(),
       availability: 'AVAILABLE',
-      rating: 4.8,
-      reviews: 97,
-      price: 180,
+      rating: f.rating ?? 4.0,
+      reviews: f.reviews ?? 0,
+      price: f.price ?? 150,
       experience: '10+ Years',
       bio:
-        `${f.name} is a leading law firm headquartered at ${f.street}, ${f.city}. ` +
-        `The firm provides comprehensive legal services to individuals and businesses, ` +
-        `covering corporate advisory, dispute resolution, contract law, and compliance. ` +
+        `${f.name} is headquartered at ${f.street}. ` +
         `All consultations can be booked directly through the LexFlow platform. ` +
         `Contact: ${f.email || f.primaryEmail || ''} | ${f.phone || ''}`,
-      practiceAreas: [
-        'Corporate Law', 'Contract Disputes', 'Commercial Litigation',
-        'Compliance & Regulatory', 'Civil Law',
-      ],
+      practiceAreas: f.practiceAreas?.length ? f.practiceAreas : ['General Practice'],
       languages: ['English (Fluent)', 'Hindi (Fluent)'],
       education: [
         { school: 'National Law School of India', degree: 'B.A. LL.B. (Hons)' },
@@ -86,7 +81,7 @@ export class LawFirmsService implements OnModuleInit {
       avatarColor: 'indigo',
       email:   f.primaryEmail || f.email,
       phone:   f.phone,
-      address: `${f.street}, ${f.city}, ${f.state} - ${f.pinCode}`,
+      address: f.street,
       website: f.website,
     }));
 
@@ -117,7 +112,7 @@ export class LawFirmsService implements OnModuleInit {
 
     if (filters.practiceArea) {
       const pa = filters.practiceArea.toLowerCase();
-      results = results.filter((f) => f.practiceArea === pa);
+      results = results.filter((f) => f.practiceAreas.some((p) => p.toLowerCase().includes(pa)));
     }
 
     switch (filters.sortBy) {

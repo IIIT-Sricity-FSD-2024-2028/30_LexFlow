@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { loadState, saveState } from '../db';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import * as fs from 'fs';
@@ -197,7 +198,7 @@ const SEED_DOCUMENTS: Document[] = [
 const STORE_FILE = path.join(__dirname, '..', '..', 'data', 'documents.json');
 
 @Injectable()
-export class DocumentsService {
+export class DocumentsService implements OnModuleInit {
   private documents: Document[];
   private idCounter = 215; // next DOC id after seed
 
@@ -207,8 +208,15 @@ export class DocumentsService {
     this.documents = [...SEED_DOCUMENTS];
   }
 
+  // Runs once after the DB is ready: use the saved documents if there are any.
+  async onModuleInit() {
+    this.documents = await loadState('documents', this.documents);
+    const ids = this.documents.map((d) => Number(d.id.replace('DOC-', '')) || 0);
+    this.idCounter = Math.max(this.idCounter, ...ids.map((n) => n + 1));
+  }
+
   private persist(): void {
-    // Intentionally empty: user requested files not to be persistent on server restart
+    saveState('documents', this.documents);
   }
 
   findAll(caseId?: string): Document[] {
@@ -237,7 +245,7 @@ export class DocumentsService {
       fileType: createDto.fileType,
       access: createDto.access,
       version: Number(createDto.version) || 1,
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toLocaleDateString('en-CA'),
       uploader: uploaderEmail.split('@')[0],
       uploaderEmail,
       iconColor: 'blue',
@@ -261,7 +269,7 @@ export class DocumentsService {
     const updatedDoc = {
       ...this.documents[idx],
       ...updateDto,
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toLocaleDateString('en-CA'),
     };
 
     if (file) {

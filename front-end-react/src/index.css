@@ -1,0 +1,66 @@
+/* This is the ONE global stylesheet of the app.
+   Everything else is Tailwind utility classes written directly in JSX. */
+
+/* Import Tailwind (v4 style - one line, no config file needed) */
+@import "tailwindcss";
+
+/* Define our brand colors so we can write classes like bg-brand, text-brand.
+   In Tailwind v4, custom design tokens live inside @theme. */
+@theme {
+  /* Deep navy used for buttons, sidebar, headings */
+  --color-brand: #1b2b4b;
+  --color-brand-light: #223657;
+  /* Gold accent from the landing page */
+  --color-gold: #c8a951;
+  /* Soft page background */
+  --color-page: #f4f6f8;
+}
+
+/* Small tweaks that apply to every page */
+body {
+  font-family: "Inter", sans-serif; /* same font the design uses */
+  background-color: #f4f6f8;        /* light grey page background */
+  color: #1f2937;                   /* default text colour */
+}
+
+/* Thin styled scrollbar (matches the original chat + tables look) */
+.thin-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.thin-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+
+/* Shimmer animation used by skeleton loading rows */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #eef2f7 25%, #e2e8f0 50%, #eef2f7 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.3s infinite linear;
+  border-radius: 6px;
+  color: transparent !important;
+}
+
+/* Simple spinner used while data loads */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  border: 3px solid #e5e7eb;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  width: 36px; height: 36px;
+  animation: spin 0.7s linear infinite;
+}
+
+/* Shake animation for failed form validation (same feel as the vanilla app) */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+.form-shake { animation: shake 0.45s ease; }
+
+/* Slide-up entrance for cards on the onboarding pages */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up { animation: slideUpFade 0.5s ease both; }

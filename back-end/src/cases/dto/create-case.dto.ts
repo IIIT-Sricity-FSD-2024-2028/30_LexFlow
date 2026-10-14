@@ -1,4 +1,8 @@
 import { IsString, IsNotEmpty, IsOptional, IsNumber, IsArray } from 'class-validator';
+import { Type } from 'class-transformer';
+
+// Note: @Type(() => Object) on the array fields stops the global pipe's
+// implicit conversion from turning each element into [] (it nested arrays).
 
 export class CreateCaseDto {
   @IsOptional()
@@ -39,10 +43,12 @@ export class CreateCaseDto {
 
   @IsOptional()
   @IsArray()
+  @Type(() => Object)
   timeline?: any[];
 
   @IsOptional()
   @IsArray()
+  @Type(() => Object)
   documents?: any[];
 
   @IsOptional()
@@ -50,6 +56,7 @@ export class CreateCaseDto {
 
   @IsOptional()
   @IsArray()
+  @Type(() => Object)
   team?: any[];
 
   @IsOptional()

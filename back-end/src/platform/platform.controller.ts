@@ -213,8 +213,11 @@ export class PlatformController {
     @Headers('x-user-id') callerId: string,
     @Query('firmId') firmId?: string,
   ) {
-    if ((role || '').toLowerCase() === 'firmadmin') {
-      return this.platformService.getChargesForFirm(callerId);
+    // Role and identity come from the verified token; the headers are only a
+    // fallback for legacy callers (a header alone must never grant super-admin).
+    const effectiveRole = (req.user?.role ?? role ?? '').toLowerCase();
+    if (effectiveRole === 'firmadmin') {
+      return this.platformService.getChargesForFirm(req.user?.id ?? callerId);
     }
     return this.platformService.getCharges(firmId);
   }
@@ -240,10 +243,12 @@ export class PlatformController {
     @Headers('x-user-id') callerId: string,
     @Body() body: { status: ChargeStatus },
   ) {
-    if ((role || '').toLowerCase() === 'firmadmin') {
-      return this.platformService.payChargeAsFirm(id, callerId);
+    const effectiveRole = (req.user?.role ?? role ?? '').toLowerCase();
+    const caller = req.user?.id ?? callerId;
+    if (effectiveRole === 'firmadmin') {
+      return this.platformService.payChargeAsFirm(id, caller);
     }
-    return this.platformService.updateChargeStatus(id, body.status);
+    return this.platformService.updateChargeStatus(id, body.status, caller);
   }
 
   // ── Pricing ───────────────────────────────────────────────────────────────

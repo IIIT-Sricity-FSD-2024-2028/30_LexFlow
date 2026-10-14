@@ -2,7 +2,12 @@ import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as net from 'net';
 import { BASE_SCHEMA } from './schema-base';
+
+// Node 20+ gives each address 250ms before trying the next, which is shorter
+// than a Neon compute cold start and shows up as ETIMEDOUT on every address.
+net.setDefaultAutoSelectFamilyAttemptTimeout(5000);
 
 // ── .env loading (no dependency; existing env vars always win) ───────────────
 function loadDotEnv(): void {
@@ -56,9 +61,14 @@ function cleanDatabaseUrl(url: string): string {
 
 const USE_SSL = process.env.DB_SSL !== 'false' && !isLocalHost(DATABASE_URL);
 
+// Server time = IST: Node's Date (local getters, month keys, today's date) and
+// every Postgres session (CURRENT_TIMESTAMP / CURRENT_DATE).
+process.env.TZ = 'Asia/Kolkata';
+
 export const pool = new Pool({
   connectionString: cleanDatabaseUrl(DATABASE_URL),
   ...(USE_SSL ? { ssl: { rejectUnauthorized: false } } : {}),
+  options: '-c timezone=Asia/Kolkata', // not accepted by Neon's -pooler host; use the direct host
 });
 
 /** Run one parameterised query. */
@@ -67,6 +77,21 @@ export async function q<T extends QueryResultRow = QueryResultRow>(
   params: unknown[] = [],
 ): Promise<QueryResult<T>> {
   return pool.query<T>(sql, params);
+}
+
+/** Read a saved JSON snapshot; returns `fallback` if nothing was saved yet. */
+export async function loadState<T>(key: string, fallback: T): Promise<T> {
+  const { rows } = await q('SELECT data FROM app_state WHERE key = $1', [key]);
+  return rows.length ? rows[0].data : fallback;
+}
+
+/** Save a JSON snapshot (insert or overwrite). Not awaited by callers. */
+export function saveState(key: string, data: unknown): void {
+  q(
+    `INSERT INTO app_state (key, data) VALUES ($1, $2)
+     ON CONFLICT (key) DO UPDATE SET data = $2`,
+    [key, JSON.stringify(data)],
+  ).catch((err) => console.error(`[db] saveState(${key}) failed:`, err.message));
 }
 
 /** Run a unit of work in a transaction. */
@@ -163,9 +188,26 @@ CREATE TABLE IF NOT EXISTS subscription_charges (
     CONSTRAINT charge_belongs_to_subscription
         FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE,
     CONSTRAINT charge_belongs_to_firm
-        FOREIGN KEY (lawfirm_id) REFERENCES lawfirm_meta(id) ON DELETE CASCADE,
-    CONSTRAINT one_monthly_charge_per_period
-        UNIQUE (subscription_id, period, kind)
+        FOREIGN KEY (lawfirm_id) REFERENCES lawfirm_meta(id) ON DELETE CASCADE
+);
+
+-- One row per settled subscription charge. UNIQUE(charge_id) is what makes
+-- paying idempotent. mode says HOW it was settled: 'simulated' = the demo
+-- "Pay now" button (no real money moved), 'manual' = marked paid by the
+-- platform admin, 'gateway' = reserved for a verified payment gateway.
+CREATE TABLE IF NOT EXISTS subscription_payments (
+    id          TEXT PRIMARY KEY,
+    charge_id   TEXT NOT NULL UNIQUE,
+    lawfirm_id  INT NOT NULL,
+    amount      NUMERIC(12,2) NOT NULL,
+    mode        VARCHAR(20) NOT NULL CHECK (mode IN ('simulated','manual','gateway')),
+    reference   TEXT,
+    paid_by     TEXT,
+    paid_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT payment_settles_charge
+        FOREIGN KEY (charge_id) REFERENCES subscription_charges(id) ON DELETE CASCADE,
+    CONSTRAINT payment_belongs_to_firm
+        FOREIGN KEY (lawfirm_id) REFERENCES lawfirm_meta(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS tier_pricing (
@@ -203,6 +245,16 @@ CREATE INDEX IF NOT EXISTS invoices_status_idx   ON invoices(status);
 CREATE INDEX IF NOT EXISTS charges_firm_idx      ON subscription_charges(lawfirm_id);
 CREATE INDEX IF NOT EXISTS charges_status_idx    ON subscription_charges(status);
 CREATE INDEX IF NOT EXISTS consultations_firm_idx ON consultations(lawfirm_id);
+
+ALTER TABLE lawfirm_meta ADD COLUMN IF NOT EXISTS review_count INT DEFAULT 0;
+ALTER TABLE lawfirm_meta ADD COLUMN IF NOT EXISTS hourly_rate  INT;
+
+-- key -> JSON snapshot, so the in-memory services (cases, documents, tasks,
+-- activity log) survive a restart. See loadState / saveState below.
+CREATE TABLE IF NOT EXISTS app_state (
+    key   TEXT PRIMARY KEY,
+    data  JSONB NOT NULL
+);
 `;
 
 // ── Demo seed: mirrors the old in-memory seed so local dev works the same. ───
@@ -353,6 +405,68 @@ async function seedDemoIfEmpty(): Promise<void> {
 
 let initPromise: Promise<void> | null = null;
 
+// Different rating / reviews / hourly rate / practice areas per demo firm.
+// Rating/reviews/rate are only set while empty; areas are topped up if missing.
+const FIRM_PROFILES: Array<[number, number, number, number, string[]]> = [
+  // [firm id, rating, reviews, hourly rate, practice areas]
+  [1, 4.8, 97, 180, ['Corporate Law', 'Contract Disputes', 'Civil Law']],
+  [2, 4.6, 142, 220, ['Banking & Finance', 'Corporate Law', 'Tax Law']],
+  [3, 4.9, 63, 160, ['Intellectual Property', 'Technology Law', 'Contract Disputes']],
+  [4, 4.4, 48, 120, ['Maritime Law', 'Property Law', 'Civil Law']],
+  [5, 4.7, 85, 200, ['Cyber Law', 'Data Privacy', 'Criminal Law']],
+];
+
+async function seedFirmProfiles(): Promise<void> {
+  for (const [id, rating, reviews, rate, areas] of FIRM_PROFILES) {
+    await q(
+      `UPDATE lawfirm_meta SET avg_rating = $2, review_count = $3, hourly_rate = $4
+       WHERE id = $1 AND hourly_rate IS NULL`,
+      [id, rating, reviews, rate],
+    );
+    // Link each area (skips ones already linked, and firms that don't exist).
+    for (const name of areas) {
+      await q(`INSERT INTO practice_areas (name) VALUES ($1) ON CONFLICT (name) DO NOTHING`, [name]);
+      await q(
+        `INSERT INTO lawfirm_practice_areas (lawfirm_id, practice_area_id)
+         SELECT $1, id FROM practice_areas
+         WHERE name = $2 AND EXISTS (SELECT 1 FROM lawfirm_meta WHERE id = $1)
+         ON CONFLICT DO NOTHING`,
+        [id, name],
+      );
+    }
+  }
+}
+
+// Phone / address / account type for the demo clients. Only fills blanks, so
+// real edits are never overwritten.
+const CLIENT_PROFILES: Array<[string, string, string, string]> = [
+  // [email, phone, address, 'Individual' | 'Business']
+  ['alice@client.test', '9876500001', '14, Lodhi Road, New Delhi', 'Individual'],
+  ['naveen@cyber.test', '9876500002', '8, Hitech City, Hyderabad', 'Individual'],
+  ['dave@client.test', '9876500003', '22, Bandra West, Mumbai', 'Individual'],
+  ['eve@client.test', '9876500004', '5, Nariman Point, Mumbai', 'Business'],
+  ['frank@client.test', '9876500005', '31, Koramangala, Bangalore', 'Business'],
+  ['grace@client.test', '9876500006', '12, Anna Salai, Chennai', 'Individual'],
+  ['henry@client.test', '9876500007', '40, Connaught Place, New Delhi', 'Individual'],
+  ['irene@client.test', '9876500008', '9, MG Road, Bangalore', 'Individual'],
+  ['jake@client.test', '9876500009', '27, Jubilee Hills, Hyderabad', 'Business'],
+  ['laura@client.test', '9876500010', '3, Marine Drive, Mumbai', 'Individual'],
+  ['mark@client.test', '9876500011', '18, T Nagar, Chennai', 'Individual'],
+];
+
+async function seedClientProfiles(): Promise<void> {
+  for (const [email, phone, address, type] of CLIENT_PROFILES) {
+    await q(
+      `UPDATE clients SET
+         contact_number = CASE WHEN contact_number = '' THEN $2 ELSE contact_number END,
+         address        = CASE WHEN address IN ('', '-') THEN $3 ELSE address END,
+         client_type    = CASE WHEN contact_number = '' THEN $4 ELSE client_type END
+       WHERE email_address = $1`,
+      [email, phone, address, type],
+    );
+  }
+}
+
 /** Connect, apply the schema delta, seed demo data once per process. */
 export function initDb(): Promise<void> {
   if (!initPromise) {
@@ -361,7 +475,26 @@ export function initDb(): Promise<void> {
       // the delta tables/columns on top, then demo data.
       await q(BASE_SCHEMA);
       await q(SCHEMA_DELTA);
+      // One MONTHLY charge per subscription per period. This used to be a table
+      // constraint over (subscription_id, period, kind), which also stopped a firm
+      // from having two plan-change charges in the same month (HTTP 500 on the
+      // second plan change). Plan-change charges are limited by the index below.
+      await q(`ALTER TABLE subscription_charges DROP CONSTRAINT IF EXISTS one_monthly_charge_per_period`);
+      await q(
+        `CREATE UNIQUE INDEX IF NOT EXISTS one_monthly_charge_per_period
+           ON subscription_charges (subscription_id, period) WHERE kind = 'monthly'`,
+      );
+      // At most ONE unpaid tier-change charge per subscription, enforced by the
+      // database itself (guards against double clicks and concurrent requests).
+      // Guarded separately: if old data already violates it we warn, not crash.
+      await q(
+        `CREATE UNIQUE INDEX IF NOT EXISTS one_open_tier_change_per_subscription
+           ON subscription_charges (subscription_id)
+           WHERE kind = 'tier_change' AND status <> 'Paid'`,
+      ).catch((e) => console.warn('[db] one_open_tier_change index not created:', e.message));
       await seedDemoIfEmpty();
+      await seedFirmProfiles();
+      await seedClientProfiles();
     })();
   }
   return initPromise;

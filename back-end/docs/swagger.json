@@ -1172,7 +1172,7 @@
             "description": "Forbidden – insufficient role"
           }
         },
-        "summary": "Get all consultations (firmadmin / lawyer / superadmin)",
+        "summary": "Get all consultations (firmadmin / lawyer / intern / superadmin)",
         "tags": [
           "consultations"
         ]
@@ -3363,6 +3363,15 @@
           "availability": {
             "type": "string",
             "example": "available"
+          },
+          "accountType": {
+            "type": "string",
+            "example": "Individual",
+            "description": "Clients only: Individual | Business"
+          },
+          "address": {
+            "type": "string",
+            "description": "Clients only"
           }
         },
         "required": [

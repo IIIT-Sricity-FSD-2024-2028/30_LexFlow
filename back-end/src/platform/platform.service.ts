@@ -3,14 +3,16 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  ConflictException,
   OnModuleInit,
 } from '@nestjs/common';
+import { PoolClient } from 'pg';
 import { UsersService, FirmTier, TIER_LIMITS } from '../users/users.service';
 import { BillingService } from '../billing/billing.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { UpdateTierPricingDto } from './dto/update-tier-pricing.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
-import { q } from '../db';
+import { q, tx } from '../db';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,7 +46,16 @@ export interface Subscription {
   pendingTier?: FirmTier;
   /** The unpaid charge that, once Paid, applies pendingTier. */
   pendingChargeId?: string;
+  /**
+   * Ids of the charges that are still unpaid AND required before pendingTier
+   * can become active (see REQUIRED_OUTSTANDING_SQL). Empty/absent when there
+   * is no pending change. The UI shows these as "pay these to upgrade".
+   */
+  requiredChargeIds?: string[];
 }
+
+/** How a charge was settled. 'simulated' = demo button, no real money moved. */
+export type PaymentMode = 'simulated' | 'manual' | 'gateway';
 
 /**
  * One charge LexFlow raises against a firm.
@@ -71,7 +82,32 @@ export interface SubscriptionCharge {
   status: ChargeStatus;
   issuedAt: string;
   paidAt?: string;
+  /** How a Paid charge was settled (absent for legacy rows paid before payments were recorded). */
+  paymentMode?: PaymentMode;
 }
+
+/**
+ * BUSINESS RULE — which charges must be settled before a pending plan change
+ * becomes the active plan:
+ *
+ *   1. the plan-change ("tier_change") charge itself, and
+ *   2. every unpaid MONTHLY subscription charge of the same subscription that
+ *      was issued on or before that plan-change charge (the firm may not
+ *      upgrade while it still owes for the plan it is leaving).
+ *
+ * Deliberately NOT required: charges issued after the request (next month's
+ * bill), and the firm's own client invoices (`invoices` table) — those are
+ * between the firm and its clients, not the firm's debt to LexFlow.
+ *
+ * `$1` is left to the caller (a firm id for one firm, or no filter for all).
+ */
+const REQUIRED_OUTSTANDING_SQL = `
+  SELECT s.lawfirm_id, ch.id, ch.kind, ch.amount, ch.status
+  FROM subscriptions s
+  JOIN subscription_charges pc ON pc.id = s.pending_charge_id
+  JOIN subscription_charges ch ON ch.subscription_id = s.id
+  WHERE ch.status <> 'Paid'
+    AND (ch.id = pc.id OR (ch.kind = 'monthly' AND ch.issued_at <= pc.issued_at))`;
 
 export interface PlatformSettings {
   /** Percentage of every paid client invoice that LexFlow keeps. */
@@ -157,6 +193,13 @@ export class PlatformService implements OnModuleInit {
        FROM subscriptions s JOIN lawfirm_meta f ON f.id = s.lawfirm_id
        ORDER BY s.lawfirm_id`,
     );
+    const required = await q(REQUIRED_OUTSTANDING_SQL);
+    const requiredByFirm = new Map<number, string[]>();
+    required.rows.forEach((r) => {
+      const list = requiredByFirm.get(r.lawfirm_id) || [];
+      list.push(r.id as string);
+      requiredByFirm.set(r.lawfirm_id, list);
+    });
     return rows.map((r) => {
       const tier = r.tier as FirmTier;
       const startedAt = iso(r.started_at);
@@ -173,14 +216,17 @@ export class PlatformService implements OnModuleInit {
         cancelledAt: r.cancelled_at ? iso(r.cancelled_at) : undefined,
         pendingTier: (r.pending_tier as FirmTier) || undefined,
         pendingChargeId: (r.pending_charge_id as string) || undefined,
+        requiredChargeIds: r.pending_tier ? requiredByFirm.get(r.lawfirm_id) || [] : undefined,
       };
     });
   }
 
   private async loadCharges(): Promise<SubscriptionCharge[]> {
     const { rows } = await q(
-      `SELECT ch.*, f.name AS firm_name
-       FROM subscription_charges ch JOIN lawfirm_meta f ON f.id = ch.lawfirm_id
+      `SELECT ch.*, f.name AS firm_name, p.mode AS payment_mode
+       FROM subscription_charges ch
+       JOIN lawfirm_meta f ON f.id = ch.lawfirm_id
+       LEFT JOIN subscription_payments p ON p.charge_id = ch.id
        ORDER BY ch.issued_at`,
     );
     return rows.map((r) => ({
@@ -198,6 +244,7 @@ export class PlatformService implements OnModuleInit {
       status: r.status as ChargeStatus,
       issuedAt: iso(r.issued_at),
       paidAt: r.paid_at ? iso(r.paid_at) : undefined,
+      paymentMode: (r.payment_mode as PaymentMode) || undefined,
     }));
   }
 
@@ -249,7 +296,7 @@ export class PlatformService implements OnModuleInit {
        JOIN lawfirm_meta f ON f.id = s.lawfirm_id
        LEFT JOIN tier_pricing tp ON tp.tier = f.tier
        WHERE s.status <> 'cancelled'
-       ON CONFLICT (subscription_id, period, kind) DO NOTHING`,
+       ON CONFLICT (subscription_id, period) WHERE kind = 'monthly' DO NOTHING`,
       [period, periodStart, periodEnd],
     );
   }
@@ -494,7 +541,13 @@ export class PlatformService implements OnModuleInit {
     const fid = Number(firmId.replace('firm-', ''));
 
     if (dto.tier) {
+      // Superadmin override. A pending change to this same tier is now moot.
       await this.usersService.updateFirmTier(firmId, dto.tier);
+      await q(
+        `UPDATE subscriptions SET pending_tier = NULL, pending_charge_id = NULL
+         WHERE lawfirm_id = $1 AND pending_tier = $2`,
+        [fid, dto.tier],
+      );
     }
 
     if (dto.status) {
@@ -542,36 +595,40 @@ export class PlatformService implements OnModuleInit {
     return this.getCharges(firmId);
   }
 
-  async updateChargeStatus(id: string, status: ChargeStatus): Promise<SubscriptionCharge> {
-    await this.syncSubscriptions();
-    const res = await q(
-      `UPDATE subscription_charges SET status = $2, paid_at = $3 WHERE id = $1`,
-      [id, status, status === 'Paid' ? new Date() : null],
-    );
-    if (!res.rowCount) {
-      throw new NotFoundException(`Subscription charge "${id}" not found`);
+  /**
+   * SUPERADMIN: set a charge's status.
+   *  - 'Paid'    → recorded as a manual settlement through the same path as a
+   *                firm payment (so the plan-activation rule applies equally).
+   *  - 'Pending' / 'Overdue' → bookkeeping only; a Paid charge can never be
+   *                re-opened, because a payment was already recorded for it.
+   */
+  async updateChargeStatus(
+    id: string,
+    status: ChargeStatus,
+    actorId?: string,
+  ): Promise<SubscriptionCharge> {
+    if (!['Paid', 'Pending', 'Overdue'].includes(status)) {
+      throw new BadRequestException('status must be one of: Paid, Pending, Overdue');
     }
-    await this.applyIfTierChangeCharge(id);
+    if (status === 'Paid') {
+      return this.settleCharge(id, { mode: 'manual', paidBy: actorId });
+    }
+    const charge = await this.getChargeById(id);
+    if (charge.status === 'Paid') {
+      throw new ConflictException('A paid charge cannot be re-opened.');
+    }
+    await q(`UPDATE subscription_charges SET status = $2 WHERE id = $1`, [id, status]);
     return this.getChargeById(id);
   }
 
   /**
-   * Firm-scoped write: a firmadmin may only settle a charge that belongs to
-   * their own firm, and may only mark it Paid — the Pending/Overdue states
-   * are the platform's own bookkeeping, not the firm's to set.
+   * FIRM ADMIN: pay one of their own firm's charges. There is no payment
+   * gateway in this project, so this is recorded honestly as a 'simulated'
+   * payment (see subscription_payments.mode) — never as a real transaction.
    */
   async payChargeAsFirm(chargeId: string, callerId: string | undefined): Promise<SubscriptionCharge> {
-    await this.syncSubscriptions();
     const firmId = await this.resolveCallerFirmId(callerId);
-
-    const charge = await this.getChargeById(chargeId);
-    if (charge.firmId !== firmId) {
-      throw new ForbiddenException(
-        'You can only pay subscription charges that belong to your own firm',
-      );
-    }
-
-    return this.updateChargeStatus(chargeId, 'Paid');
+    return this.settleCharge(chargeId, { firmId, mode: 'simulated', paidBy: callerId });
   }
 
   private async getChargeById(id: string): Promise<SubscriptionCharge> {
@@ -584,32 +641,101 @@ export class PlatformService implements OnModuleInit {
   }
 
   /**
-   * A 'tier_change' charge is a promise, not just a bill: paying it is the
-   * moment the firm actually switches plans. Called right after any path
-   * marks a charge Paid — a no-op for ordinary 'monthly' charges.
+   * The ONE place a charge becomes Paid. Everything happens in a single
+   * transaction while holding the firm's subscription row lock, so concurrent
+   * payments / plan requests for the same firm are serialised:
+   *   1. ownership check (firmId, when the caller is a firm),
+   *   2. already Paid → return as-is (idempotent: no second payment row),
+   *   3. record the payment + mark the charge Paid,
+   *   4. re-evaluate the pending plan change on the server and activate it
+   *      only if every required charge is now settled.
    */
-  private async applyIfTierChangeCharge(chargeId: string): Promise<void> {
-    const charge = await this.getChargeById(chargeId);
-    if (charge.kind !== 'tier_change' || !charge.targetTier) return;
+  private async settleCharge(
+    chargeId: string,
+    opts: { firmId?: string; mode: PaymentMode; paidBy?: string },
+  ): Promise<SubscriptionCharge> {
+    await this.syncSubscriptions();
 
-    const fid = Number(charge.firmId.replace('firm-', ''));
-    await this.usersService.updateFirmTier(charge.firmId, charge.targetTier);
-    await q(
-      `UPDATE subscriptions SET pending_tier = NULL, pending_charge_id = NULL
-       WHERE lawfirm_id = $1 AND pending_charge_id = $2`,
-      [fid, charge.id],
-    );
+    await tx(async (c) => {
+      const found = await c.query(
+        `SELECT lawfirm_id FROM subscription_charges WHERE id = $1`,
+        [chargeId],
+      );
+      if (!found.rows[0]) {
+        throw new NotFoundException(`Subscription charge "${chargeId}" not found`);
+      }
+      const fid = found.rows[0].lawfirm_id as number;
+      if (opts.firmId && opts.firmId !== `firm-${fid}`) {
+        throw new ForbiddenException(
+          'You can only pay subscription charges that belong to your own firm',
+        );
+      }
+
+      // Lock order is always: subscription row, then the charge row.
+      await c.query(`SELECT 1 FROM subscriptions WHERE lawfirm_id = $1 FOR UPDATE`, [fid]);
+      const locked = await c.query(
+        `SELECT status, amount FROM subscription_charges WHERE id = $1 FOR UPDATE`,
+        [chargeId],
+      );
+
+      if (locked.rows[0].status !== 'Paid') {
+        await c.query(
+          `INSERT INTO subscription_payments (id, charge_id, lawfirm_id, amount, mode, paid_by)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (charge_id) DO NOTHING`,
+          [`PAY-${chargeId}`, chargeId, fid, locked.rows[0].amount, opts.mode, opts.paidBy || null],
+        );
+        await c.query(
+          `UPDATE subscription_charges SET status = 'Paid', paid_at = CURRENT_TIMESTAMP WHERE id = $1`,
+          [chargeId],
+        );
+      }
+      await this.activateIfEligible(c, fid);
+    });
+
+    return this.getChargeById(chargeId);
   }
 
   /**
-   * Request a plan change. This does not move the firm onto the new tier —
-   * it issues a one-time charge for the new plan's price, and only paying
-   * that charge (payChargeAsFirm / updateChargeStatus) actually applies it.
+   * Server-side activation check (the only code that moves a firm onto a
+   * pending tier). Runs inside the caller's transaction: activates the pending
+   * tier iff NO required charge (see REQUIRED_OUTSTANDING_SQL) is still unpaid.
+   * Safe to call any number of times — once activated, pending is cleared.
+   */
+  private async activateIfEligible(c: PoolClient, fid: number): Promise<boolean> {
+    const sub = await c.query(
+      `SELECT pending_tier, pending_charge_id FROM subscriptions WHERE lawfirm_id = $1`,
+      [fid],
+    );
+    const pendingTier = sub.rows[0]?.pending_tier as FirmTier | null;
+    if (!pendingTier || !sub.rows[0].pending_charge_id) return false;
+
+    const blocking = await c.query(`${REQUIRED_OUTSTANDING_SQL} AND s.lawfirm_id = $1`, [fid]);
+    if (blocking.rows.length > 0) return false;
+
+    await c.query(
+      `UPDATE lawfirm_meta SET tier = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      [fid, pendingTier],
+    );
+    await c.query(
+      `UPDATE subscriptions SET pending_tier = NULL, pending_charge_id = NULL WHERE lawfirm_id = $1`,
+      [fid],
+    );
+    return true;
+  }
+
+  /**
+   * Request a plan change. This never moves the firm onto the new tier — it
+   * records a pending change and one charge for the new plan's price. The tier
+   * only changes in activateIfEligible, after every required charge is paid.
    *
-   * Requesting the tier the firm is already on cancels a pending request
-   * instead of erroring, so "change your mind" doesn't need a separate
-   * endpoint. Requesting again while a request is already pending replaces
-   * the old unpaid charge rather than stacking a second one.
+   * Idempotent and race-safe (single transaction under the subscription row
+   * lock, plus a partial unique index on unpaid tier-change charges):
+   *  - same target requested again          → returns the existing request,
+   *  - a different target while one is open → replaces the unpaid request,
+   *  - the active tier                      → cancels the unpaid request,
+   *  - once the plan-change charge is Paid the request can no longer be
+   *    swapped or cancelled (409).
    */
   async requestTierChange(
     firmId: string,
@@ -625,63 +751,78 @@ export class PlatformService implements OnModuleInit {
         );
       }
     }
-
     if (!TIER_LIMITS[targetTier]) {
       throw new BadRequestException(
-        'Invalid tier. Allowed values: Starter, Growth, Enterprise',
+        'Invalid tier. Allowed values: ' + Object.keys(TIER_LIMITS).join(', '),
       );
     }
 
-    const sub = await this.getSubscriptionByFirm(firmId);
-    const fid = Number(firmId.replace('firm-', ''));
-
-    // Clear out any earlier unpaid request before deciding what to do next —
-    // there is only ever one live tier-change charge per firm.
-    if (sub.pendingChargeId) {
-      await q(`DELETE FROM subscription_charges WHERE id = $1`, [sub.pendingChargeId]);
+    await this.syncSubscriptions();
+    const sub = await this.getSubscriptionByFirm(firmId); // 404 when there is none
+    if (sub.status === 'cancelled') {
+      throw new BadRequestException('This subscription is cancelled; plan changes are not possible.');
     }
+    const fid = Number(firmId.replace('firm-', ''));
+    const pricing = await this.loadTierPricing();
 
-    if (targetTier === sub.tier) {
-      await q(
-        `UPDATE subscriptions SET pending_tier = NULL, pending_charge_id = NULL WHERE lawfirm_id = $1`,
+    const chargeId = await tx(async (c) => {
+      await c.query(`SELECT 1 FROM subscriptions WHERE lawfirm_id = $1 FOR UPDATE`, [fid]);
+      // Re-read inside the lock: another request may have changed things.
+      const cur = await c.query(
+        `SELECT f.tier, s.id AS sub_id, s.pending_tier, s.pending_charge_id,
+                pc.status AS pending_status
+         FROM subscriptions s
+         JOIN lawfirm_meta f ON f.id = s.lawfirm_id
+         LEFT JOIN subscription_charges pc ON pc.id = s.pending_charge_id
+         WHERE s.lawfirm_id = $1`,
         [fid],
       );
-      return { subscription: await this.getSubscriptionByFirm(firmId), charge: null };
-    }
+      const row = cur.rows[0];
 
-    const now = new Date();
-    const pricing = await this.loadTierPricing();
-    const chargeId = `PTIER-${firmId.toUpperCase()}-${now.getTime()}`;
-    const charge: SubscriptionCharge = {
-      id: chargeId,
-      subscriptionId: sub.id,
-      firmId: sub.firmId,
-      firmName: sub.firmName,
-      tier: sub.tier,
-      kind: 'tier_change',
-      targetTier,
-      period: monthKey(now),
-      periodStart: now.toISOString(),
-      periodEnd: now.toISOString(),
-      amount: pricing[targetTier],
-      status: 'Pending',
-      issuedAt: now.toISOString(),
+      // Upgrades only: there is no refund flow, so a firm cannot move to a cheaper plan.
+      const order = Object.keys(TIER_LIMITS);
+      if (order.indexOf(targetTier) < order.indexOf(row.tier)) {
+        throw new BadRequestException('Plan downgrades are not supported. You can only upgrade to a higher plan.');
+      }
+
+      if (row.pending_tier) {
+        if (row.pending_tier === targetTier && targetTier !== row.tier) {
+          return row.pending_charge_id as string; // repeated request: nothing new
+        }
+        if (row.pending_status === 'Paid') {
+          throw new ConflictException(
+            `A change to ${row.pending_tier} is already paid and waiting for the remaining dues; it cannot be changed or cancelled.`,
+          );
+        }
+        // Unpaid request being replaced or cancelled: drop it.
+        await c.query(`DELETE FROM subscription_charges WHERE id = $1`, [row.pending_charge_id]);
+        await c.query(
+          `UPDATE subscriptions SET pending_tier = NULL, pending_charge_id = NULL WHERE lawfirm_id = $1`,
+          [fid],
+        );
+      }
+      if (targetTier === row.tier) return null; // back to the active plan: no request
+
+      const now = new Date();
+      const id = `PTIER-${firmId.toUpperCase()}-${now.getTime()}`;
+      await c.query(
+        `INSERT INTO subscription_charges
+           (id, subscription_id, lawfirm_id, tier, kind, target_tier, period,
+            period_start, period_end, amount, status, issued_at)
+         VALUES ($1,$2,$3,$4,'tier_change',$5,$6,$7,$7,$8,'Pending',$7)`,
+        [id, row.sub_id, fid, row.tier, targetTier, monthKey(now), now, pricing[targetTier]],
+      );
+      await c.query(
+        `UPDATE subscriptions SET pending_tier = $2, pending_charge_id = $3 WHERE lawfirm_id = $1`,
+        [fid, targetTier, id],
+      );
+      return id;
+    });
+
+    return {
+      subscription: await this.getSubscriptionByFirm(firmId),
+      charge: chargeId ? await this.getChargeById(chargeId) : null,
     };
-
-    await q(
-      `INSERT INTO subscription_charges
-         (id, subscription_id, lawfirm_id, tier, kind, target_tier, period,
-          period_start, period_end, amount, status, issued_at)
-       VALUES ($1,$2,$3,$4,'tier_change',$5,$6,$7,$8,$9,'Pending',$7)`,
-      [chargeId, sub.id, fid, sub.tier, targetTier, charge.period,
-       now, now, charge.amount],
-    );
-    await q(
-      `UPDATE subscriptions SET pending_tier = $2, pending_charge_id = $3 WHERE lawfirm_id = $1`,
-      [fid, targetTier, chargeId],
-    );
-
-    return { subscription: await this.getSubscriptionByFirm(firmId), charge };
   }
 
   // ── Tier pricing ──────────────────────────────────────────────────────────

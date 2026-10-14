@@ -10,7 +10,7 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
-  UseGuards, Req } from '@nestjs/common';
+  UseGuards, Req, UnauthorizedException } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -102,9 +102,9 @@ export class ConsultationsController {
   // Firm-admin / lawyer / superadmin with optional filters
   // ──────────────────────────────────────────────────────────────────────────
   @Get()
-  @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.SUPERADMIN)
+  @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.INTERN, UserRole.SUPERADMIN)
   @ApiOperation({
-    summary: 'Get all consultations (firmadmin / lawyer / superadmin)',
+    summary: 'Get all consultations (firmadmin / lawyer / intern / superadmin)',
     description:
       'Returns all consultations. Supports optional query filters: clientId, firmId, status, lawyerId.',
   })
@@ -124,11 +124,20 @@ export class ConsultationsController {
   })
   @ApiResponse({ status: 403, description: 'Forbidden – insufficient role' })
   findAll(
+    @Req() req,
     @Query('clientId') clientId?: string,
     @Query('firmId') firmId?: string,
     @Query('status') status?: string,
     @Query('lawyerId') lawyerId?: string,
   ): ConsultationResponseDto[] {
+    // Scope by the logged-in user (JWT), not by what the browser asks for:
+    // firm staff only see their own firm, and a lawyer only their own consultations.
+    const user = req.user;
+    if (!user) throw new UnauthorizedException('Login required');
+    if (user.role !== 'superadmin') {
+      firmId = user.firmId;
+      if (user.role === 'lawyer') lawyerId = user.id;
+    }
     return this.consultationsService.findAll({ clientId, firmId, status, lawyerId });
   }
 
