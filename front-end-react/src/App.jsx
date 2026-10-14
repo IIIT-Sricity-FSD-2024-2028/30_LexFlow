@@ -29,7 +29,6 @@ import AdvocateProfile from './pages/client/AdvocateProfile.jsx';
 import ClientBilling from './pages/client/ClientBilling.jsx';
 import PayNow from './pages/client/PayNow.jsx';
 import Transactions from './pages/client/Transactions.jsx';
-import ConsultationChat from './pages/client/ConsultationChat.jsx';
 
 /* Firm + lawyer pages (lawyers reuse these - roles param controls access) */
 import FirmDashboard from './pages/firm/FirmDashboard.jsx';
