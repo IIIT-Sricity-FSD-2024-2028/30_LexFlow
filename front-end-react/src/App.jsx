@@ -30,6 +30,7 @@ import ClientBilling from './pages/client/ClientBilling.jsx';
 import PayNow from './pages/client/PayNow.jsx';
 import Transactions from './pages/client/Transactions.jsx';
 
+
 /* Firm + lawyer pages (lawyers reuse these - roles param controls access) */
 import FirmDashboard from './pages/firm/FirmDashboard.jsx';
 import FirmCases from './pages/firm/FirmCases.jsx';
@@ -38,11 +39,10 @@ import FirmTasks from './pages/firm/FirmTasks.jsx';
 import FirmBilling from './pages/firm/FirmBilling.jsx';
 import FirmUsers from './pages/firm/FirmUsers.jsx';
 
-/* Shared pages: documents, activity log, schedule */
+/* Shared pages: documents, activity log */
 import DocumentsMain from './pages/documents/DocumentsMain.jsx';
 import CaseDocuments from './pages/documents/CaseDocuments.jsx';
 import ActivityLog from './pages/documents/ActivityLog.jsx';
-import ScheduleManagement from './pages/documents/ScheduleManagement.jsx';
 
 /* Superadmin pages */
 import SADashboard from './pages/superadmin/SADashboard.jsx';
@@ -82,8 +82,7 @@ export default function App() {
   else if (m('/client/billing')) page = <Layout roles={['client']}><ClientBilling /></Layout>;
   else if (m('/client/billing/pay/:id')) page = <Layout roles={['client']}><PayNow {...m('/client/billing/pay/:id')} /></Layout>;
   else if (m('/client/transactions')) page = <Layout roles={['client']}><Transactions /></Layout>;
-  else if (m('/client/chat')) page = <Layout roles={['client']}><ConsultationChat /></Layout>;
-  else if (m('/client/chat/:consId')) page = <Layout roles={['client']}><ConsultationChat {...m('/client/chat/:consId')} /></Layout>;
+
 
   /* ── Firm portal (admin + lawyer + intern; superadmin may peek too) ── */
   else if (m('/firm/dashboard')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmDashboard /></Layout>;
@@ -93,14 +92,13 @@ export default function App() {
   else if (m('/firm/tasks/:caseId')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmTasks {...m('/firm/tasks/:caseId')} /></Layout>;
   else if (m('/firm/billing')) page = <Layout roles={['firmadmin', 'lawyer']}><FirmBilling /></Layout>;
   else if (m('/firm/users')) page = <Layout roles={['firmadmin']}><FirmUsers /></Layout>;
-  else if (m('/firm/chat')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><ConsultationChat staff /></Layout>;
-  else if (m('/firm/chat/:consId')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><ConsultationChat staff {...m('/firm/chat/:consId')} /></Layout>;
 
-  /* ── Documents / schedule / activity log (any signed-in role; data is role-scoped) ── */
+
+  /* ── Documents / activity log (any signed-in role; data is role-scoped) ── */
   else if (m('/documents')) page = <Layout><DocumentsMain /></Layout>;
   else if (m('/documents/:caseId')) page = <Layout><CaseDocuments {...m('/documents/:caseId')} /></Layout>;
   else if (m('/activity-log')) page = <Layout><ActivityLog /></Layout>;
-  else if (m('/schedule')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><ScheduleManagement /></Layout>;
+
 
   /* ── Superadmin console ── */
   else if (m('/superadmin/dashboard')) page = <Layout roles={['superadmin']}><SADashboard /></Layout>;
