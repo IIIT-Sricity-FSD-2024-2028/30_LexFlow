@@ -1,0 +1,242 @@
+/**
+ * Case List (firm + lawyer) - tabbed page: "All Cases" and "Pending Tasks".
+ * Search + filters + pagination (4 per page, like vanilla firm-cases.js /
+ * lawyer-cases.js). Lawyers see only tasks assigned to them.
+ */
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { api } from '../../api/api.js';
+import { useApp } from '../../context/AppContext.jsx';
+import { navigate } from '../../router.jsx';
+import {
+  Button, Card, Badge, StatusBadge, PageHeader, Loading, ErrorBanner, EmptyState,
+  Tabs, FilterDropdown, ChipGroup, Pagination, Input, Select,
+} from '../../components/ui.jsx';
+import Icon from '../../components/Icon.jsx';
+
+const PER_PAGE = 4;
+
+export default function FirmCases() {
+  const { user, toast } = useApp();
+  const role = (user?.role || 'firmadmin').toLowerCase();
+  const isLawyer = role === 'lawyer';
+
+  const [cases, setCases] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [clientNames, setClientNames] = useState({}); // 'cl-1' -> 'Client Alice'
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const [tab, setTab] = useState('all');            // 'all' | 'pending'
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [priorityFilter, setPriorityFilter] = useState('All');
+  const [taskStatusFilter, setTaskStatusFilter] = useState('All');
+  const [page, setPage] = useState(1);
+
+  /* Load cases + tasks in one go. */
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const caseFilters = role === 'client' && user?.id ? { clientId: user.id }
+        : role === 'lawyer' && user?.id ? { lawyerId: user.id }
+        : user?.firmId ? { firmId: user.firmId } : {};
+      const [c, t] = await Promise.all([
+        api.cases.getAll(caseFilters, role),
+        api.tasks.getAll(
+          // Lawyers see only their own tasks; admins see the whole firm.
+          isLawyer ? { assignedUser: user.fullName || user.name, firmId: user?.firmId } : { firmId: user?.firmId },
+          role
+        ),
+      ]);
+      setCases(Array.isArray(c) ? c : []);
+      setTasks(Array.isArray(t) ? t : []);
+      // Cases only hold the client id, so look the names up.
+      const names = {};
+      const ids = [...new Set((Array.isArray(c) ? c : []).map((x) => x.client_id).filter(Boolean))];
+      await Promise.allSettled(ids.map((cid) =>
+        api.users.getById(cid, role).then((u) => { names[cid] = u.fullName || u.name; })));
+      setClientNames(names);
+    } catch (err) {
+      setError(`Could not load cases: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [role, isLawyer, user?.id, user?.firmId, user?.fullName, user?.name]);
+
+  useEffect(() => { load(); }, [load]);
+
+  /* ── Filtering (client-side, like the vanilla scripts) ── */
+  const filteredCases = useMemo(() => {
+    const q = search.toLowerCase();
+    return cases.filter((c) => {
+      const okSearch = !q
+        || `${c.case_type || c.title} ${c.brief_description || ''} ${clientNames[c.client_id] || ''} ${c.cnr}`.toLowerCase().includes(q);
+      const okStatus = statusFilter === 'All' || c.status === statusFilter;
+      return okSearch && okStatus;
+    });
+  }, [cases, search, statusFilter, clientNames]);
+
+  const filteredTasks = useMemo(() => {
+    const q = search.toLowerCase();
+    return tasks.filter((t) => {
+      const okSearch = !q || `${t.name} ${t.caseTitle}`.toLowerCase().includes(q);
+      const okPriority = priorityFilter === 'All' || t.priority === priorityFilter;
+      const okStatus = taskStatusFilter === 'All' || t.status === taskStatusFilter;
+      return okSearch && okPriority && okStatus;
+    });
+  }, [tasks, search, priorityFilter, taskStatusFilter]);
+
+  const list = tab === 'all' ? filteredCases : filteredTasks.filter((t) => t.status === 'Pending');
+  const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+  const safePage = Math.min(page, pages);
+  const visible = list.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+
+  /* Re-assign the lawyer on a case (dropdown inside each card). */
+  const changeLawyer = async (caseId, lawyerId) => {
+    if (!lawyerId) return;
+    try {
+      const lawyer = team.find((l) => l.id === lawyerId);
+      // Only lawyer_id is sent: the backend rejects unknown fields like lawyer_name.
+      await api.cases.update(caseId, { lawyer_id: lawyerId }, role);
+      setCases((cs) => cs.map((c) => (c.id === caseId ? { ...c, lawyer_id: lawyerId, lawyer_name: lawyer?.fullName } : c)));
+      toast('Lawyer updated.');
+    } catch (err) {
+      toast(`Failed to update lawyer: ${err.message}`, 'error');
+    }
+  };
+
+  /* The lawyers shown in the per-card dropdown. */
+  const [team, setTeam] = useState([]);
+  useEffect(() => {
+    api.users.getLawyers(user?.firmId, role)
+      .then((l) => setTeam((Array.isArray(l) ? l : []).filter((u) => (u.role || '').toLowerCase() === 'lawyer')))
+      .catch(() => {});
+  }, [role, user?.firmId]);
+
+  const pendingCount = tasks.filter((t) => t.status === 'Pending').length;
+  // How many filters on the current tab are not "All" (shown on the Filters button).
+  const activeFilters = (tab === 'all' ? [statusFilter] : [priorityFilter, taskStatusFilter])
+    .filter((f) => f !== 'All').length;
+
+  return (
+    <>
+      <PageHeader title="Case List" subtitle={isLawyer ? 'All your assigned cases in the firm.' : 'All cases registered under your firm.'} />
+
+      {/* Search + tabs + filters toolbar */}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <div className="relative max-w-md flex-1">
+          <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Input
+            className="!pl-9"
+            placeholder={tab === 'all' ? 'Search by case name, client or CNR' : 'Enter Task Name to search'}
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          />
+        </div>
+        <Tabs
+          tabs={[
+            { id: 'all', label: 'All Cases' },
+            { id: 'pending', label: 'Pending Tasks', badge: pendingCount },
+          ]}
+          active={tab}
+          onChange={(id) => { setTab(id); setSearch(''); setPage(1); }}
+        />
+        <FilterDropdown label={activeFilters ? `Filters · ${activeFilters}` : 'Filters'}>
+          {tab === 'all' ? (
+            <ChipGroup title="Status" value={statusFilter} onChange={setStatusFilter}
+              options={['All', 'Active', 'Ongoing', 'Evidence Stage', 'Completed', 'Closed']} />
+          ) : (
+            <div className="space-y-4">
+              <ChipGroup title="Priority" value={priorityFilter} onChange={setPriorityFilter}
+                options={['All', 'HIGH', 'MEDIUM', 'LOW']} />
+              <ChipGroup title="Task status" value={taskStatusFilter} onChange={setTaskStatusFilter}
+                options={['All', 'Pending', 'Completed']} />
+            </div>
+          )}
+          {activeFilters > 0 && (
+            <button className="mt-4 text-xs font-semibold text-indigo-600 hover:underline"
+              onClick={() => { setStatusFilter('All'); setPriorityFilter('All'); setTaskStatusFilter('All'); }}>
+              Clear filters
+            </button>
+          )}
+        </FilterDropdown>
+      </div>
+
+      {loading && <Loading text="Loading cases…" />}
+      {!loading && error && <ErrorBanner message={error} onRetry={load} />}
+      {!loading && !error && visible.length === 0 && (
+        <EmptyState icon="briefcase" title={`No ${tab === 'all' ? 'cases' : 'tasks'} match your search.`} />
+      )}
+
+      {/* ── Case cards ── */}
+      {tab === 'all' && visible.map((c) => (
+        <Card key={c.id} className="mb-4 flex cursor-pointer flex-wrap items-center justify-between gap-4 p-5 transition hover:shadow-md"
+          onClick={() => navigate(`/firm/cases/${c.id}`)}>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={c.status || 'Active'} />
+              <Badge>{c.case_type || c.title || 'Case'}</Badge>
+            </div>
+            <h3 className="mt-2 font-bold text-slate-900">{c.brief_description || c.case_type || c.title}</h3>
+            <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+              <Icon name="user" size={12} /> Client: <span className="font-semibold text-slate-700">{clientNames[c.client_id] || '—'}</span>
+            </p>
+            <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+              <Icon name="clock" size={12} /> CNR: <span className="font-mono">{c.cnr || '—'}</span>
+              {c.nextHearing?.date && <span className="ml-3 flex items-center gap-1"><Icon name="calendar" size={12} /> Next hearing: {c.nextHearing.date}</span>}
+            </p>
+          </div>
+          <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+            {/* inline lawyer reassignment (admin convenience) */}
+            {!isLawyer && (
+              <Select value={c.lawyer_id || c.lawyerId || ''} className="!w-44 !text-xs"
+                onChange={(e) => changeLawyer(c.id, e.target.value)}>
+                <option value="">Assign lawyer…</option>
+                {team.map((l) => <option key={l.id} value={l.id}>{l.fullName || l.name}</option>)}
+              </Select>
+            )}
+            <Button variant="outline" className="!text-xs" onClick={() => navigate(`/firm/cases/${c.id}`)}>
+              View Details →
+            </Button>
+          </div>
+        </Card>
+      ))}
+
+      {/* ── Task cards ── */}
+      {tab === 'pending' && visible.map((t) => {
+        const isToday = new Date(t.dueDate).toDateString() === new Date().toDateString();
+        return (
+          <Card key={t.id} className="mb-4 flex flex-wrap items-center justify-between gap-4 p-5">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="amber">{t.status}</Badge>
+                <Badge variant={t.priority === 'HIGH' ? 'red' : 'green'}>{t.priority}</Badge>
+              </div>
+              <h3 className="mt-2 font-bold text-slate-900">{t.name}</h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Case: {t.caseTitle || 'General'} · Due:{' '}
+                <span className={isToday ? 'font-bold text-red-500' : ''}>{fmtDate(t.dueDate)}</span>
+              </p>
+            </div>
+            {t.caseCnr && (
+              <Button variant="outline" className="!text-xs" onClick={() => navigate(`/firm/cases/${t.caseId || t.caseCnr}`)}>
+                View Case
+              </Button>
+            )}
+          </Card>
+        );
+      })}
+
+      <Pagination page={safePage} pages={pages} total={list.length} perPage={PER_PAGE} onPage={setPage} />
+    </>
+  );
+}
+
+/* "dd MMM yyyy" date style used across the firm pages. */
+function fmtDate(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  return isNaN(d) ? v : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
