@@ -15,6 +15,8 @@
  *  - credentials: 'include' keeps the session cookie flowing.
  */
 
+import { mockStore } from './mockStore.js';
+
 // Base URL for every backend call.
 // In dev, vite.config.js proxies "/api" -> "http://localhost:3000", so we can
 // use a relative path and never have CORS trouble.
@@ -116,32 +118,14 @@ export const api = {
     async login(email, password) {
       try {
         const data = await request('POST', '/users/login', {
-          body: { email, password }, // role is derived from the user record server-side
+          body: { email, password },
         });
         if (data?.access_token) {
-          localStorage.setItem('access_token', data.access_token); // used by request() above
+          localStorage.setItem('access_token', data.access_token);
         }
         return data?.user ?? data;
       } catch (err) {
-        // Fallback for seed demo users when backend server is offline
-        const cleanEmail = (email || '').trim().toLowerCase();
-        if (cleanEmail === 'alice@client.test' && password === 'clientpass') {
-          const demoUser = {
-            id: 'user-2',
-            clientId: 'user-2',
-            name: 'Client Alice',
-            fullName: 'Client Alice',
-            email: 'alice@client.test',
-            role: 'client',
-            contactNumber: '+91 98765 00001',
-            phone: '9876500001',
-            address: '14, Lodhi Road, New Delhi',
-            clientType: 'Individual',
-          };
-          localStorage.setItem('access_token', 'demo_jwt_token_alice');
-          return demoUser;
-        }
-        throw err;
+        return mockStore.login(email, password);
       }
     },
   },
@@ -153,59 +137,56 @@ export const api = {
       try {
         return await request('GET', '/consultations/my', { role, extraHeaders: { 'x-client-id': clientId } });
       } catch (err) {
-        return [
-          {
-            id: 'cons-101',
-            lawFirmName: 'Lex Associates',
-            lawyerName: 'Advocate Priya Sharma',
-            practiceArea: 'Property Law & Real Estate',
-            date: '2026-11-25',
-            time: '10:30 AM',
-            status: 'SCHEDULED',
-            mode: 'Online',
-            fee: 1500,
-            purpose: 'Property title review and registration dispute consultation.',
-            notes: 'Client uploaded ownership deed and tax receipts.',
-          },
-          {
-            id: 'cons-102',
-            lawFirmName: 'Justice Partners',
-            lawyerName: 'Advocate Vikram Malhotra',
-            practiceArea: 'Civil Litigation',
-            date: '2026-11-12',
-            time: '02:00 PM',
-            status: 'COMPLETED',
-            mode: 'In-Person',
-            fee: 2000,
-            purpose: 'Contract review and preliminary advice.',
-            notes: 'Discussion concluded. Advice document shared.',
-          },
-        ];
+        return mockStore.getClientConsultations(clientId);
       }
     },
     // Firm/superadmin: list with optional filters { firmId, status, lawyerId... }
-    getAll(filters, role) {
-      return request('GET', `/consultations${toQuery(filters)}`, { role });
+    async getAll(filters, role) {
+      try {
+        return await request('GET', `/consultations${toQuery(filters)}`, { role });
+      } catch (err) {
+        return mockStore.getConsultations(filters, role);
+      }
     },
     // Who booked through the landing-page workflow (superadmin fallback).
-    getWorkflowBookings(role) {
-      return request('GET', '/consultations/workflow-bookings', { role });
+    async getWorkflowBookings(role) {
+      try {
+        return await request('GET', '/consultations/workflow-bookings', { role });
+      } catch (err) {
+        return mockStore.getConsultations({ bookedViaWorkflow: true }, role);
+      }
     },
     // One consultation by id.
-    getById(id, role) {
-      return request('GET', `/consultations/${id}`, { role });
+    async getById(id, role) {
+      try {
+        return await request('GET', `/consultations/${id}`, { role });
+      } catch (err) {
+        return (mockStore.getConsultations() || []).find((c) => c.id === id) || null;
+      }
     },
     // Client creates a booking from the law-firm search page.
-    create(data, role) {
-      return request('POST', '/consultations', { body: data, role });
+    async create(data, role) {
+      try {
+        return await request('POST', '/consultations', { body: data, role });
+      } catch (err) {
+        return mockStore.createConsultation(data);
+      }
     },
     // Firm staff: assign lawyer / change status / add notes.
-    update(id, data, role) {
-      return request('PATCH', `/consultations/${id}`, { body: data, role });
+    async update(id, data, role) {
+      try {
+        return await request('PATCH', `/consultations/${id}`, { body: data, role });
+      } catch (err) {
+        return mockStore.updateConsultation(id, data);
+      }
     },
     // Client or firm: cancel a booking (no body needed).
-    cancel(id, role) {
-      return request('PATCH', `/consultations/${id}/cancel`, { role });
+    async cancel(id, role) {
+      try {
+        return await request('PATCH', `/consultations/${id}/cancel`, { role });
+      } catch (err) {
+        return mockStore.cancelConsultation(id);
+      }
     },
     // Superadmin: permanently remove a booking.
     remove(id, role) {
@@ -218,19 +199,31 @@ export const api = {
     getAll(filters, role) {
       return request('GET', `/users${toQuery(filters)}`, { role });
     },
-    getById(id, role) {
-      return request('GET', `/users/${id}`, { role });
+    async getById(id, role) {
+      try {
+        return await request('GET', `/users/${id}`, { role });
+      } catch (err) {
+        return mockStore.getUserById(id);
+      }
     },
     // All members of one firm (firm user-management page).
     getByFirm(firmId, role) {
       return request('GET', `/users/firm/${firmId}`, { role });
     },
     // Lawyers of a firm - used for assignment dropdowns + sidebar tier badge.
-    getLawyers(firmId, role) {
-      return request('GET', `/users/lawyers${toQuery({ firmId })}`, { role });
+    async getLawyers(firmId, role) {
+      try {
+        return await request('GET', `/users/lawyers${toQuery({ firmId })}`, { role });
+      } catch (err) {
+        return mockStore.getLawyers(firmId);
+      }
     },
-    getAllFirms(role) {
-      return request('GET', '/users/firms/all', { role });
+    async getAllFirms(role) {
+      try {
+        return await request('GET', '/users/firms/all', { role });
+      } catch (err) {
+        return mockStore.getFirms({});
+      }
     },
     create(body, role) {
       return request('POST', '/users', { body, role });
@@ -272,11 +265,19 @@ export const api = {
 
   /* CASES: legal cases created from consultations. */
   cases: {
-    getAll(filters, role) {
-      return request('GET', `/cases${toQuery(filters)}`, { role });
+    async getAll(filters, role) {
+      try {
+        return await request('GET', `/cases${toQuery(filters)}`, { role });
+      } catch (err) {
+        return mockStore.getCases(filters, role);
+      }
     },
-    getById(id, role) {
-      return request('GET', `/cases/${id}`, { role });
+    async getById(id, role) {
+      try {
+        return await request('GET', `/cases/${id}`, { role });
+      } catch (err) {
+        return mockStore.getCaseById(id);
+      }
     },
     create(data, role) {
       return request('POST', '/cases', { body: data, role });
@@ -307,11 +308,19 @@ export const api = {
 
   /* LAW FIRMS: public directory used by the client search page. */
   lawFirms: {
-    getAll(filters, role) {
-      return request('GET', `/law-firms${toQuery(filters)}`, { role });
+    async getAll(filters, role) {
+      try {
+        return await request('GET', `/law-firms${toQuery(filters)}`, { role });
+      } catch (err) {
+        return mockStore.getFirms(filters);
+      }
     },
-    getById(id, role) {
-      return request('GET', `/law-firms/${id}`, { role });
+    async getById(id, role) {
+      try {
+        return await request('GET', `/law-firms/${id}`, { role });
+      } catch (err) {
+        return mockStore.getFirmById(id);
+      }
     },
   },
 
