@@ -26,8 +26,17 @@ export default function ClientOnboarding2() {
       setAlert('Profile data is missing. Please go back to Step 1.');
       return;
     }
-    // Sign the client in (same shape the login page would produce).
-    signIn({ id: draft.id || draft.email, fullName: draft.fullName, email: draft.email, role: 'client' });
+    // Sign the client in with Aadhaar as Primary Key (ID)
+    const clientId = draft.id || draft.aadhaar || draft.email;
+    signIn({
+      id: clientId,
+      clientId: clientId,
+      aadhaar: draft.aadhaar,
+      aadhaarNumber: draft.aadhaar,
+      fullName: draft.fullName,
+      email: draft.email,
+      role: 'client',
+    });
     sessionStorage.removeItem('clientDraft');      // draft no longer needed
     toast('Account created successfully! Redirecting…');
     setTimeout(() => navigate('/client/dashboard'), 400); // tiny delay so the toast is visible
@@ -59,24 +68,24 @@ export default function ClientOnboarding2() {
             <option value="">Select Case Category</option>
             <option value="civil">Civil</option>
             <option value="criminal">Criminal</option>
-            <option value="family">Family</option>
-            <option value="property">Property</option>
             <option value="corporate">Corporate</option>
+            <option value="family">Family</option>
+            <option value="ip">Intellectual Property</option>
           </Select>
         </Field>
         <Field label="Court Name">
-          <Input placeholder="e.g. High Court of Mumbai" value={form.courtName} onChange={set('courtName')} />
+          <Input placeholder="High Court of Delhi" value={form.courtName} onChange={set('courtName')} />
         </Field>
-        <Field label="CNR Number (Optional)" className="md:col-span-2">
-          <Input placeholder="Enter 16-digit CNR Number" maxLength={16} value={form.cnr} onChange={set('cnr')} />
+        <Field label="CNR Number (if assigned)" className="md:col-span-2">
+          <Input placeholder="DLDH01-123456-2026" value={form.cnr} onChange={set('cnr')} />
         </Field>
         <Field label="Brief Description" className="md:col-span-2">
-          <Textarea rows={4} placeholder="Briefly describe the nature of your legal matter..." value={form.description} onChange={set('description')} />
+          <Textarea rows={3} placeholder="Provide a brief overview of your legal situation…" value={form.description} onChange={set('description')} />
         </Field>
 
         <div className="flex gap-3 pt-2 md:col-span-2">
-          <Button variant="outline" type="button" onClick={() => navigate('/onboarding/client/1')}>← Back</Button>
-          <Button type="submit" className="flex-1">Submit Case Info →</Button>
+          <Button variant="ghost" type="button" onClick={() => navigate('/onboarding/client/1')}>← Back</Button>
+          <Button type="submit" className="flex-1">Finish & Go to Dashboard →</Button>
         </div>
       </form>
     </OnboardingShell>

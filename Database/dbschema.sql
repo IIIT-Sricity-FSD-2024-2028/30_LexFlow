@@ -90,6 +90,7 @@ CREATE TABLE lawfirm_admin (
 
 CREATE TABLE clients (
     id              INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    aadhaar_number  VARCHAR(14) UNIQUE CHECK (aadhaar_number ~ '^\d{4}-\d{4}-\d{4}$'),
     client_type     VARCHAR(20) NOT NULL CHECK (client_type IN ('Individual', 'Business')),
     name            VARCHAR(100) NOT NULL,
     contact_number  VARCHAR(15) NOT NULL,

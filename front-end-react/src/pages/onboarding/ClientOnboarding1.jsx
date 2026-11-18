@@ -2,6 +2,8 @@
  * Client Onboarding - Step 1: profile creation.
  * Creates the user on the backend right away, then saves a draft copy in
  * sessionStorage (key: clientDraft) that step 2 reads.
+ * 
+ * Aadhaar card serves as the primary key for clients, formatted as 12 numbers in 4-4-4 (XXXX-XXXX-XXXX).
  */
 
 import { useState } from 'react';
@@ -13,12 +15,22 @@ import {
   validateName, validateEmail, validateIndianPhone, validatePin,
   validateStreet, validateCity, validateState, validatePassword,
   validateConfirm, passwordScore, normalizeIndianPhone,
+  validateAadhaar, formatAadhaar,
 } from '../../lib/validators.js';
 
 export default function ClientOnboarding1() {
   /* One state object for the whole form. */
   const [form, setForm] = useState({
-    fullName: '', email: '', phone: '', street: '', city: '', state: '', zip: '', password: '', confirm: '',
+    fullName: '',
+    email: '',
+    aadhaar: '', // Aadhaar card as client primary key (12 digits 4-4-4)
+    phone: '',
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
+    password: '',
+    confirm: '',
   });
   /* errors holds one message per field (only fields with an error show red). */
   const [errors, setErrors] = useState({});
@@ -28,7 +40,8 @@ export default function ClientOnboarding1() {
   /* Small helper to update one field of the form object. */
   const set = (key) => (e) => {
     let { value } = e.target;
-    // Simple input masks, exactly like the vanilla version:
+    // Input masks:
+    if (key === 'aadhaar') value = formatAadhaar(value);                        // 4-4-4 Aadhaar format
     if (key === 'phone') value = value.replace(/[^\d+ ()-]/g, '').slice(0, 15); // phone characters
     if (key === 'zip') value = value.replace(/\D/g, '').slice(0, 6);            // digits only
     setForm((f) => ({ ...f, [key]: value }));
@@ -45,6 +58,7 @@ export default function ClientOnboarding1() {
     const er = {
       fullName: validateName(form.fullName),
       email: validateEmail(form.email),
+      aadhaar: validateAadhaar(form.aadhaar),
       phone: validateIndianPhone(form.phone),
       street: validateStreet(form.street),
       city: validateCity(form.city),
@@ -65,9 +79,12 @@ export default function ClientOnboarding1() {
     }
     setBusy(true);
     try {
-      // 1. Create the account on the backend.
+      // 1. Create the account with Aadhaar card as the Primary Key (ID)
       await api.users.create(
         {
+          id: form.aadhaar.trim(),
+          aadhaar: form.aadhaar.trim(),
+          aadhaarNumber: form.aadhaar.trim(),
           fullName: form.fullName.trim(),
           email: form.email.trim().toLowerCase(),
           role: 'client',
@@ -79,6 +96,8 @@ export default function ClientOnboarding1() {
 
       // 2. Keep a draft so step 2 can merge case info with profile info.
       sessionStorage.setItem('clientDraft', JSON.stringify({
+        id: form.aadhaar.trim(),
+        aadhaar: form.aadhaar.trim(),
         fullName: form.fullName.trim(),
         email: form.email.trim().toLowerCase(),
         phone: normalizeIndianPhone(form.phone),
@@ -108,7 +127,7 @@ export default function ClientOnboarding1() {
   return (
     <OnboardingShell steps={['Profile', 'Case Details']} current={0}>
       <h1 className="text-2xl font-bold text-slate-900">Create your client account</h1>
-      <p className="mt-1 text-sm text-slate-500">Step 1 — tell us who you are.</p>
+      <p className="mt-1 text-sm text-slate-500">Step 1 — tell us who you are. Aadhaar is used as your unique client primary key.</p>
 
       <FormAlert message={alert} />
 
@@ -119,6 +138,28 @@ export default function ClientOnboarding1() {
         <Field label="Email Address" required error={errors.email}>
           <Input type="email" placeholder="john@example.com" value={form.email} onChange={set('email')} error={!!errors.email} />
         </Field>
+
+        {/* Aadhaar Card Number - Primary Key (12 digits, 4-4-4 format) */}
+        <Field
+          label="Aadhaar Card Number (Primary Key)"
+          required
+          error={errors.aadhaar}
+          className="md:col-span-2"
+        >
+          <Input
+            id="aadhaar-input"
+            name="aadhaar"
+            placeholder="5432-8765-4321"
+            value={form.aadhaar}
+            onChange={set('aadhaar')}
+            maxLength={14}
+            error={!!errors.aadhaar}
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Must be 12 digits in 4-4-4 format (e.g., 5432-8765-4321). This acts as your unique client identifier.
+          </p>
+        </Field>
+
         <Field label="Phone Number" required error={errors.phone}>
           <Input placeholder="+91 98765 43210" value={form.phone} onChange={set('phone')} error={!!errors.phone} />
         </Field>

@@ -1,6 +1,8 @@
 /**
  * User Management (firmAdmin only) - list, search, filter, add, edit,
  * delete firm members + a JSON export button. Pagination: 8 per page.
+ * 
+ * Supports Bar Number verification for lawyers and 12-digit (4-4-4) Aadhaar as client primary key.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -12,6 +14,10 @@ import {
 } from '../../components/ui.jsx';
 import Icon from '../../components/Icon.jsx';
 import { roleLabel } from '../../lib/format.js';
+import {
+  validateBarNumber, verifyBarNumber, formatBarNumber,
+  validateAadhaar, formatAadhaar, verifyAadhaar,
+} from '../../lib/validators.js';
 
 const PER_PAGE = 8;
 
@@ -40,7 +46,7 @@ export default function FirmUsers() {
     setLoading(true);
     setError('');
     try {
-      const list = await api.users.getByFirm(user.firmId, (localStorage.getItem('userRole') || 'firmadmin').toLowerCase());
+      const list = await api.users.getByFirm(user?.firmId || 'firm-1', (localStorage.getItem('userRole') || 'firmadmin').toLowerCase());
       setUsers(Array.isArray(list) ? list : []);
     } catch (err) {
       setError(`Could not load users: ${err.message}`);
@@ -55,7 +61,7 @@ export default function FirmUsers() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return users.filter((u) => {
-      const okSearch = !q || `${u.fullName || u.name} ${u.email}`.toLowerCase().includes(q);
+      const okSearch = !q || `${u.fullName || u.name} ${u.email} ${u.barNumber || ''} ${u.aadhaar || ''} ${u.id}`.toLowerCase().includes(q);
       const okRole = roleFilter === 'all' || u.role === roleFilter;
       return okSearch && okRole;
     });
@@ -80,19 +86,51 @@ export default function FirmUsers() {
       toast('Please enter a valid email address.', 'error');
       return;
     }
+
+    // Role-specific validations:
+    if (form.role === 'lawyer') {
+      const barErr = validateBarNumber(form.barNumber);
+      if (barErr) {
+        toast(barErr, 'error');
+        return;
+      }
+    }
+
+    if (form.role === 'client') {
+      const aadhaarErr = validateAadhaar(form.aadhaar);
+      if (aadhaarErr) {
+        toast(aadhaarErr, 'error');
+        return;
+      }
+    }
+
     setBusy(true);
     try {
+      const payload = {
+        fullName: form.fullName.trim(),
+        email: form.email.trim(),
+        phone: form.phone || '',
+        role: form.role,
+        accountStatus: form.accountStatus,
+        availability: form.availability,
+        firmId: user?.firmId || 'firm-1',
+        barNumber: form.role === 'lawyer' ? formatBarNumber(form.barNumber) : undefined,
+        barEnrollmentNumber: form.role === 'lawyer' ? formatBarNumber(form.barNumber) : undefined,
+        aadhaar: form.role === 'client' ? formatAadhaar(form.aadhaar) : undefined,
+        aadhaarNumber: form.role === 'client' ? formatAadhaar(form.aadhaar) : undefined,
+      };
+
       if (form.id) {
-        await api.users.update(form.id, {
-          fullName: form.fullName.trim(), email: form.email.trim(), phone: form.phone || '',
-          role: form.role, accountStatus: form.accountStatus, availability: form.availability, firmId: user.firmId,
-        }, 'firmadmin');
+        await api.users.update(form.id, payload, 'firmadmin');
         toast('User updated successfully.');
       } else {
+        // If client, set id to Aadhaar primary key
+        if (form.role === 'client') {
+          payload.id = formatAadhaar(form.aadhaar);
+        }
         await api.users.create({
-          fullName: form.fullName.trim(), email: form.email.trim(), phone: form.phone || '',
-          role: form.role, accountStatus: form.accountStatus, availability: form.availability,
-          firmId: user.firmId, password: 'changeme123', // default password, like vanilla
+          ...payload,
+          password: 'changeme123', // default password, like vanilla
         }, 'firmadmin');
         toast('User created successfully.');
       }
@@ -135,8 +173,19 @@ export default function FirmUsers() {
     <>
       <PageHeader
         title="User Management"
-        subtitle="Invite and manage the members of your firm."
-        actions={<Button onClick={() => { setForm({ fullName: '', email: '', phone: '', role: 'lawyer', accountStatus: 'active', availability: 'available' }); }}>
+        subtitle="Invite and manage the members of your firm with verified Bar and Aadhaar credentials."
+        actions={<Button id="add-user-btn" onClick={() => {
+          setForm({
+            fullName: '',
+            email: '',
+            phone: '',
+            role: 'lawyer',
+            barNumber: '',
+            aadhaar: '',
+            accountStatus: 'active',
+            availability: 'available',
+          });
+        }}>
           <Icon name="plus" size={14} /> Add New User
         </Button>}
       />
@@ -155,7 +204,7 @@ export default function FirmUsers() {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative max-w-md flex-1">
           <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <Input className="!pl-9" placeholder="Search users..." value={search}
+          <Input className="!pl-9" placeholder="Search users by name, email, bar no, aadhaar..." value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         </div>
         <Select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }} className="!w-44">
@@ -175,46 +224,87 @@ export default function FirmUsers() {
         <Card>
           <Table>
             <thead>
-              <tr><Th>Name</Th><Th>Email</Th><Th>Role</Th><Th>Status</Th><Th>Actions</Th></tr>
+              <tr>
+                <Th>Name & Identity</Th>
+                <Th>Email & Phone</Th>
+                <Th>Role</Th>
+                <Th>Credential (Bar No. / Aadhaar PK)</Th>
+                <Th>Status</Th>
+                <Th>Actions</Th>
+              </tr>
             </thead>
             <tbody>
-              {visible.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50">
-                  <Td>
-                    <span className="flex items-center gap-3">
-                      <Avatar name={u.fullName || u.name} />
-                      <span>
-                        <span className="block font-semibold text-slate-800">{u.fullName || u.name}</span>
-                        <span className="block text-xs text-slate-400">ID: {u.id}</span>
+              {visible.map((u) => {
+                const isLawyer = (u.role || '').toLowerCase() === 'lawyer';
+                const isClient = (u.role || '').toLowerCase() === 'client';
+                const barNum = u.barNumber || u.barEnrollmentNumber;
+                const aadhaarNum = u.aadhaar || u.aadhaarNumber || (isClient && /^\d{4}-\d{4}-\d{4}$/.test(u.id) ? u.id : null);
+
+                return (
+                  <tr key={u.id} className="hover:bg-slate-50">
+                    <Td>
+                      <span className="flex items-center gap-3">
+                        <Avatar name={u.fullName || u.name} />
+                        <span>
+                          <span className="block font-semibold text-slate-800">{u.fullName || u.name}</span>
+                          <span className="block text-xs text-slate-400">ID: {u.id}</span>
+                        </span>
                       </span>
-                    </span>
-                  </Td>
-                  <Td>{u.email}</Td>
-                  <Td><Badge variant={roleTone[u.role] || 'slate'}>{roleLabel(u.role)}</Badge></Td>
-                  <Td>
-                    <span className="flex items-center gap-2 text-xs">
-                      <span className={`h-2 w-2 rounded-full ${u.availability !== 'unavailable' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                      {u.availability === 'unavailable' ? 'Unavailable' : 'Available'}
-                      <Badge variant={u.accountStatus === 'inactive' ? 'red' : 'green'} className="capitalize">{u.accountStatus || 'active'}</Badge>
-                    </span>
-                  </Td>
-                  <Td>
-                    <div className="flex gap-1">
-                      <button title="Edit" aria-label="Edit user" onClick={() => setForm({
-                        id: u.id, fullName: u.fullName || u.name || '', email: u.email || '', phone: u.phone || '',
-                        role: u.role, accountStatus: u.accountStatus || 'active', availability: u.availability || 'available',
-                      })}
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600">
-                        <Icon name="edit" size={14} />
-                      </button>
-                      <button title="Delete" aria-label="Delete user" onClick={() => deleteUser(u)}
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500">
-                        <Icon name="trash" size={14} />
-                      </button>
-                    </div>
-                  </Td>
-                </tr>
-              ))}
+                    </Td>
+                    <Td>
+                      <div>
+                        <span className="block text-sm text-slate-700">{u.email}</span>
+                        {u.phone && <span className="block text-xs text-slate-400">{u.phone}</span>}
+                      </div>
+                    </Td>
+                    <Td><Badge variant={roleTone[u.role] || 'slate'}>{roleLabel(u.role)}</Badge></Td>
+                    <Td>
+                      {isLawyer && barNum && (
+                        <div>
+                          <Badge variant="indigo" className="font-mono text-xs">{barNum}</Badge>
+                          <span className="mt-0.5 block text-[11px] text-slate-400">Bar Verified</span>
+                        </div>
+                      )}
+                      {isClient && aadhaarNum && (
+                        <div>
+                          <Badge variant="green" className="font-mono text-xs">{aadhaarNum}</Badge>
+                          <span className="mt-0.5 block text-[11px] text-slate-400">Aadhaar (PK)</span>
+                        </div>
+                      )}
+                      {!barNum && !aadhaarNum && <span className="text-xs text-slate-400">—</span>}
+                    </Td>
+                    <Td>
+                      <span className="flex items-center gap-2 text-xs">
+                        <span className={`h-2 w-2 rounded-full ${u.availability !== 'unavailable' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        {u.availability === 'unavailable' ? 'Unavailable' : 'Available'}
+                        <Badge variant={u.accountStatus === 'inactive' ? 'red' : 'green'} className="capitalize">{u.accountStatus || 'active'}</Badge>
+                      </span>
+                    </Td>
+                    <Td>
+                      <div className="flex gap-1">
+                        <button title="Edit" aria-label="Edit user" onClick={() => setForm({
+                          id: u.id,
+                          fullName: u.fullName || u.name || '',
+                          email: u.email || '',
+                          phone: u.phone || '',
+                          role: u.role,
+                          barNumber: u.barNumber || u.barEnrollmentNumber || '',
+                          aadhaar: u.aadhaar || u.aadhaarNumber || '',
+                          accountStatus: u.accountStatus || 'active',
+                          availability: u.availability || 'available',
+                        })}
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600">
+                          <Icon name="edit" size={14} />
+                        </button>
+                        <button title="Delete" aria-label="Delete user" onClick={() => deleteUser(u)}
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500">
+                          <Icon name="trash" size={14} />
+                        </button>
+                      </div>
+                    </Td>
+                  </tr>
+                );
+              })}
             </tbody>
           </Table>
           <div className="px-4 pb-4">
@@ -228,27 +318,77 @@ export default function FirmUsers() {
         subtitle={form?.id ? 'Update this member\'s details.' : 'They can change their password after first login.'}
         footer={<>
           <Button variant="ghost" onClick={() => setForm(null)}>Cancel</Button>
-          <Button loading={busy} onClick={saveUser}>{form?.id ? 'Save Changes' : 'Create User'}</Button>
+          <Button id="submit-user-btn" loading={busy} onClick={saveUser}>{form?.id ? 'Save Changes' : 'Create User'}</Button>
         </>}>
         {form && (
           <div className="space-y-4">
             <Field label="Full Name" required>
-              <Input value={form.fullName} maxLength={80} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} />
+              <Input id="user-fullname-input" value={form.fullName} maxLength={80} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} />
             </Field>
             <Field label="Email" required>
-              <Input type="email" value={form.email} maxLength={120} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+              <Input id="user-email-input" type="email" value={form.email} maxLength={120} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
             </Field>
             <Field label="Phone">
               <Input value={form.phone} maxLength={16} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
             </Field>
             {/* Firm Admin option only appears when editing an actual admin (vanilla rule) */}
             <Field label="Role" required>
-              <Select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
+              <Select id="user-role-select" value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
                 {['lawyer', 'intern', 'client', ...(form.id && form.role === 'firmadmin' ? ['firmadmin'] : [])].map((r) => (
                   <option key={r} value={r}>{roleLabel(r)}</option>
                 ))}
               </Select>
             </Field>
+
+            {/* Lawyer-specific Bar Number input & live verification */}
+            {form.role === 'lawyer' && (
+              <Field label="Bar Council Enrollment Number" required>
+                <Input
+                  id="bar-number-input"
+                  placeholder="e.g. MAH/1234/2018 or DL/5678/2015"
+                  value={form.barNumber || ''}
+                  onChange={(e) => setForm((f) => ({ ...f, barNumber: e.target.value }))}
+                />
+                {(() => {
+                  if (!form.barNumber) return (
+                    <p className="mt-1 text-xs text-slate-500">Format: [STATE]/[ROLL_NO]/[YEAR] (e.g. MAH/1234/2018)</p>
+                  );
+                  const v = verifyBarNumber(form.barNumber);
+                  return v.isValid ? (
+                    <p className="mt-1 text-xs font-semibold text-emerald-600">
+                      ✓ Verified: {v.council} (Roll #{v.rollNumber}, Year {v.year})
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-red-500">{v.error}</p>
+                  );
+                })()}
+              </Field>
+            )}
+
+            {/* Client-specific Aadhaar Card Primary Key input (12 digits, 4-4-4) */}
+            {form.role === 'client' && (
+              <Field label="Aadhaar Card Number (Client Primary Key)" required>
+                <Input
+                  id="client-aadhaar-input"
+                  placeholder="5432-8765-4321"
+                  maxLength={14}
+                  value={form.aadhaar || ''}
+                  onChange={(e) => setForm((f) => ({ ...f, aadhaar: formatAadhaar(e.target.value) }))}
+                />
+                {(() => {
+                  if (!form.aadhaar) return (
+                    <p className="mt-1 text-xs text-slate-500">12 digits in 4-4-4 format. Used as client primary key.</p>
+                  );
+                  const v = verifyAadhaar(form.aadhaar);
+                  return v.isValid ? (
+                    <p className="mt-1 text-xs font-semibold text-emerald-600">✓ Valid 12-digit Aadhaar Card (4-4-4)</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-red-500">{v.error}</p>
+                  );
+                })()}
+              </Field>
+            )}
+
             {/* account status + availability toggles */}
             <div className="grid grid-cols-2 gap-4">
               <Field label="Account Status">

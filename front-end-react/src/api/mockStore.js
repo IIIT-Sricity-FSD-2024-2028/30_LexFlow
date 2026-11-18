@@ -6,6 +6,8 @@
  * in localStorage so the client → firm consultation request workflow works seamlessly.
  */
 
+import { verifyBarNumber, verifyAadhaar, formatAadhaar } from '../lib/validators.js';
+
 export const INITIAL_FIRMS = [
   {
     id: 'firm-1',
@@ -432,9 +434,12 @@ export const INITIAL_CASES = [
 
 export const INITIAL_USERS = [
   {
-    id: 'cl-1',
-    clientId: 'cl-1',
-    userId: 'cl-1',
+    id: '5432-8765-4321', // Aadhaar card as primary key for client (12 numbers in 4-4-4 format)
+    aadhaar: '5432-8765-4321',
+    aadhaarNumber: '5432-8765-4321',
+    clientId: '5432-8765-4321',
+    userId: '5432-8765-4321',
+    legacyId: 'cl-1',
     name: 'Client Alice',
     fullName: 'Client Alice',
     email: 'alice@client.test',
@@ -467,6 +472,11 @@ export const INITIAL_USERS = [
     firmId: 'firm-1',
     firmName: 'Sharma & Associates',
     phone: '+91 98765 43215',
+    barNumber: 'MAH/1234/2018',
+    barEnrollmentNumber: 'MAH/1234/2018',
+    barCouncilId: 'MAH/1234/2018',
+    barCouncil: 'Bar Council of Maharashtra & Goa',
+    experience: 15,
   },
   {
     id: 'lw-2',
@@ -478,6 +488,11 @@ export const INITIAL_USERS = [
     firmId: 'firm-1',
     firmName: 'Sharma & Associates',
     phone: '+91 98765 43216',
+    barNumber: 'DL/5678/2015',
+    barEnrollmentNumber: 'DL/5678/2015',
+    barCouncilId: 'DL/5678/2015',
+    barCouncil: 'Bar Council of Delhi',
+    experience: 12,
   },
   {
     id: 'lw-3',
@@ -489,6 +504,11 @@ export const INITIAL_USERS = [
     firmId: 'firm-1',
     firmName: 'Sharma & Associates',
     phone: '+91 98765 43217',
+    barNumber: 'KAR/9012/2020',
+    barEnrollmentNumber: 'KAR/9012/2020',
+    barCouncilId: 'KAR/9012/2020',
+    barCouncil: 'Bar Council of Karnataka',
+    experience: 8,
   },
   {
     id: 'sa-1',
@@ -513,7 +533,7 @@ class MockStore {
         localStorage.setItem('lexflow_consultations', JSON.stringify(INITIAL_CONSULTATIONS));
         localStorage.setItem('lexflow_cases', JSON.stringify(INITIAL_CASES));
         localStorage.setItem('lexflow_users', JSON.stringify(INITIAL_USERS));
-        localStorage.setItem('lexflow_store_seeded', 'v3');
+        localStorage.setItem('lexflow_store_seeded', 'v4');
       }
     } catch (e) {
       console.warn('[MockStore] Failed to initialize storage:', e);
@@ -662,7 +682,119 @@ class MockStore {
 
   getUserById(id) {
     const users = this._read('lexflow_users', INITIAL_USERS);
-    return users.find((u) => u.id === id || u.userId === id || u.clientId === id) || null;
+    return users.find((u) => u.id === id || u.userId === id || u.clientId === id || u.aadhaar === id || u.legacyId === id) || null;
+  }
+
+  getUsers(filters = {}) {
+    let list = this._read('lexflow_users', INITIAL_USERS);
+    if (filters.role) {
+      list = list.filter((u) => (u.role || '').toLowerCase() === filters.role.toLowerCase());
+    }
+    if (filters.firmId) {
+      list = list.filter((u) => u.firmId === filters.firmId || u.firmId === `firm-${filters.firmId}`);
+    }
+    return list;
+  }
+
+  getUsersByFirm(firmId) {
+    const users = this._read('lexflow_users', INITIAL_USERS);
+    return users.filter((u) => !firmId || u.firmId === firmId || u.firmId === `firm-${firmId}`);
+  }
+
+  createUser(data) {
+    const users = this._read('lexflow_users', INITIAL_USERS);
+    const role = (data.role || '').toLowerCase();
+    let id = data.id;
+
+    // Aadhaar card as primary key for clients (12 numbers in 4-4-4 format)
+    let aadhaar = data.aadhaar || data.aadhaarNumber;
+    if (role === 'client') {
+      if (!aadhaar) {
+        const rand = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+        aadhaar = `${rand.slice(0, 4)}-${rand.slice(4, 8)}-${rand.slice(8, 12)}`;
+      } else {
+        aadhaar = formatAadhaar(aadhaar);
+      }
+      id = aadhaar; // Aadhaar card is primary key
+    } else if (!id) {
+      const prefix = role === 'lawyer' ? 'lw' : role === 'intern' ? 'in' : role === 'firmadmin' ? 'fa' : 'u';
+      id = `${prefix}-${Date.now()}`;
+    }
+
+    let barDetails = {};
+    if (role === 'lawyer' && (data.barNumber || data.barEnrollmentNumber)) {
+      const rawBar = data.barNumber || data.barEnrollmentNumber;
+      const v = verifyBarNumber(rawBar);
+      if (v.isValid) {
+        barDetails = {
+          barNumber: v.barNumber,
+          barEnrollmentNumber: v.barNumber,
+          barCouncilId: v.barNumber,
+          barCouncil: v.council,
+        };
+      } else {
+        barDetails = {
+          barNumber: rawBar,
+          barEnrollmentNumber: rawBar,
+          barCouncilId: rawBar,
+        };
+      }
+    }
+
+    const newUser = {
+      id,
+      userId: id,
+      clientId: role === 'client' ? id : undefined,
+      aadhaar: role === 'client' ? aadhaar : undefined,
+      aadhaarNumber: role === 'client' ? aadhaar : undefined,
+      name: data.fullName || data.name || '',
+      fullName: data.fullName || data.name || '',
+      email: (data.email || '').toLowerCase(),
+      role: data.role || (role === 'client' ? 'client' : 'lawyer'),
+      phone: data.phone || '',
+      accountStatus: data.accountStatus || 'active',
+      availability: data.availability || 'available',
+      firmId: data.firmId || 'firm-1',
+      createdAt: new Date().toISOString(),
+      ...barDetails,
+      ...data,
+      id,
+    };
+
+    users.push(newUser);
+    this._write('lexflow_users', users);
+    return newUser;
+  }
+
+  updateUser(id, updates) {
+    const users = this._read('lexflow_users', INITIAL_USERS);
+    const index = users.findIndex((u) => u.id === id || u.aadhaar === id || u.clientId === id || u.legacyId === id);
+    if (index !== -1) {
+      let barDetails = {};
+      if (updates.barNumber || updates.barEnrollmentNumber) {
+        const rawBar = updates.barNumber || updates.barEnrollmentNumber;
+        const v = verifyBarNumber(rawBar);
+        if (v.isValid) {
+          barDetails = {
+            barNumber: v.barNumber,
+            barEnrollmentNumber: v.barNumber,
+            barCouncilId: v.barNumber,
+            barCouncil: v.council,
+          };
+        }
+      }
+      users[index] = { ...users[index], ...updates, ...barDetails, updatedAt: new Date().toISOString() };
+      this._write('lexflow_users', users);
+      return users[index];
+    }
+    return null;
+  }
+
+  deleteUser(id) {
+    let users = this._read('lexflow_users', INITIAL_USERS);
+    users = users.filter((u) => u.id !== id && u.aadhaar !== id && u.clientId !== id && u.legacyId !== id);
+    this._write('lexflow_users', users);
+    return { success: true, id };
   }
 }
 

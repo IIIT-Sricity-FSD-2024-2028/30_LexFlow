@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "node src/lib/validators.check.js && node src/store/store.check.js"
+    "check": "node src/lib/validators.check.js && node src/store/store.check.js",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.14.0",
@@ -18,6 +19,7 @@
     "react-router-dom": "^7.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/vite": "^4.1.4",
     "@vitejs/plugin-react": "^4.3.4",
     "tailwindcss": "^4.1.4",

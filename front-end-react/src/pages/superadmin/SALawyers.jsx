@@ -76,11 +76,11 @@ export default function SALawyers() {
       <Card>
         <Table>
           <thead>
-            <tr><Th>Name</Th><Th>Role</Th><Th>Firm</Th><Th>Account</Th><Th>Availability</Th><Th>Action</Th></tr>
+            <tr><Th>Name</Th><Th>Role</Th><Th>Bar Number</Th><Th>Firm</Th><Th>Account</Th><Th>Availability</Th><Th>Action</Th></tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No members match your filters.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">No members match your filters.</td></tr>
             ) : filtered.map((u) => {
               const active = (u.accountStatus || 'active') === 'active';
               return (
@@ -95,6 +95,7 @@ export default function SALawyers() {
                     </span>
                   </Td>
                   <Td><Badge variant={u.role === 'lawyer' ? 'blue' : 'slate'}>{u.role}</Badge></Td>
+                  <Td className="text-xs font-mono">{u.role === 'lawyer' && u.barNumber ? <Badge variant="indigo">{u.barNumber}</Badge> : '—'}</Td>
                   <Td className="font-mono text-xs">{u.firmId || 'Unassigned'}</Td>
                   <Td><Badge variant={active ? 'green' : 'red'}>{active ? 'active' : 'inactive'}</Badge></Td>
                   <Td className="text-xs capitalize">{u.availability || '—'}</Td>

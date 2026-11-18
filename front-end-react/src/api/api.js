@@ -196,8 +196,12 @@ export const api = {
 
   /* USERS: accounts of every kind + law firms + firm onboarding wizard. */
   users: {
-    getAll(filters, role) {
-      return request('GET', `/users${toQuery(filters)}`, { role });
+    async getAll(filters, role) {
+      try {
+        return await request('GET', `/users${toQuery(filters)}`, { role });
+      } catch (err) {
+        return mockStore.getUsers(filters, role);
+      }
     },
     async getById(id, role) {
       try {
@@ -207,8 +211,12 @@ export const api = {
       }
     },
     // All members of one firm (firm user-management page).
-    getByFirm(firmId, role) {
-      return request('GET', `/users/firm/${firmId}`, { role });
+    async getByFirm(firmId, role) {
+      try {
+        return await request('GET', `/users/firm/${firmId}`, { role });
+      } catch (err) {
+        return mockStore.getUsersByFirm(firmId);
+      }
     },
     // Lawyers of a firm - used for assignment dropdowns + sidebar tier badge.
     async getLawyers(firmId, role) {
@@ -225,14 +233,26 @@ export const api = {
         return mockStore.getFirms({});
       }
     },
-    create(body, role) {
-      return request('POST', '/users', { body, role });
+    async create(body, role) {
+      try {
+        return await request('POST', '/users', { body, role });
+      } catch (err) {
+        return mockStore.createUser(body);
+      }
     },
-    update(id, body, role) {
-      return request('PUT', `/users/${id}`, { body, role });
+    async update(id, body, role) {
+      try {
+        return await request('PUT', `/users/${id}`, { body, role });
+      } catch (err) {
+        return mockStore.updateUser(id, body);
+      }
     },
-    remove(id, role) {
-      return request('DELETE', `/users/${id}`, { role });
+    async remove(id, role) {
+      try {
+        return await request('DELETE', `/users/${id}`, { role });
+      } catch (err) {
+        return mockStore.deleteUser(id);
+      }
     },
 
     /* ── Firm onboarding wizard (3 steps) ── */
