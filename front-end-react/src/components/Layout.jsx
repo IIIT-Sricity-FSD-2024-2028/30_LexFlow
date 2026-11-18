@@ -1,27 +1,27 @@
 /**
  * components/Layout.jsx - The wrapper for every page that needs the sidebar.
  *
- * It also ACTS AS THE AUTH GUARD (replaces AuthService.requireAuth in vanilla):
+ * It also ACTS AS THE AUTH GUARD:
  *   1. Nobody logged in          -> send to the sign-in page.
  *   2. Role not in `roles` list  -> send to that role's own dashboard.
- *      (superadmin is allowed everywhere, exactly like the vanilla rule.)
+ *      (superadmin is allowed everywhere, exactly like the original rule.)
  *
  * Usage in App.jsx:  <Layout roles={['client']}><ClientDashboard/></Layout>
  */
 
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useApp, dashboardPathFor } from '../context/AppContext.jsx';
-import { navigate } from '../router.jsx';
 import Sidebar from './Sidebar.jsx';
 import Icon from './Icon.jsx';
 
 export default function Layout({ roles = [], children }) {
   const { user } = useApp();
   const [menuOpen, setMenuOpen] = useState(false); // mobile hamburger state
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  /* Read the current hash (e.g. "/client/cases") for the active-link check.
-     We re-read it on every render because the parent re-renders on route change. */
-  const currentPath = window.location.hash.replace(/^#/, '') || '/';
+  const currentPath = location.pathname || '/';
 
   useEffect(() => {
     // Case 1: visitor is not logged in at all.
@@ -30,12 +30,12 @@ export default function Layout({ roles = [], children }) {
       return;
     }
     // Case 2: logged in, but this page is for a different role.
-    // superadmin bypasses every gate (same rule as the vanilla app).
+    // superadmin bypasses every gate.
     const r = (user.role || '').toLowerCase();
     if (roles.length > 0 && r !== 'superadmin' && !roles.includes(r)) {
       navigate(dashboardPathFor(r).replace('#', '')); // go to own dashboard
     }
-  }, [user, roles]);
+  }, [user, roles, navigate]);
 
   // While redirecting (no user) render nothing to avoid a flash of content.
   if (!user) return null;
@@ -73,7 +73,7 @@ export function Breadcrumb({ items }) {
         <span key={i} className="flex items-center gap-2">
           {i > 0 && <span className="text-slate-300">/</span>}
           {item.href ? (
-            <a href={`#${item.href}`} className="hover:text-brand hover:underline">{item.label}</a>
+            <Link to={item.href} className="hover:text-brand hover:underline">{item.label}</Link>
           ) : (
             <span className="font-semibold text-slate-700">{item.label}</span>
           )}

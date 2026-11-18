@@ -1,70 +1,64 @@
 /**
- * router.jsx - A tiny hand-rolled hash router (no react-router dependency).
+ * router.jsx - React Router (react-router-dom) integration & navigation bridge.
  *
- * How it works:
- *  - URLs look like  index.html#/client/cases  ->  window.location.hash = "#/client/cases"
- *  - useRoute() returns the current path (e.g. "/client/cases").
- *  - navigate(path) changes the hash; the 'hashchange' event re-renders the app.
- *  - <Link href="..."> renders a normal <a> so middle-click / new-tab still work.
- *
- * Why hash routing? It works from ANY static host (even file://) and needs
- * zero server configuration - perfect for a college demo.
+ * Provides compatibility helpers for existing components while delegating routing
+ * to react-router-dom (HashRouter, Routes, Route, Link, useNavigate, useParams, useLocation).
  */
 
-import { useEffect, useState } from 'react';
+import {
+  Link,
+  NavLink,
+  useNavigate,
+  useLocation,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 
-/** Read the current hash path. "" or "#" becomes "/". */
-function getPath() {
-  const hash = window.location.hash.replace(/^#/, '');
-  return hash === '' ? '/' : hash;
+let globalNavigate = null;
+
+export function setGlobalNavigate(navFn) {
+  globalNavigate = navFn;
 }
 
-/** Subscribe to hash changes. Re-renders every caller when the route moves. */
-export function useRoute() {
-  const [path, setPath] = useState(getPath); // initial value = where we are now
-
-  useEffect(() => {
-    const onChange = () => setPath(getPath());        // update state on navigation
-    window.addEventListener('hashchange', onChange);
-    return () => window.removeEventListener('hashchange', onChange); // cleanup
-  }, []);
-
-  return path;
-}
-
-/** Programmatically go somewhere: navigate('/client/cases').
-    No-op when we're already there (avoids pointless re-renders). */
+/**
+ * Programmatically navigate to a route: navigate('/client/cases').
+ * Uses React Router's navigator when available, falling back to hash update.
+ */
 export function navigate(path) {
-  if (window.location.hash === `#${path}`) return;
-  window.location.hash = path;
+  if (globalNavigate) {
+    globalNavigate(path);
+  } else {
+    const target = path.startsWith('/') ? `#${path}` : `#/${path}`;
+    if (window.location.hash !== target) {
+      window.location.hash = target;
+    }
+  }
 }
 
-/** A normal-looking link that routes through the hash. */
-export function Link({ href, children, ...rest }) {
-  return (
-    <a href={`#${href}`} {...rest}>
-      {children}
-    </a>
-  );
+/**
+ * Backward-compatible hook returning the current route pathname.
+ */
+export function useRoute() {
+  const location = useLocation();
+  return location.pathname || '/';
 }
-
-/* ── Tiny route helpers used by App.jsx ── */
 
 /** Split "/client/cases/12" into ["client","cases","12"]. */
 export function segments(path) {
   return path.split('/').filter(Boolean);
 }
 
-/** Read "?id=5" style params from a route like "/client/cases/12". */
+/** Match ":param" patterns in path (backward-compatibility helper). */
 export function matchRoute(path, pattern) {
-  // Both are split into segments; ":name" parts capture values.
   const p = segments(path);
   const pat = segments(pattern);
-  if (p.length !== pat.length) return null; // lengths must match exactly
+  if (p.length !== pat.length) return null;
   const params = {};
   for (let i = 0; i < pat.length; i++) {
     if (pat[i].startsWith(':')) params[pat[i].slice(1)] = decodeURIComponent(p[i]);
-    else if (pat[i] !== p[i]) return null; // literal parts must be equal
+    else if (pat[i] !== p[i]) return null;
   }
-  return params; // null means "no match"
+  return params;
 }
+
+export { Link, NavLink, useNavigate, useLocation, useParams, useSearchParams };

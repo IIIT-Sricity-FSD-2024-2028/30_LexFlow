@@ -8,11 +8,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "node src/lib/validators.check.js"
+    "check": "node src/lib/validators.check.js && node src/store/store.check.js"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.14.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-redux": "^9.3.1",
+    "react-router-dom": "^7.18.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.4",
