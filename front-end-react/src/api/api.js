@@ -302,8 +302,12 @@ export const api = {
     create(data, role) {
       return request('POST', '/cases', { body: data, role });
     },
-    update(id, data, role) {
-      return request('PATCH', `/cases/${id}`, { body: data, role });
+    async update(id, data, role) {
+      try {
+        return await request('PATCH', `/cases/${id}`, { body: data, role });
+      } catch (err) {
+        return mockStore.updateCase(id, data);
+      }
     },
     remove(id, role) {
       return request('DELETE', `/cases/${id}`, { role });

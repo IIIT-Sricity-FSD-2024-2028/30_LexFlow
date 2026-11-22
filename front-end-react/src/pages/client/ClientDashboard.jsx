@@ -202,7 +202,7 @@ export default function ClientDashboard() {
             <Info label="Consultation Type">
               {details.type ? details.type[0].toUpperCase() + details.type.slice(1) : '—'}
             </Info>
-            <Info label="Consultation Fee">{details.consultationFee || 'Not specified'}</Info>
+            <Info label="Consultation Fee">{details.consultationFee ? String(details.consultationFee).replace(/^\$/, '₹') : 'Not specified'}</Info>
             <Info label="Date">{details.date || '—'}</Info>
             <Info label="Time Slot">{details.time || '—'}</Info>
             <Info label="Case Description" full>

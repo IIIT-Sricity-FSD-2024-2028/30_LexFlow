@@ -19,9 +19,17 @@ global.window = { location: { hash: '' } };
 
 async function runTests() {
   console.log('Testing Redux Toolkit Store...');
-  const { store } = await import('./index.js');
+  const { store, useAppDispatch: indexUseAppDispatch, useAppSelector: indexUseAppSelector } = await import('./index.js');
+  const { useAppDispatch, useAppSelector } = await import('./hooks.js');
   const { setUser, setLoginRole, logout, syncUserFromStorage } = await import('./slices/authSlice.js');
   const { addToast, removeToast, clearToasts, showToast } = await import('./slices/toastSlice.js');
+
+  // Verify custom RTK hooks
+  assert.equal(typeof useAppDispatch, 'function', 'useAppDispatch must be a function');
+  assert.equal(typeof useAppSelector, 'function', 'useAppSelector must be a function');
+  assert.equal(useAppDispatch, indexUseAppDispatch, 'useAppDispatch must be exported from index');
+  assert.equal(useAppSelector, indexUseAppSelector, 'useAppSelector must be exported from index');
+  console.log('✔ Custom RTK hooks (useAppDispatch, useAppSelector) verified');
 
   // 1. Initial State
   const initial = store.getState();

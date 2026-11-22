@@ -20,8 +20,8 @@ export const INITIAL_FIRMS = [
     practiceArea: 'corporate',
     practiceAreas: ['Corporate Law', 'Civil Litigation', 'Arbitration', 'Property Dispute'],
     availability: 'AVAILABLE',
-    rating: 4.8,
-    reviews: 124,
+    rating: 0,
+    reviews: 0,
     price: 250,
     experience: '15+ Years',
     bio: 'Headquartered at 21, Connaught Place, New Delhi. Over 15 years of distinguished practice in corporate governance, commercial disputes, and property litigation.',
@@ -146,7 +146,7 @@ export const INITIAL_CONSULTATIONS = [
     time: '10:30 AM - 11:00 AM',
     status: 'SCHEDULED',
     caseDescription: 'Property dispute with neighbor regarding boundary fence and land encroachment.',
-    consultationFee: '$250',
+    consultationFee: '₹250',
     avatarClass: 'blue',
     bookedViaWorkflow: false,
   },
@@ -163,7 +163,7 @@ export const INITIAL_CONSULTATIONS = [
     time: '02:00 PM - 03:00 PM',
     status: 'CONFIRMED',
     caseDescription: 'Family custody arrangement and child support consultation.',
-    consultationFee: '$200',
+    consultationFee: '₹200',
     avatarClass: 'green',
     bookedViaWorkflow: false,
   },
@@ -180,7 +180,7 @@ export const INITIAL_CONSULTATIONS = [
     time: '11:00 AM - 11:30 AM',
     status: 'CONFIRMED',
     caseDescription: 'Employment contract review before signing new job offer.',
-    consultationFee: '$180',
+    consultationFee: '₹180',
     avatarClass: 'indigo',
     bookedViaWorkflow: true,
   },
@@ -195,7 +195,7 @@ export const INITIAL_CONSULTATIONS = [
     time: '03:00 PM - 03:30 PM',
     status: 'PENDING',
     caseDescription: 'Tenant rights dispute — landlord refusing to return security deposit.',
-    consultationFee: '$250',
+    consultationFee: '₹250',
     avatarClass: 'orange',
     bookedViaWorkflow: false,
   },
@@ -212,7 +212,7 @@ export const INITIAL_CONSULTATIONS = [
     time: '09:00 AM - 09:30 AM',
     status: 'COMPLETED',
     caseDescription: 'Property law consultation — boundary regulations resolved.',
-    consultationFee: '$250',
+    consultationFee: '₹250',
     avatarClass: 'orange',
     bookedViaWorkflow: false,
     notes: 'Client advised on property boundary regulations. Case closed successfully.',
@@ -244,7 +244,7 @@ export const INITIAL_CONSULTATIONS = [
     time: '10:00 AM - 11:00 AM',
     status: 'COMPLETED',
     caseDescription: 'Initial family mediation session — divorce proceedings.',
-    consultationFee: '$200',
+    consultationFee: '₹200',
     avatarClass: 'teal',
     bookedViaWorkflow: false,
     notes: 'Mediation session completed. Follow-up scheduled.',
@@ -262,7 +262,7 @@ export const INITIAL_CONSULTATIONS = [
     time: '01:00 PM - 01:30 PM',
     status: 'COMPLETED',
     caseDescription: 'Intellectual property — trademark registration advisory.',
-    consultationFee: '$300',
+    consultationFee: '₹300',
     avatarClass: 'blue',
   },
   // Additional incoming requests for Firm 1 (Sharma & Associates)
@@ -277,7 +277,7 @@ export const INITIAL_CONSULTATIONS = [
     time: '11:00 AM - 11:30 AM',
     status: 'PENDING',
     caseDescription: 'Criminal defense consultation — charges being filed against client.',
-    consultationFee: '$250',
+    consultationFee: '₹250',
     avatarClass: 'indigo',
     bookedViaWorkflow: true,
   },
@@ -292,7 +292,7 @@ export const INITIAL_CONSULTATIONS = [
     time: '03:00 PM - 04:00 PM',
     status: 'PENDING',
     caseDescription: 'Corporate contract review needed urgently before board meeting.',
-    consultationFee: '$250',
+    consultationFee: '₹250',
     avatarClass: 'teal',
     bookedViaWorkflow: true,
   },
@@ -307,7 +307,7 @@ export const INITIAL_CONSULTATIONS = [
     time: '09:00 AM - 09:30 AM',
     status: 'PENDING',
     caseDescription: 'Startup equity and co-founder agreement drafting assistance.',
-    consultationFee: '$250',
+    consultationFee: '₹250',
     avatarClass: 'green',
     bookedViaWorkflow: true,
   },
@@ -322,7 +322,7 @@ export const INITIAL_CONSULTATIONS = [
     time: '02:00 PM - 02:30 PM',
     status: 'PENDING',
     caseDescription: 'Insurance claim denial — seeking legal opinion on recourse options.',
-    consultationFee: '$250',
+    consultationFee: '₹250',
     avatarClass: 'purple',
     bookedViaWorkflow: false,
   },
@@ -628,14 +628,14 @@ class MockStore {
   ensureInitialized() {
     try {
       if (typeof window === 'undefined' || !window.localStorage) return;
-      if (localStorage.getItem('lexflow_store_seeded') !== 'v5') {
+      if (localStorage.getItem('lexflow_store_seeded') !== 'v6') {
         localStorage.setItem('lexflow_firms', JSON.stringify(INITIAL_FIRMS));
         localStorage.setItem('lexflow_consultations', JSON.stringify(INITIAL_CONSULTATIONS));
         localStorage.setItem('lexflow_cases', JSON.stringify(INITIAL_CASES));
         localStorage.setItem('lexflow_users', JSON.stringify(INITIAL_USERS));
         localStorage.setItem('lexflow_invoices', JSON.stringify(INITIAL_INVOICES));
         localStorage.setItem('lexflow_payments', JSON.stringify(INITIAL_PAYMENTS));
-        localStorage.setItem('lexflow_store_seeded', 'v5');
+        localStorage.setItem('lexflow_store_seeded', 'v6');
       }
     } catch (e) {
       console.warn('[MockStore] Failed to initialize storage:', e);
@@ -797,6 +797,17 @@ class MockStore {
   getCaseById(id) {
     const list = this._read('lexflow_cases', INITIAL_CASES);
     return list.find((c) => String(c.id) === String(id) || c.cnr === String(id)) || null;
+  }
+
+  updateCase(id, updates) {
+    const list = this._read('lexflow_cases', INITIAL_CASES);
+    const index = list.findIndex((c) => String(c.id) === String(id) || String(c.cnr) === String(id));
+    if (index !== -1) {
+      list[index] = { ...list[index], ...updates };
+      this._write('lexflow_cases', list);
+      return list[index];
+    }
+    return updates;
   }
 
   getLawyers(firmId) {
