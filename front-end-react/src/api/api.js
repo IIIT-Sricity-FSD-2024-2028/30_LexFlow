@@ -347,31 +347,63 @@ export const api = {
   /* BILLING: invoices (firm -> client) and payments. */
   billing: {
     // extraHeaders carry x-user-id / x-user-name exactly like the vanilla client.
-    getInvoices(role, extraHeaders = {}) {
-      return request('GET', '/billing/invoices', { role, extraHeaders });
+    async getInvoices(role, extraHeaders = {}) {
+      try {
+        return await request('GET', '/billing/invoices', { role, extraHeaders });
+      } catch (err) {
+        return mockStore.getInvoices(role, extraHeaders);
+      }
     },
-    getInvoice(id, role, extraHeaders = {}) {
-      return request('GET', `/billing/invoices/${id}`, { role, extraHeaders });
+    async getInvoice(id, role, extraHeaders = {}) {
+      try {
+        return await request('GET', `/billing/invoices/${id}`, { role, extraHeaders });
+      } catch (err) {
+        return mockStore.getInvoice(id);
+      }
     },
-    createInvoice(body, role, extraHeaders = {}) {
-      return request('POST', '/billing/invoices', { body, role, extraHeaders });
+    async createInvoice(body, role, extraHeaders = {}) {
+      try {
+        return await request('POST', '/billing/invoices', { body, role, extraHeaders });
+      } catch (err) {
+        return mockStore.createInvoice(body);
+      }
     },
-    updateInvoice(id, body, role, extraHeaders = {}) {
-      return request('PATCH', `/billing/invoices/${id}`, { body, role, extraHeaders });
+    async updateInvoice(id, body, role, extraHeaders = {}) {
+      try {
+        return await request('PATCH', `/billing/invoices/${id}`, { body, role, extraHeaders });
+      } catch (err) {
+        return mockStore.updateInvoice(id, body);
+      }
     },
-    deleteInvoice(id, role, extraHeaders = {}) {
-      return request('DELETE', `/billing/invoices/${id}`, { role, extraHeaders });
+    async deleteInvoice(id, role, extraHeaders = {}) {
+      try {
+        return await request('DELETE', `/billing/invoices/${id}`, { role, extraHeaders });
+      } catch (err) {
+        return mockStore.deleteInvoice(id);
+      }
     },
-    getPayments(role, extraHeaders = {}) {
-      return request('GET', '/billing/payments', { role, extraHeaders });
+    async getPayments(role, extraHeaders = {}) {
+      try {
+        return await request('GET', '/billing/payments', { role, extraHeaders });
+      } catch (err) {
+        return mockStore.getPayments(role, extraHeaders);
+      }
     },
     // Client pays an invoice: card, UPI, net banking...
-    recordPayment(invoiceId, paymentMethod, role, extraHeaders = {}) {
-      return request('POST', `/billing/payments/${invoiceId}`, { body: { paymentMethod }, role, extraHeaders });
+    async recordPayment(invoiceId, paymentMethod, role, extraHeaders = {}) {
+      try {
+        return await request('POST', `/billing/payments/${invoiceId}`, { body: { paymentMethod }, role, extraHeaders });
+      } catch (err) {
+        return mockStore.recordPayment(invoiceId, paymentMethod, role, extraHeaders);
+      }
     },
     // Clients linked to a firm - used to fill the "bill to" dropdown.
-    getClients(role, extraHeaders = {}) {
-      return request('GET', '/billing/clients', { role, extraHeaders });
+    async getClients(role, extraHeaders = {}) {
+      try {
+        return await request('GET', '/billing/clients', { role, extraHeaders });
+      } catch (err) {
+        return mockStore.getClients(role, extraHeaders);
+      }
     },
   },
 

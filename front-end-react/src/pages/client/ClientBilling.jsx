@@ -47,7 +47,9 @@ export default function ClientBilling() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    load();
+  }, [user?.id, user?.fullName, user?.name]);
 
   /* Apply the search box + status tab together. */
   const filtered = useMemo(() => {

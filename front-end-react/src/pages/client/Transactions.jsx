@@ -39,7 +39,9 @@ export default function Transactions() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    load();
+  }, [user?.id, user?.fullName, user?.name]);
 
   return (
     <>

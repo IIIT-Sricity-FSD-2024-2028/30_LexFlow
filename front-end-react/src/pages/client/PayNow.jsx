@@ -48,7 +48,7 @@ export default function PayNow({ id }) {
         setLoading(false);
       }
     })();
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, user?.id, user?.fullName, user?.name]);
 
   /* ── Input formatters (same UX as the vanilla LexValidation helpers) ── */
 

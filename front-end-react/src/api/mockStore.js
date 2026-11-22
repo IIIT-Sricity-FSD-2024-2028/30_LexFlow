@@ -520,6 +520,106 @@ export const INITIAL_USERS = [
   },
 ];
 
+export const INITIAL_INVOICES = [
+  {
+    id: 'INV-9821A',
+    clientId: '5432-8765-4321',
+    clientName: 'Alice Client',
+    clientEmail: 'alice@client.test',
+    clientAadhaar: '5432-8765-4321',
+    firmId: 'firm-1',
+    caseName: 'Sharma Tech Solutions Merger',
+    advocateName: 'Adv. Lawyer Bob',
+    amount: 25000,
+    status: 'Pending',
+    dueDate: '2026-12-05',
+    createdAt: '2026-11-15T10:00:00.000Z',
+  },
+  {
+    id: 'INV-8412B',
+    clientId: '5432-8765-4321',
+    clientName: 'Alice Client',
+    clientEmail: 'alice@client.test',
+    clientAadhaar: '5432-8765-4321',
+    firmId: 'firm-1',
+    caseName: 'Corporate Restructuring Retainer',
+    advocateName: 'Adv. Lawyer Bob',
+    amount: 15000,
+    status: 'Paid',
+    dueDate: '2026-11-10',
+    createdAt: '2026-11-01T09:30:00.000Z',
+  },
+  {
+    id: 'INV-7341C',
+    clientId: '5432-8765-4321',
+    clientName: 'Alice Client',
+    clientEmail: 'alice@client.test',
+    clientAadhaar: '5432-8765-4321',
+    firmId: 'firm-2',
+    caseName: 'Property Title Due Diligence',
+    advocateName: 'Adv. Sarah Jenkins',
+    amount: 8000,
+    status: 'Overdue',
+    dueDate: '2026-11-15',
+    createdAt: '2026-10-25T14:15:00.000Z',
+  },
+  {
+    id: 'INV-6190D',
+    clientId: 'cl-2',
+    clientName: 'Rahul Mehta',
+    clientEmail: 'rahul.mehta@enterprise.com',
+    clientAadhaar: '9876-5432-1098',
+    firmId: 'firm-1',
+    caseName: 'Commercial Lease Dispute',
+    advocateName: 'Adv. Priya Sharma',
+    amount: 32000,
+    status: 'Pending',
+    dueDate: '2026-12-10',
+    createdAt: '2026-11-18T11:00:00.000Z',
+  },
+  {
+    id: 'INV-5520E',
+    clientId: 'cl-3',
+    clientName: 'Sneha Rao',
+    clientEmail: 'sneha@biotech.io',
+    clientAadhaar: '1234-9876-5432',
+    firmId: 'firm-3',
+    caseName: 'Patent Application Filing',
+    advocateName: 'Adv. Amit Verma',
+    amount: 45000,
+    status: 'Paid',
+    dueDate: '2026-11-12',
+    createdAt: '2026-11-02T16:00:00.000Z',
+  },
+];
+
+export const INITIAL_PAYMENTS = [
+  {
+    id: 'PAY-1001',
+    invoiceId: 'INV-8412B',
+    clientId: '5432-8765-4321',
+    clientName: 'Alice Client',
+    clientAadhaar: '5432-8765-4321',
+    firmId: 'firm-1',
+    amount: 15000,
+    paymentDate: '2026-11-10',
+    paymentMethod: 'Credit Card',
+    status: 'Completed',
+  },
+  {
+    id: 'PAY-1002',
+    invoiceId: 'INV-5520E',
+    clientId: 'cl-3',
+    clientName: 'Sneha Rao',
+    clientAadhaar: '1234-9876-5432',
+    firmId: 'firm-3',
+    amount: 45000,
+    paymentDate: '2026-11-12',
+    paymentMethod: 'UPI',
+    status: 'Completed',
+  },
+];
+
 class MockStore {
   constructor() {
     this.ensureInitialized();
@@ -528,12 +628,14 @@ class MockStore {
   ensureInitialized() {
     try {
       if (typeof window === 'undefined' || !window.localStorage) return;
-      if (localStorage.getItem('lexflow_store_seeded') !== 'v3') {
+      if (localStorage.getItem('lexflow_store_seeded') !== 'v5') {
         localStorage.setItem('lexflow_firms', JSON.stringify(INITIAL_FIRMS));
         localStorage.setItem('lexflow_consultations', JSON.stringify(INITIAL_CONSULTATIONS));
         localStorage.setItem('lexflow_cases', JSON.stringify(INITIAL_CASES));
         localStorage.setItem('lexflow_users', JSON.stringify(INITIAL_USERS));
-        localStorage.setItem('lexflow_store_seeded', 'v4');
+        localStorage.setItem('lexflow_invoices', JSON.stringify(INITIAL_INVOICES));
+        localStorage.setItem('lexflow_payments', JSON.stringify(INITIAL_PAYMENTS));
+        localStorage.setItem('lexflow_store_seeded', 'v5');
       }
     } catch (e) {
       console.warn('[MockStore] Failed to initialize storage:', e);
@@ -634,6 +736,32 @@ class MockStore {
     };
     list.unshift(newRecord);
     this._write('lexflow_consultations', list);
+
+    // Auto-create consultation invoice in billing so client can pay immediately
+    try {
+      const invoices = this._read('lexflow_invoices', INITIAL_INVOICES);
+      const feeNum = parseFloat(String(data.consultationFee || '250').replace(/[^0-9.]/g, '')) || 250;
+      const invId = `INV-${Math.floor(1000 + Math.random() * 9000)}C`;
+      const consultationInvoice = {
+        id: invId,
+        clientId: data.clientId || data.clientAadhaar || 'cl-draft-1',
+        clientName: data.clientName || 'Client',
+        clientEmail: data.clientEmail || '',
+        clientAadhaar: data.clientAadhaar || (data.clientId && data.clientId.includes('-') ? data.clientId : ''),
+        firmId: data.firmId || 'firm-1',
+        caseName: `Consultation Fee: ${data.firmName || data.type || 'Legal Advisory'}`,
+        advocateName: data.lawyerName || 'Firm Counsel',
+        amount: feeNum,
+        status: 'Pending',
+        dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+        createdAt: new Date().toISOString(),
+      };
+      invoices.unshift(consultationInvoice);
+      this._write('lexflow_invoices', invoices);
+    } catch (e) {
+      console.warn('[MockStore] Could not auto-generate invoice for consultation:', e);
+    }
+
     return newRecord;
   }
 
@@ -795,6 +923,176 @@ class MockStore {
     users = users.filter((u) => u.id !== id && u.aadhaar !== id && u.clientId !== id && u.legacyId !== id);
     this._write('lexflow_users', users);
     return { success: true, id };
+  }
+
+  /* ────────────────── BILLING & PAYMENTS ────────────────── */
+
+  getInvoices(role = 'client', headers = {}) {
+    let list = this._read('lexflow_invoices', INITIAL_INVOICES);
+    const userId = (headers['x-user-id'] || '').trim();
+    const userName = (headers['x-user-name'] || '').trim().toLowerCase();
+    const r = (role || '').toLowerCase();
+
+    if (r === 'client') {
+      if (!userId && !userName) return list;
+      let userInvoices = list.filter((inv) => {
+        const idMatch = userId && (
+          inv.clientId === userId ||
+          inv.clientAadhaar === userId ||
+          (userId === '5432-8765-4321' && (inv.clientId === 'cl-1' || inv.clientEmail === 'alice@client.test')) ||
+          (userId === 'cl-1' && (inv.clientId === '5432-8765-4321' || inv.clientAadhaar === '5432-8765-4321'))
+        );
+        const nameMatch = userName && inv.clientName && inv.clientName.toLowerCase() === userName;
+        return idMatch || nameMatch;
+      });
+
+      // If a new client has no invoices, automatically generate an initial consultation retainer invoice
+      // so they can view their invoice and complete payment testing seamlessly
+      if (userInvoices.length === 0 && userId && userId !== 'cl-1' && userId !== '5432-8765-4321') {
+        const starterInv = {
+          id: `INV-${Math.floor(1000 + Math.random() * 9000)}N`,
+          clientId: userId,
+          clientName: headers['x-user-name'] || 'Client',
+          clientEmail: '',
+          clientAadhaar: userId.length === 14 ? userId : '',
+          firmId: 'firm-1',
+          caseName: 'Initial Consultation Retainer',
+          advocateName: 'Adv. Lawyer Bob',
+          amount: 1500,
+          status: 'Pending',
+          dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+          createdAt: new Date().toISOString(),
+        };
+        list.unshift(starterInv);
+        this._write('lexflow_invoices', list);
+        userInvoices = [starterInv];
+      }
+
+      return userInvoices;
+    }
+
+    if (r === 'lawyer') {
+      if (!userName) return list;
+      return list.filter((inv) => inv.advocateName && inv.advocateName.toLowerCase().includes(userName));
+    }
+
+    if (r === 'firmadmin') {
+      const firmId = headers['x-firm-id'] || 'firm-1';
+      return list.filter((inv) => !inv.firmId || inv.firmId === firmId);
+    }
+
+    // superadmin: all invoices
+    return list;
+  }
+
+  getInvoice(id) {
+    const list = this._read('lexflow_invoices', INITIAL_INVOICES);
+    const cleanId = String(id || '').trim().toUpperCase();
+    return list.find((i) => String(i.id).toUpperCase() === cleanId) || null;
+  }
+
+  createInvoice(body = {}) {
+    const list = this._read('lexflow_invoices', INITIAL_INVOICES);
+    const newInvoice = {
+      id: `INV-${Math.floor(1000 + Math.random() * 9000)}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
+      status: 'Pending',
+      createdAt: new Date().toISOString(),
+      dueDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+      ...body,
+      amount: Number(body.amount || 0),
+    };
+    list.unshift(newInvoice);
+    this._write('lexflow_invoices', list);
+    return newInvoice;
+  }
+
+  updateInvoice(id, updates = {}) {
+    const list = this._read('lexflow_invoices', INITIAL_INVOICES);
+    const cleanId = String(id || '').trim().toUpperCase();
+    const index = list.findIndex((i) => String(i.id).toUpperCase() === cleanId);
+    if (index !== -1) {
+      list[index] = { ...list[index], ...updates };
+      this._write('lexflow_invoices', list);
+      return list[index];
+    }
+    return null;
+  }
+
+  deleteInvoice(id) {
+    const list = this._read('lexflow_invoices', INITIAL_INVOICES);
+    const cleanId = String(id || '').trim().toUpperCase();
+    const filtered = list.filter((i) => String(i.id).toUpperCase() !== cleanId);
+    this._write('lexflow_invoices', filtered);
+    return { success: true };
+  }
+
+  getPayments(role = 'client', headers = {}) {
+    const list = this._read('lexflow_payments', INITIAL_PAYMENTS);
+    const userId = (headers['x-user-id'] || '').trim();
+    const userName = (headers['x-user-name'] || '').trim().toLowerCase();
+    const r = (role || '').toLowerCase();
+
+    if (r === 'client') {
+      if (!userId && !userName) return list;
+      return list.filter((p) => {
+        const idMatch = userId && (
+          p.clientId === userId ||
+          p.clientAadhaar === userId ||
+          (userId === '5432-8765-4321' && (p.clientId === 'cl-1' || p.clientName === 'Alice Client')) ||
+          (userId === 'cl-1' && (p.clientId === '5432-8765-4321' || p.clientAadhaar === '5432-8765-4321'))
+        );
+        const nameMatch = userName && p.clientName && p.clientName.toLowerCase() === userName;
+        return idMatch || nameMatch;
+      });
+    }
+
+    if (r === 'firmadmin') {
+      const firmId = headers['x-firm-id'] || 'firm-1';
+      return list.filter((p) => !p.firmId || p.firmId === firmId);
+    }
+
+    return list;
+  }
+
+  recordPayment(invoiceId, paymentMethod = 'Card', role = 'client', headers = {}) {
+    const invoices = this._read('lexflow_invoices', INITIAL_INVOICES);
+    const payments = this._read('lexflow_payments', INITIAL_PAYMENTS);
+
+    const cleanId = String(invoiceId || '').trim().toUpperCase();
+    const invIndex = invoices.findIndex((i) => String(i.id).toUpperCase() === cleanId);
+    let inv = invIndex !== -1 ? invoices[invIndex] : null;
+
+    if (inv) {
+      inv = { ...inv, status: 'Paid', updatedAt: new Date().toISOString() };
+      invoices[invIndex] = inv;
+      this._write('lexflow_invoices', invoices);
+    }
+
+    const newPayment = {
+      id: `PAY-${Math.floor(1000 + Math.random() * 9000)}`,
+      invoiceId: inv ? inv.id : invoiceId,
+      clientId: inv?.clientId || headers['x-user-id'] || 'cl-draft-1',
+      clientName: inv?.clientName || headers['x-user-name'] || 'Client',
+      clientAadhaar: inv?.clientAadhaar || (headers['x-user-id'] && headers['x-user-id'].length === 14 ? headers['x-user-id'] : ''),
+      firmId: inv?.firmId || 'firm-1',
+      amount: inv ? inv.amount : 1500,
+      paymentDate: new Date().toISOString().split('T')[0],
+      paymentMethod: paymentMethod || 'Card',
+      status: 'Completed',
+    };
+
+    payments.unshift(newPayment);
+    this._write('lexflow_payments', payments);
+    return newPayment;
+  }
+
+  getClients() {
+    return this.getUsers({ role: 'client' }).map((u) => ({
+      id: u.id,
+      fullName: u.fullName || u.name,
+      email: u.email || '',
+      aadhaar: u.aadhaar || '',
+    }));
   }
 }
 

@@ -23,7 +23,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run preview -- --port 5173 --host 127.0.0.1',
     port: 5173,
-    reuseExistingServer: false,
+    reuseExistingServer: true,
     timeout: 30000,
   },
 });
