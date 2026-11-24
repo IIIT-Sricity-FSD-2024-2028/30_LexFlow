@@ -85,7 +85,8 @@ export default function CaseDocuments({ caseId }) {
     try {
       const ext = (uploading.file.name.split('.').pop() || 'BIN').toUpperCase().slice(0, 3);
       const created = await api.documents.upload(uploading.file, {
-        name: uploading.file.name, caseId, type: uploading.type, fileType: ext, access: 'PRIVATE', version: 1,
+        name: uploading.file.name, caseId, type: uploading.type, fileType: ext,
+        access: uploading.access, version: 1,
       }, role, user?.email);
       dispatch(documentSaved({ key, document: created }));
       log('uploaded', created);
@@ -172,7 +173,7 @@ export default function CaseDocuments({ caseId }) {
         subtitle={`Case ID: ${caseData.cnr || caseId}`}
         actions={
           <Button disabled={!can(role, 'upload')} title={can(role, 'upload') ? '' : 'You do not have upload permission'}
-            onClick={() => setUploading({ file: null, type: 'CONTRACT', busy: false })}>
+            onClick={() => setUploading({ file: null, type: 'CONTRACT', access: 'PRIVATE', busy: false })}>
             <Icon name="plus" size={14} /> Upload New Document
           </Button>
         }
@@ -332,9 +333,11 @@ export default function CaseDocuments({ caseId }) {
                 {DOC_TYPES.map((t) => <option key={t}>{t}</option>)}
               </Select>
             </Field>
-            <Field label="Confidential Level">
-              <Select defaultValue="Firm Only" disabled className="!bg-slate-50">
-                <option>Firm Only</option><option>Client Visible</option><option>Public</option>
+            <Field label="Confidentiality Level">
+              <Select value={uploading.access} disabled={role !== 'firmadmin' || uploading.busy}
+                onChange={(e) => setUploading((u) => ({ ...u, access: e.target.value }))}>
+                <option value="PRIVATE">Private</option>
+                <option value="SHARED">Shared</option>
               </Select>
             </Field>
             <Field label="Uploaded By">
