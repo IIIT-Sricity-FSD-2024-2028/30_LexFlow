@@ -1,24 +1,31 @@
-/**
- * Client Onboarding - Step 1: profile creation.
- * Creates the user on the backend right away, then saves a draft copy in
- * sessionStorage (key: clientDraft) that step 2 reads.
- */
-
+/** Client onboarding creates an account and signs in through the API. */
 import { useState } from 'react';
 import OnboardingShell, { FormAlert } from './OnboardingShell.jsx';
 import { api } from '../../api/api.js';
+import { useApp } from '../../context/AppContext.jsx';
 import { navigate } from '../../router.jsx';
 import { Button, Field, Input } from '../../components/ui.jsx';
 import {
   validateName, validateEmail, validateIndianPhone, validatePin,
   validateStreet, validateCity, validateState, validatePassword,
   validateConfirm, passwordScore, normalizeIndianPhone,
+  validateAadhaar, formatAadhaar,
 } from '../../lib/validators.js';
 
 export default function ClientOnboarding1() {
+  const { signIn, toast } = useApp();
   /* One state object for the whole form. */
   const [form, setForm] = useState({
-    fullName: '', email: '', phone: '', street: '', city: '', state: '', zip: '', password: '', confirm: '',
+    fullName: '',
+    email: '',
+    aadhaar: '',
+    phone: '',
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
+    password: '',
+    confirm: '',
   });
   /* errors holds one message per field (only fields with an error show red). */
   const [errors, setErrors] = useState({});
@@ -28,7 +35,8 @@ export default function ClientOnboarding1() {
   /* Small helper to update one field of the form object. */
   const set = (key) => (e) => {
     let { value } = e.target;
-    // Simple input masks, exactly like the vanilla version:
+    // Input masks:
+    if (key === 'aadhaar') value = formatAadhaar(value);                        // 4-4-4 Aadhaar format
     if (key === 'phone') value = value.replace(/[^\d+ ()-]/g, '').slice(0, 15); // phone characters
     if (key === 'zip') value = value.replace(/\D/g, '').slice(0, 6);            // digits only
     setForm((f) => ({ ...f, [key]: value }));
@@ -45,6 +53,7 @@ export default function ClientOnboarding1() {
     const er = {
       fullName: validateName(form.fullName),
       email: validateEmail(form.email),
+      aadhaar: validateAadhaar(form.aadhaar),
       phone: validateIndianPhone(form.phone),
       street: validateStreet(form.street),
       city: validateCity(form.city),
@@ -65,30 +74,24 @@ export default function ClientOnboarding1() {
     }
     setBusy(true);
     try {
-      // 1. Create the account on the backend.
-      await api.users.create(
-        {
-          fullName: form.fullName.trim(),
-          email: form.email.trim().toLowerCase(),
-          role: 'client',
-          password: form.password,
-          phone: normalizeIndianPhone(form.phone) || undefined,
-        },
-        'superadmin' // backend needs this header to allow public account creation
-      );
-
-      // 2. Keep a draft so step 2 can merge case info with profile info.
-      sessionStorage.setItem('clientDraft', JSON.stringify({
+      const email = form.email.trim().toLowerCase();
+      await api.users.create({
+        aadhaar: form.aadhaar.trim(),
         fullName: form.fullName.trim(),
-        email: form.email.trim().toLowerCase(),
-        phone: normalizeIndianPhone(form.phone),
-        addressLine1: form.street,
-        city: form.city,
-        state: form.state,
-        pinCode: form.zip,
-      }));
+        email,
+        role: 'client',
+        password: form.password,
+        phone: normalizeIndianPhone(form.phone) || undefined,
+      }, 'client');
 
-      navigate('/onboarding/client/2'); // next step
+      const client = await api.auth.login(email, form.password).catch(() => null);
+      if (!client) {
+        toast('Account created. Sign in to continue.');
+        navigate('/signin');
+        return;
+      }
+      signIn(client);
+      navigate('/onboarding/client/2');
     } catch (err) {
       setAlert('Failed to create account: ' + (err.message || 'network error. Please try again.'));
     } finally {
@@ -119,6 +122,28 @@ export default function ClientOnboarding1() {
         <Field label="Email Address" required error={errors.email}>
           <Input type="email" placeholder="john@example.com" value={form.email} onChange={set('email')} error={!!errors.email} />
         </Field>
+
+        {/* Aadhaar Card Number */}
+        <Field
+          label="Aadhaar Card Number"
+          required
+          error={errors.aadhaar}
+          className="md:col-span-2"
+        >
+          <Input
+            id="aadhaar-input"
+            name="aadhaar"
+            placeholder="5432-8765-4321"
+            value={form.aadhaar}
+            onChange={set('aadhaar')}
+            maxLength={14}
+            error={!!errors.aadhaar}
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Must be 12 digits in 4-4-4 format (e.g., 5432-8765-4321). This acts as your unique client identifier.
+          </p>
+        </Field>
+
         <Field label="Phone Number" required error={errors.phone}>
           <Input placeholder="+91 98765 43210" value={form.phone} onChange={set('phone')} error={!!errors.phone} />
         </Field>

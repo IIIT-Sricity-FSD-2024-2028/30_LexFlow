@@ -1,5 +1,5 @@
 /**
- * lib/validators.js - Form validation helpers shared by the onboarding pages.
+ * lib/validators.js - Form validation helpers shared by onboarding and checkout.
  *
  * Each validator returns an ERROR STRING when the value is bad,
  * or null when the value is fine. That makes them easy to use:
@@ -94,6 +94,32 @@ export function validateConfirm(v, password) {
   return v === password ? null : 'Passwords do not match.';
 }
 
+export function formatCardNumber(value) {
+  return value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
+}
+
+export function formatCardExpiry(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 4);
+  return digits.length > 2 ? digits.slice(0, 2) + '/' + digits.slice(2) : digits;
+}
+
+function validateCardExpiry(value) {
+  if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(value)) return 'Use MM/YY format';
+  const [month, year] = value.split('/').map(Number);
+  const firstDayAfterExpiry = new Date(2000 + year, month, 1);
+  return firstDayAfterExpiry > new Date() ? null : 'Card has expired';
+}
+
+export function validateCardDetails({ cardName, cardNumber, expiry, cvc }) {
+  const name = cardName.trim();
+  return {
+    cardName: name ? (/^[a-zA-Z\s'.,-]{2,80}$/.test(name) ? null : 'Enter a valid cardholder name') : 'Cardholder name is required',
+    cardNumber: /^\d{16}$/.test(cardNumber.replace(/\s/g, '')) ? null : 'Card number must be 16 digits',
+    expiry: validateCardExpiry(expiry),
+    cvc: /^\d{3,4}$/.test(cvc) ? null : 'CVC must be 3-4 digits',
+  };
+}
+
 /* Optional website URL - must parse and start with http(s) when present. */
 export function validateWebsite(v) {
   const value = (v || '').trim();
@@ -111,4 +137,159 @@ export function validateWebsite(v) {
 /* Strip +91/91/0 so we store a clean 10-digit number. */
 export function normalizeIndianPhone(v) {
   return (v || '').replace(/[^0-9]/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0/, '');
+}
+
+/* ──────────────────────────────── BAR NUMBER VALIDATION & VERIFICATION ──────────────────────────────── */
+
+export const STATE_BAR_COUNCILS = {
+  DL: 'Bar Council of Delhi',
+  D: 'Bar Council of Delhi',
+  MAH: 'Bar Council of Maharashtra & Goa',
+  MH: 'Bar Council of Maharashtra & Goa',
+  KAR: 'Bar Council of Karnataka',
+  KA: 'Bar Council of Karnataka',
+  UP: 'Bar Council of Uttar Pradesh',
+  AP: 'Bar Council of Andhra Pradesh',
+  TS: 'Bar Council of Telangana',
+  TN: 'Bar Council of Tamil Nadu & Puducherry',
+  WB: 'Bar Council of West Bengal',
+  GUJ: 'Bar Council of Gujarat',
+  GJ: 'Bar Council of Gujarat',
+  MP: 'Bar Council of Madhya Pradesh',
+  KER: 'Bar Council of Kerala',
+  KL: 'Bar Council of Kerala',
+  BIH: 'Bar Council of Bihar',
+  BR: 'Bar Council of Bihar',
+  ORI: 'Bar Council of Odisha',
+  OR: 'Bar Council of Odisha',
+  RAJ: 'Bar Council of Rajasthan',
+  RJ: 'Bar Council of Rajasthan',
+  JH: 'Bar Council of Jharkhand',
+  UK: 'Bar Council of Uttarakhand',
+  UTT: 'Bar Council of Uttarakhand',
+  PH: 'Bar Council of Punjab & Haryana',
+  CH: 'Bar Council of Chandigarh',
+  AS: 'Bar Council of Assam, Nagaland, Mizoram, Arunachal Pradesh & Sikkim',
+  BCI: 'Bar Council of India',
+};
+
+/** Normalizes bar number into uppercase canonical format */
+export function formatBarNumber(v) {
+  return (v || '').trim().toUpperCase().replace(/\s+/g, '');
+}
+
+/**
+ * Programmatically verify a lawyer's Bar enrollment number.
+ * Supports authentic Indian Bar formats: [STATE_CODE]/[ROLL_NO]/[YEAR] (e.g. MAH/1234/2018 or D/567/2020).
+ * Returns { isValid: boolean, barNumber?: string, stateCode?: string, council?: string, rollNumber?: number, year?: number, error?: string }
+ */
+export function verifyBarNumber(v) {
+  const value = formatBarNumber(v);
+  if (!value) {
+    return { isValid: false, error: 'Bar enrollment number cannot be empty.' };
+  }
+
+  const match = value.match(/^([A-Z]{1,4}(?:&[A-Z]+)?)[/-](\d{1,6})[/-](\d{2}|\d{4})$/);
+  if (!match) {
+    return {
+      isValid: false,
+      error: 'Invalid format. Bar number must follow [STATE_CODE]/[ROLL_NO]/[YEAR] (e.g., MAH/1234/2018 or D/567/2020).',
+    };
+  }
+
+  const [, stateCode, rollStr, yearStr] = match;
+  const rollNumber = parseInt(rollStr, 10);
+  let year = parseInt(yearStr, 10);
+  if (yearStr.length === 2) {
+    year = year <= 30 ? 2000 + year : 1900 + year;
+  }
+
+  if (rollNumber <= 0 || rollNumber > 999999) {
+    return { isValid: false, error: 'Enrollment sequence number must be between 1 and 999999.' };
+  }
+
+  const currentYear = new Date().getFullYear();
+  if (year < 1950 || year > currentYear) {
+    return { isValid: false, error: `Enrollment year must be between 1950 and ${currentYear}.` };
+  }
+
+  const council = STATE_BAR_COUNCILS[stateCode] || `${stateCode} State Bar Council`;
+  const canonical = `${stateCode}/${rollNumber}/${year}`;
+
+  return {
+    isValid: true,
+    barNumber: canonical,
+    stateCode,
+    council,
+    rollNumber,
+    year,
+  };
+}
+
+/** Form validator: returns null if valid, error message string if invalid */
+export function validateBarNumber(v, { required = true } = {}) {
+  const value = formatBarNumber(v);
+  if (!value) return required ? 'Bar Council enrollment number is required.' : null;
+  const verification = verifyBarNumber(value);
+  return verification.isValid ? null : verification.error;
+}
+
+/* ──────────────────────────────── AADHAAR CARD VALIDATION & VERIFICATION ──────────────────────────────── */
+
+/** Formats 12 digits into 4-4-4 format: XXXX-XXXX-XXXX */
+export function formatAadhaar(v) {
+  const digits = (v || '').replace(/\D/g, '').slice(0, 12);
+  const parts = [];
+  if (digits.length > 0) parts.push(digits.slice(0, 4));
+  if (digits.length > 4) parts.push(digits.slice(4, 8));
+  if (digits.length > 8) parts.push(digits.slice(8, 12));
+  return parts.join('-');
+}
+
+/**
+ * Programmatically verify a 12-digit Indian Aadhaar card number.
+ * Enforces 12 numeric digits in 4-4-4 format.
+ * Returns { isValid: boolean, aadhaar?: string, raw?: string, formatted?: string, error?: string }
+ */
+export function verifyAadhaar(v) {
+  const value = (v || '').trim();
+  const digits = value.replace(/\D/g, '');
+  if (!digits) {
+    return { isValid: false, error: 'Aadhaar number cannot be empty.' };
+  }
+  if (digits.length !== 12) {
+    return {
+      isValid: false,
+      error: `Aadhaar must contain exactly 12 numeric digits (found ${digits.length}).`,
+    };
+  }
+  if (/^(\d)\1{11}$/.test(digits)) {
+    return {
+      isValid: false,
+      error: 'Invalid Aadhaar: sequence cannot consist of identical repeated digits.',
+    };
+  }
+  const formatted = `${digits.slice(0, 4)}-${digits.slice(4, 8)}-${digits.slice(8, 12)}`;
+  return {
+    isValid: true,
+    aadhaar: formatted,
+    raw: digits,
+    formatted,
+  };
+}
+
+/** Form validator: returns null if valid, error message string if invalid */
+export function validateAadhaar(v, { required = true } = {}) {
+  const value = (v || '').trim();
+  if (!value) return required ? 'Aadhaar card number is required.' : null;
+  const digits = value.replace(/\D/g, '');
+  if (digits.length !== 12) {
+    return 'Aadhaar must be exactly 12 digits (in 4-4-4 format, e.g. 5432-8765-4321).';
+  }
+  const verification = verifyAadhaar(value);
+  if (!verification.isValid) return verification.error;
+  if (!/^\d{4}-\d{4}-\d{4}$/.test(value)) {
+    return 'Enter Aadhaar in 4-4-4 format (e.g. 5432-8765-4321).';
+  }
+  return null;
 }

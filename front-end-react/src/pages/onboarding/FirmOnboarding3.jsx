@@ -101,9 +101,15 @@ export default function FirmOnboarding3() {
       sessionStorage.removeItem('firmDraft');
       sessionStorage.removeItem('firmOnboardingSessionId');
 
-      signIn(adminUser); // writes currentUser + normalises the role
-      toast('Firm account created!');
-      setTimeout(() => navigate('/firm/dashboard'), 400);
+      const authenticatedAdmin = await api.auth.login(body.adminEmail, body.password).catch(() => null);
+      if (!authenticatedAdmin) {
+        toast('Firm account created. Sign in to start your subscription.');
+        navigate('/signin');
+        return;
+      }
+      signIn({ ...adminUser, ...authenticatedAdmin });
+      toast('Firm account created. Start your subscription in Billing.');
+      navigate('/firm/billing');
     } catch (err) {
       setAlert(err.message || 'Unable to complete onboarding on server');
     } finally {
@@ -117,7 +123,7 @@ export default function FirmOnboarding3() {
   return (
     <OnboardingShell steps={['Firm Info', 'Contact Info', 'Admin Setup']} current={2}>
       <h1 className="text-2xl font-bold text-slate-900">Firm Admin Profile</h1>
-      <p className="mt-1 text-sm text-slate-500">This account will have full access to manage the firm.</p>
+      <p className="mt-1 text-sm text-slate-500">This account manages the firm and its subscription.</p>
 
       <FormAlert message={alert} />
 
@@ -148,7 +154,7 @@ export default function FirmOnboarding3() {
         </div>
       )}
       <p className="mt-2 text-xs text-slate-400">
-        You can change plans any time from your billing dashboard — a plan change is billed as its own charge.
+        Your first payment starts your monthly billing period. Manage your plan and renewal in Firm Billing.
       </p>
 
       {/* ── Admin account form ── */}
