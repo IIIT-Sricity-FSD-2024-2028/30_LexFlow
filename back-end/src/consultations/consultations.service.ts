@@ -11,6 +11,7 @@ import {
   ConsultationStatus,
 } from './dto';
 import { UsersService } from '../users/users.service';
+import { loadState, tx } from '../db';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Internal data model (richer than the response DTO)
@@ -49,431 +50,48 @@ export interface WorkflowBookingRecord {
   requestedTime: string;
 }
 
+export type ConsultationScope = Partial<Pick<Consultation, 'firmId' | 'clientId' | 'lawyerId'>>;
+
+interface ConsultationState {
+  consultations: Consultation[];
+  workflowBookings: WorkflowBookingRecord[];
+  nextId: number;
+}
+
+const STATE_KEY = 'consultations';
+
 @Injectable()
 export class ConsultationsService {
-  // ── In-memory stores ──────────────────────────────────────────────────────
-  private consultations: Consultation[] = [];
-  private workflowBookings: WorkflowBookingRecord[] = [];
-  private idCounter = 1000;
+  private readonly initialState: ConsultationState = {
+    consultations: [],
+    workflowBookings: [],
+    nextId: Date.now(),
+  };
 
-  constructor(private readonly usersService: UsersService) {
-    this.seedData();
+  constructor(private readonly usersService: UsersService) {}
+
+  private readState() {
+    return loadState(STATE_KEY, this.initialState);
   }
 
-  // ── Seeded data so the dashboards are populated on first start ─────────────
-  private seedData(): void {
-    const now = new Date();
-
-    const seed: Consultation[] = [
-
-      // ═══════════════════════════════════════════════════════════════
-      // CLIENT SIDE — cl-1 (Client Alice) — Scheduled / Active
-      // ═══════════════════════════════════════════════════════════════
-      {
-        id: 'CONS-882',
-        clientId: 'cl-1',
-        clientName: 'Client Alice',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        lawyerId: 'lw-1',
-        lawyerName: 'Lawyer Bob',
-        type: 'video',
-        date: 'May 24, 2026',
-        time: '10:30 AM - 11:00 AM',
-        status: ConsultationStatus.SCHEDULED,
-        caseDescription: 'Property dispute with neighbor regarding boundary fence and land encroachment.',
-        consultationFee: '$250',
-        avatarClass: 'blue',
-        bookedViaWorkflow: false,
-        createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-895',
-        clientId: 'cl-1',
-        clientName: 'Client Alice',
-        firmId: 'firm-2',
-        firmName: 'Khanna & Co',
-        lawyerId: 'lw-4',
-        lawyerName: 'Lawyer Rahul',
-        type: 'inperson',
-        date: 'May 26, 2026',
-        time: '02:00 PM - 03:00 PM',
-        status: ConsultationStatus.CONFIRMED,
-        caseDescription: 'Family custody arrangement and child support consultation.',
-        consultationFee: '$200',
-        avatarClass: 'green',
-        bookedViaWorkflow: false,
-        createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-901',
-        clientId: 'cl-1',
-        clientName: 'Client Alice',
-        firmId: 'firm-4',
-        firmName: 'Coastal Legal Chennai',
-        lawyerId: 'lw-10',
-        lawyerName: 'Lawyer Elena',
-        type: 'chat',
-        date: 'Jun 02, 2026',
-        time: '11:00 AM - 11:30 AM',
-        status: ConsultationStatus.CONFIRMED,
-        caseDescription: 'Employment contract review before signing new job offer.',
-        consultationFee: '$180',
-        avatarClass: 'indigo',
-        bookedViaWorkflow: true,
-        createdAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 12 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-907',
-        clientId: 'cl-1',
-        clientName: 'Client Alice',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        type: 'video',
-        date: 'Jun 10, 2026',
-        time: '03:00 PM - 03:30 PM',
-        status: ConsultationStatus.PENDING,
-        caseDescription: 'Tenant rights dispute — landlord refusing to return security deposit.',
-        consultationFee: '$250',
-        avatarClass: 'orange',
-        bookedViaWorkflow: false,
-        createdAt: new Date(now.getTime() - 4 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 4 * 60 * 60 * 1000),
-      },
-
-      // ═══════════════════════════════════════════════════════════════
-      // CLIENT SIDE — cl-1 (Client Alice) — Past Consultations
-      // ═══════════════════════════════════════════════════════════════
-      {
-        id: 'CONS-204',
-        clientId: 'cl-1',
-        clientName: 'Client Alice',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        lawyerId: 'lw-2',
-        lawyerName: 'Lawyer Amit',
-        type: 'video',
-        date: 'Mar 14, 2026',
-        time: '09:00 AM - 09:30 AM',
-        status: ConsultationStatus.COMPLETED,
-        caseDescription: 'Property law consultation — boundary regulations resolved.',
-        consultationFee: '$250',
-        avatarClass: 'orange',
-        bookedViaWorkflow: false,
-        notes: 'Client advised on property boundary regulations. Case closed successfully.',
-        createdAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 55 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-156',
-        clientId: 'cl-1',
-        clientName: 'Client Alice',
-        firmId: 'firm-3',
-        firmName: 'Rodriguez Civil Law',
-        lawyerName: 'Elena Rodriguez',
-        type: 'chat',
-        date: 'Jan 10, 2026',
-        time: '04:00 PM - 04:30 PM',
-        status: ConsultationStatus.CANCELLED,
-        caseDescription: 'Civil law matter — client cancelled due to scheduling conflict.',
-        avatarClass: 'purple',
-        bookedViaWorkflow: false,
-        createdAt: new Date(now.getTime() - 120 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 118 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-143',
-        clientId: 'cl-1',
-        clientName: 'Client Alice',
-        firmId: 'firm-2',
-        firmName: 'Khanna & Co',
-        lawyerId: 'lw-5',
-        lawyerName: 'Lawyer Priya',
-        type: 'inperson',
-        date: 'Feb 20, 2026',
-        time: '10:00 AM - 11:00 AM',
-        status: ConsultationStatus.COMPLETED,
-        caseDescription: 'Initial family mediation session — divorce proceedings.',
-        consultationFee: '$200',
-        avatarClass: 'teal',
-        bookedViaWorkflow: false,
-        notes: 'Mediation session completed. Follow-up scheduled.',
-        createdAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 80 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-118',
-        clientId: 'cl-1',
-        clientName: 'Client Alice',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        lawyerId: 'lw-3',
-        lawyerName: 'Lawyer Sunita',
-        type: 'video',
-        date: 'Nov 05, 2025',
-        time: '01:00 PM - 01:30 PM',
-        status: ConsultationStatus.COMPLETED,
-        caseDescription: 'Intellectual property — trademark registration advisory.',
-        consultationFee: '$300',
-        avatarClass: 'blue',
-        bookedViaWorkflow: true,
-        notes: 'Trademark application filed. Awaiting registry response.',
-        createdAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 170 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-097',
-        clientId: 'cl-1',
-        clientName: 'Client Alice',
-        firmId: 'firm-4',
-        firmName: 'Coastal Legal Chennai',
-        lawyerName: 'Lawyer Divya',
-        type: 'chat',
-        date: 'Oct 12, 2025',
-        time: '05:00 PM - 05:30 PM',
-        status: ConsultationStatus.CANCELLED,
-        caseDescription: 'Consumer dispute with e-commerce vendor over defective product.',
-        consultationFee: '$150',
-        avatarClass: 'pink',
-        bookedViaWorkflow: false,
-        createdAt: new Date(now.getTime() - 210 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 208 * 24 * 60 * 60 * 1000),
-      },
-
-      // ═══════════════════════════════════════════════════════════════
-      // FIRM ADMIN SIDE — firm-1 (Sharma & Associates) — PENDING Requests
-      // ═══════════════════════════════════════════════════════════════
-      {
-        id: 'CONS-910',
-        clientId: 'cl-3',
-        clientName: 'Client Dave',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        type: 'chat',
-        date: 'May 28, 2026',
-        time: '11:00 AM - 11:30 AM',
-        status: ConsultationStatus.PENDING,
-        caseDescription: 'Criminal defense consultation — charges being filed against client.',
-        avatarClass: 'indigo',
-        bookedViaWorkflow: true,
-        createdAt: new Date(now.getTime() - 1 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 1 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-911',
-        clientId: 'cl-4',
-        clientName: 'Client Eve',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        type: 'inperson',
-        date: 'May 29, 2026',
-        time: '03:00 PM - 04:00 PM',
-        status: ConsultationStatus.PENDING,
-        caseDescription: 'Corporate contract review needed urgently before board meeting.',
-        avatarClass: 'teal',
-        bookedViaWorkflow: true,
-        createdAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-912',
-        clientId: 'cl-5',
-        clientName: 'Client Frank',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        type: 'video',
-        date: 'Jun 01, 2026',
-        time: '09:00 AM - 09:30 AM',
-        status: ConsultationStatus.PENDING,
-        caseDescription: 'Startup equity and co-founder agreement drafting assistance.',
-        avatarClass: 'green',
-        bookedViaWorkflow: true,
-        createdAt: new Date(now.getTime() - 30 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 30 * 60 * 1000),
-      },
-      {
-        id: 'CONS-913',
-        clientId: 'cl-6',
-        clientName: 'Client Grace',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        type: 'chat',
-        date: 'Jun 03, 2026',
-        time: '02:00 PM - 02:30 PM',
-        status: ConsultationStatus.PENDING,
-        caseDescription: 'Insurance claim denial — seeking legal opinion on recourse options.',
-        avatarClass: 'purple',
-        bookedViaWorkflow: false,
-        createdAt: new Date(now.getTime() - 45 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 45 * 60 * 1000),
-      },
-
-      // ═══════════════════════════════════════════════════════════════
-      // FIRM ADMIN SIDE — firm-1 — Active / Scheduled / In-Progress
-      // ═══════════════════════════════════════════════════════════════
-      {
-        id: 'CONS-875',
-        clientId: 'cl-7',
-        clientName: 'Client Henry',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        lawyerId: 'lw-1',
-        lawyerName: 'Lawyer Bob',
-        type: 'video',
-        date: 'May 25, 2026',
-        time: '09:00 AM - 09:30 AM',
-        status: ConsultationStatus.SCHEDULED,
-        caseDescription: 'Mergers & acquisitions due diligence review for mid-size tech firm.',
-        consultationFee: '$350',
-        avatarClass: 'blue',
-        bookedViaWorkflow: false,
-        createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-876',
-        clientId: 'cl-8',
-        clientName: 'Client Irene',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        lawyerId: 'lw-2',
-        lawyerName: 'Lawyer Amit',
-        type: 'inperson',
-        date: 'May 27, 2026',
-        time: '04:00 PM - 05:00 PM',
-        status: ConsultationStatus.CONFIRMED,
-        caseDescription: 'Workplace harassment legal consultation and filing of FIR assistance.',
-        consultationFee: '$220',
-        avatarClass: 'orange',
-        bookedViaWorkflow: true,
-        createdAt: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-877',
-        clientId: 'cl-9',
-        clientName: 'Client Jake',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        lawyerId: 'lw-3',
-        lawyerName: 'Lawyer Sunita',
-        type: 'video',
-        date: 'May 23, 2026',
-        time: '11:00 AM - 12:00 PM',
-        status: ConsultationStatus.IN_PROGRESS,
-        caseDescription: 'Real estate transaction — reviewing commercial lease for retail shop.',
-        consultationFee: '$300',
-        avatarClass: 'teal',
-        bookedViaWorkflow: false,
-        createdAt: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 1 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-878',
-        clientId: 'cl-10',
-        clientName: 'Client Laura',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        lawyerId: 'lw-2',
-        lawyerName: 'Lawyer Amit',
-        type: 'chat',
-        date: 'May 23, 2026',
-        time: '01:00 PM - 01:30 PM',
-        status: ConsultationStatus.IN_PROGRESS,
-        caseDescription: 'Visa application rejection — seeking immigration legal advice.',
-        consultationFee: '$180',
-        avatarClass: 'pink',
-        bookedViaWorkflow: true,
-        createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 30 * 60 * 1000),
-      },
-      {
-        id: 'CONS-879',
-        clientId: 'cl-11',
-        clientName: 'Client Mark',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        lawyerId: 'lw-3',
-        lawyerName: 'Lawyer Sunita',
-        type: 'inperson',
-        date: 'May 30, 2026',
-        time: '10:00 AM - 11:00 AM',
-        status: ConsultationStatus.SCHEDULED,
-        caseDescription: 'Patent infringement claim against competitor company.',
-        consultationFee: '$400',
-        avatarClass: 'indigo',
-        bookedViaWorkflow: false,
-        createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000),
-      },
-
-      // ═══════════════════════════════════════════════════════════════
-      // FIRM ADMIN SIDE — firm-1 — Completed History
-      // ═══════════════════════════════════════════════════════════════
-      {
-        id: 'CONS-800',
-        clientId: 'fa-2',
-        clientName: 'Client Dave',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        lawyerId: 'lw-1',
-        lawyerName: 'Lawyer Bob',
-        type: 'video',
-        date: 'Apr 10, 2026',
-        time: '02:00 PM - 02:30 PM',
-        status: ConsultationStatus.COMPLETED,
-        caseDescription: 'Business registration and GST compliance advisory.',
-        consultationFee: '$250',
-        avatarClass: 'green',
-        bookedViaWorkflow: false,
-        notes: 'Client registered business successfully. All documents verified.',
-        createdAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 25 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 'CONS-801',
-        clientId: 'fa-3',
-        clientName: 'Client Eve',
-        firmId: 'firm-1',
-        firmName: 'Sharma & Associates',
-        lawyerId: 'lw-2',
-        lawyerName: 'Lawyer Amit',
-        type: 'inperson',
-        date: 'Apr 18, 2026',
-        time: '10:00 AM - 11:00 AM',
-        status: ConsultationStatus.COMPLETED,
-        caseDescription: 'Non-disclosure agreement drafting for SaaS startup.',
-        consultationFee: '$300',
-        avatarClass: 'blue',
-        bookedViaWorkflow: true,
-        notes: 'NDA drafted and signed by both parties.',
-        createdAt: new Date(now.getTime() - 22 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 18 * 24 * 60 * 60 * 1000),
-      },
-    ];
-
-    this.consultations = seed;
-    this.idCounter = 914;
-
-    // Pre-populate workflow bookings tracking for seeded workflow consultations
-    seed
-      .filter((c) => c.bookedViaWorkflow)
-      .forEach((c) => {
-        this.workflowBookings.push({
-          consultationId: c.id,
-          clientId: c.clientId,
-          clientName: c.clientName,
-          firmId: c.firmId,
-          firmName: c.firmName,
-          bookedAt: c.createdAt,
-          consultationType: c.type,
-          requestedDate: c.date,
-          requestedTime: c.time,
-        });
-      });
+  private async writeState<T>(change: (state: ConsultationState) => T): Promise<T> {
+    return tx(async (db) => {
+      await db.query(
+        'INSERT INTO app_state (key, data) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
+        [STATE_KEY, JSON.stringify(this.initialState)],
+      );
+      // Read after acquiring the row lock so two servers can book concurrently.
+      const { rows } = await db.query<{ data: ConsultationState }>(
+        'SELECT data FROM app_state WHERE key = $1 FOR UPDATE',
+        [STATE_KEY],
+      );
+      const state = rows[0].data;
+      const result = change(state);
+      await db.query('UPDATE app_state SET data = $2 WHERE key = $1', [
+        STATE_KEY, JSON.stringify(state),
+      ]);
+      return result;
+    });
   }
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
@@ -482,13 +100,10 @@ export class ConsultationsService {
    * GET all consultations with optional filters.
    * Accessible by firmadmin / lawyer / superadmin.
    */
-  findAll(filters: {
-    clientId?: string;
-    firmId?: string;
+  async findAll(filters: ConsultationScope & {
     status?: string;
-    lawyerId?: string;
-  }): ConsultationResponseDto[] {
-    let results = [...this.consultations];
+  }): Promise<ConsultationResponseDto[]> {
+    let { consultations: results } = await this.readState();
 
     if (filters.clientId) {
       results = results.filter((c) => c.clientId === filters.clientId);
@@ -512,96 +127,70 @@ export class ConsultationsService {
    * GET consultations belonging to a specific client.
    * Accessible by client role (client ID read from header/query).
    */
-  findByClientId(clientId: string): ConsultationResponseDto[] {
-    if (!clientId) {
-      throw new BadRequestException(
-        'x-client-id header is required for this endpoint',
-      );
-    }
-    return this.consultations
-      .filter((c) => c.clientId === clientId)
-      .map(this.toResponse);
-  }
-
   /**
    * GET a single consultation by ID.
    * Accessible by all roles.
    */
-  findOne(id: string): ConsultationResponseDto {
-    const consultation = this.consultations.find((c) => c.id === id);
+  async findOne(id: string, scope: ConsultationScope): Promise<ConsultationResponseDto> {
+    const state = await this.readState();
+    return this.toResponse(this.getConsultation(state, id, scope));
+  }
+
+  private getConsultation(state: ConsultationState, id: string, scope: ConsultationScope) {
+    const consultation = state.consultations.find((c) => c.id === id &&
+      (!scope.firmId || c.firmId === scope.firmId) &&
+      (!scope.clientId || c.clientId === scope.clientId) &&
+      (!scope.lawyerId || c.lawyerId === scope.lawyerId));
     if (!consultation) {
       throw new NotFoundException(`Consultation with ID "${id}" not found`);
     }
-    return this.toResponse(consultation);
+    return consultation;
   }
 
   /**
    * POST — Create a new consultation (client booking).
    */
-  create(dto: CreateConsultationDto): ConsultationResponseDto {
-    const id = `CONS-${this.idCounter++}`;
-    const now = new Date();
+  async create(dto: CreateConsultationDto): Promise<ConsultationResponseDto> {
+    const [client, firm] = await Promise.all([
+      this.usersService.findOne(dto.clientId),
+      this.usersService.getFirmById(dto.firmId),
+    ]);
+    if (client.role !== 'client') throw new BadRequestException('Select a registered client');
 
-    const consultation: Consultation = {
-      id,
-      clientId: dto.clientId,
-      clientName: dto.clientName,
-      firmId: dto.firmId,
-      firmName: dto.firmName,
-      lawyerId: dto.lawyerId,
-      lawyerName: dto.lawyerName || 'Awaiting Assignment',
-      type: dto.type,
-      date: dto.date,
-      time: dto.time,
-      status: ConsultationStatus.PENDING,
-      caseDescription: dto.caseDescription,
-      consultationFee: dto.consultationFee,
-      avatarClass: dto.avatarClass || 'blue',
-      bookedViaWorkflow: dto.bookedViaWorkflow ?? false,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.consultations.push(consultation);
-
-    // If booked via the client search/discovery workflow, track it separately
-    if (consultation.bookedViaWorkflow) {
-      this.workflowBookings.push({
-        consultationId: id,
-        clientId: consultation.clientId,
-        clientName: consultation.clientName,
-        firmId: consultation.firmId,
-        firmName: consultation.firmName,
-        bookedAt: now,
-        consultationType: consultation.type,
-        requestedDate: consultation.date,
-        requestedTime: consultation.time,
-      });
-    }
-
-    return this.toResponse(consultation);
+    return this.writeState((state) => {
+      const now = new Date();
+      const consultation: Consultation = {
+        ...dto,
+        id: `CONS-${state.nextId++}`,
+        clientId: client.id,
+        clientName: client.fullName,
+        firmId: firm.id,
+        firmName: firm.name,
+        lawyerName: dto.lawyerName || 'Awaiting Assignment',
+        status: ConsultationStatus.PENDING,
+        avatarClass: dto.avatarClass || 'blue',
+        bookedViaWorkflow: dto.bookedViaWorkflow ?? false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      state.consultations.push(consultation);
+      if (consultation.bookedViaWorkflow) state.workflowBookings.push(this.toBooking(consultation));
+      return this.toResponse(consultation);
+    });
   }
 
   /**
    * PATCH — Update a consultation (firm admin assigns lawyer / changes status).
    */
-  async update(id: string, dto: UpdateConsultationDto): Promise<ConsultationResponseDto> {
-    const index = this.consultations.findIndex((c) => c.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Consultation with ID "${id}" not found`);
-    }
-
-    const existing = this.consultations[index];
-
-    // Prevent updating already-cancelled or completed consultations
-    if (
-      existing.status === ConsultationStatus.CANCELLED ||
-      existing.status === ConsultationStatus.COMPLETED
-    ) {
-      throw new ForbiddenException(
-        `Cannot update a consultation that is ${existing.status}`,
-      );
-    }
+  async update(id: string, dto: UpdateConsultationDto, scope: ConsultationScope): Promise<ConsultationResponseDto> {
+    const updated = await this.writeState((state) => {
+      const existing = this.getConsultation(state, id, scope);
+      if (existing.status === ConsultationStatus.CANCELLED || existing.status === ConsultationStatus.COMPLETED) {
+        throw new ForbiddenException(`Cannot update a consultation that is ${existing.status}`);
+      }
+      Object.assign(existing, dto, { status: dto.status ?? existing.status, updatedAt: new Date() });
+      return this.toResponse(existing);
+    });
 
     // Logic for conversion: If status is being set to CONFIRMED (Accepted),
     // convert the prospect into a client of this law firm.
@@ -609,79 +198,69 @@ export class ConsultationsService {
       try {
         // Clients are platform-global now; the consultation itself is the
         // firm link, so this is bookkeeping only.
-        await this.usersService.updateUser(existing.clientId, {
-          firmId: existing.firmId,
+        await this.usersService.updateUser(updated.clientId, {
+          firmId: updated.firmId,
         });
-        console.log(`[Backend] User ${existing.clientId} converted to Client of Firm ${existing.firmId}`);
       } catch (err) {
-        console.warn(`[Backend] Failed to convert user ${existing.clientId} to client: ${err.message}`);
+        console.warn(`[Backend] Failed to convert user ${updated.clientId} to client: ${err.message}`);
       }
     }
-
-    this.consultations[index] = {
-      ...existing,
-      ...dto,
-      updatedAt: new Date(),
-    };
-
-    return this.toResponse(this.consultations[index]);
+    return updated;
   }
 
   /**
    * PATCH /:id/cancel — Cancel a consultation (client or firmadmin).
    * Extracted as a named method to enforce business rules.
    */
-  cancel(id: string): ConsultationResponseDto {
-    const index = this.consultations.findIndex((c) => c.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Consultation with ID "${id}" not found`);
-    }
-
-    const existing = this.consultations[index];
-
-    if (existing.status === ConsultationStatus.COMPLETED) {
-      throw new ForbiddenException('Cannot cancel a completed consultation');
-    }
-    if (existing.status === ConsultationStatus.CANCELLED) {
-      throw new BadRequestException('Consultation is already cancelled');
-    }
-
-    this.consultations[index] = {
-      ...existing,
-      status: ConsultationStatus.CANCELLED,
-      updatedAt: new Date(),
-    };
-
-    return this.toResponse(this.consultations[index]);
+  cancel(id: string, scope: ConsultationScope): Promise<ConsultationResponseDto> {
+    return this.writeState((state) => {
+      const existing = this.getConsultation(state, id, scope);
+      if (existing.status === ConsultationStatus.COMPLETED) {
+        throw new ForbiddenException('Cannot cancel a completed consultation');
+      }
+      if (existing.status === ConsultationStatus.CANCELLED) {
+        throw new BadRequestException('Consultation is already cancelled');
+      }
+      existing.status = ConsultationStatus.CANCELLED;
+      existing.updatedAt = new Date();
+      return this.toResponse(existing);
+    });
   }
 
   /**
    * DELETE — Hard delete a consultation record (firmadmin / superadmin only).
    */
-  remove(id: string): { message: string } {
-    const index = this.consultations.findIndex((c) => c.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Consultation with ID "${id}" not found`);
-    }
-
-    this.consultations.splice(index, 1);
-    // Also remove from workflow tracking if present
-    const wbIndex = this.workflowBookings.findIndex(
-      (wb) => wb.consultationId === id,
-    );
-    if (wbIndex !== -1) {
-      this.workflowBookings.splice(wbIndex, 1);
-    }
-
-    return { message: `Consultation ${id} deleted successfully` };
+  remove(id: string, scope: ConsultationScope): Promise<{ message: string }> {
+    return this.writeState((state) => {
+      const existing = this.getConsultation(state, id, scope);
+      state.consultations.splice(state.consultations.indexOf(existing), 1);
+      state.workflowBookings = state.workflowBookings.filter((wb) => wb.consultationId !== id);
+      return { message: `Consultation ${id} deleted successfully` };
+    });
   }
 
   /**
    * GET /workflow-bookings — Returns all consultations booked via the client
    * search/discovery workflow. Intended for firm admins to see organic demand.
    */
-  getWorkflowBookings(): WorkflowBookingRecord[] {
-    return [...this.workflowBookings];
+  async getWorkflowBookings(firmId?: string): Promise<WorkflowBookingRecord[]> {
+    const { workflowBookings } = await this.readState();
+    return workflowBookings.filter((booking) => !firmId || booking.firmId === firmId)
+      .map((booking) => ({ ...booking, bookedAt: new Date(booking.bookedAt) }));
+  }
+
+  private toBooking(c: Consultation): WorkflowBookingRecord {
+    return {
+      consultationId: c.id,
+      clientId: c.clientId,
+      clientName: c.clientName,
+      firmId: c.firmId,
+      firmName: c.firmName,
+      bookedAt: c.createdAt,
+      consultationType: c.type,
+      requestedDate: c.date,
+      requestedTime: c.time,
+    };
   }
 
   // ── Mapper ────────────────────────────────────────────────────────────────
@@ -703,8 +282,8 @@ export class ConsultationsService {
       avatarClass: c.avatarClass,
       bookedViaWorkflow: c.bookedViaWorkflow,
       notes: c.notes,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
+      createdAt: new Date(c.createdAt),
+      updatedAt: new Date(c.updatedAt),
     };
   }
 }

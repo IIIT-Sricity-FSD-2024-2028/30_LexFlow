@@ -1,3 +1,4 @@
+import { FirmWrite } from '../common/decorators/firm-write.decorator';
 import {
   Controller,
   Get,
@@ -7,10 +8,9 @@ import {
   Body,
   Param,
   Query,
-  Headers,
   HttpCode,
   HttpStatus,
-  UseGuards, Req, UnauthorizedException } from '@nestjs/common';
+  UseGuards, Req, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -19,7 +19,7 @@ import {
   ApiHeader,
   ApiParam,
 } from '@nestjs/swagger';
-import { ConsultationsService } from './consultations.service';
+import { ConsultationScope, ConsultationsService } from './consultations.service';
 import {
   CreateConsultationDto,
   UpdateConsultationDto,
@@ -37,12 +37,32 @@ const ROLE_HEADER_CONFIG = {
   enum: UserRole,
 };
 
+interface ConsultationRequest {
+  user?: { id: string; role: UserRole; firmId?: string };
+}
+
 @ApiTags('consultations')
 @ApiHeader(ROLE_HEADER_CONFIG)
 @UseGuards(RolesGuard)
+@FirmWrite()
 @Controller('consultations')
 export class ConsultationsController {
   constructor(private readonly consultationsService: ConsultationsService) {}
+
+  private currentUser(req: ConsultationRequest) {
+    if (!req.user) throw new UnauthorizedException('Login required');
+    return req.user;
+  }
+
+  private scope(req: ConsultationRequest): ConsultationScope {
+    const user = this.currentUser(req);
+    if (user.role === UserRole.SUPERADMIN) return {};
+    if (user.role === UserRole.CLIENT) return { clientId: user.id };
+    if (!user.firmId) throw new ForbiddenException('This account must belong to a firm');
+    return user.role === UserRole.LAWYER
+      ? { firmId: user.firmId, lawyerId: user.id }
+      : { firmId: user.firmId };
+  }
 
   // ──────────────────────────────────────────────────────────────────────────
   // GET /consultations/workflow-bookings
@@ -53,15 +73,15 @@ export class ConsultationsController {
   @ApiOperation({
     summary: 'Get clients who booked via the search/discovery workflow',
     description:
-      'Returns a list of all consultations that were created through the client-facing law firm search and booking flow. Only firmadmin and superadmin can access this.',
+      'Returns bookings made through law firm search. Firm admins see bookings for their firm.',
   })
   @ApiResponse({
     status: 200,
     description: 'List of workflow booking records',
   })
   @ApiResponse({ status: 403, description: 'Forbidden – insufficient role' })
-  getWorkflowBookings() {
-    return this.consultationsService.getWorkflowBookings();
+  getWorkflowBookings(@Req() req: ConsultationRequest) {
+    return this.consultationsService.getWorkflowBookings(this.scope(req).firmId);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -73,12 +93,7 @@ export class ConsultationsController {
   @ApiOperation({
     summary: "Get the calling client's consultations",
     description:
-      'Returns all consultations for the client identified by the x-client-id header. Only the client role may call this endpoint.',
-  })
-  @ApiHeader({
-    name: 'x-client-id',
-    description: 'The ID of the authenticated client (e.g. "user-2")',
-    required: true,
+      'Returns all consultations for the authenticated client.',
   })
   @ApiResponse({
     status: 200,
@@ -86,15 +101,12 @@ export class ConsultationsController {
     type: [ConsultationResponseDto],
   })
   @ApiResponse({
-    status: 400,
-    description: 'Missing x-client-id header',
+    status: 401,
+    description: 'Login required',
   })
   @ApiResponse({ status: 403, description: 'Forbidden – non-client role' })
-  getMyConsultations(
-    @Req() req,
-    @Headers('x-client-id') clientId: string,
-  ): ConsultationResponseDto[] {
-    return this.consultationsService.findByClientId(clientId);
+  getMyConsultations(@Req() req: ConsultationRequest): Promise<ConsultationResponseDto[]> {
+    return this.consultationsService.findAll({ clientId: this.currentUser(req).id });
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -124,21 +136,13 @@ export class ConsultationsController {
   })
   @ApiResponse({ status: 403, description: 'Forbidden – insufficient role' })
   findAll(
-    @Req() req,
+    @Req() req: ConsultationRequest,
     @Query('clientId') clientId?: string,
     @Query('firmId') firmId?: string,
     @Query('status') status?: string,
     @Query('lawyerId') lawyerId?: string,
-  ): ConsultationResponseDto[] {
-    // Scope by the logged-in user (JWT), not by what the browser asks for:
-    // firm staff only see their own firm, and a lawyer only their own consultations.
-    const user = req.user;
-    if (!user) throw new UnauthorizedException('Login required');
-    if (user.role !== 'superadmin') {
-      firmId = user.firmId;
-      if (user.role === 'lawyer') lawyerId = user.id;
-    }
-    return this.consultationsService.findAll({ clientId, firmId, status, lawyerId });
+  ): Promise<ConsultationResponseDto[]> {
+    return this.consultationsService.findAll({ clientId, firmId, status, lawyerId, ...this.scope(req) });
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -158,8 +162,8 @@ export class ConsultationsController {
   })
   @ApiResponse({ status: 404, description: 'Consultation not found' })
   @ApiResponse({ status: 403, description: 'role header missing or invalid' })
-  findOne(@Param('id') id: string): ConsultationResponseDto {
-    return this.consultationsService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: ConsultationRequest): Promise<ConsultationResponseDto> {
+    return this.consultationsService.findOne(id, this.scope(req));
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -181,8 +185,11 @@ export class ConsultationsController {
   })
   @ApiResponse({ status: 400, description: 'Validation error – invalid or missing fields' })
   @ApiResponse({ status: 403, description: 'Forbidden – non-client role' })
-  create(@Body() dto: CreateConsultationDto): ConsultationResponseDto {
-    return this.consultationsService.create(dto);
+  create(@Body() dto: CreateConsultationDto, @Req() req: ConsultationRequest): Promise<ConsultationResponseDto> {
+    const user = this.currentUser(req);
+    return this.consultationsService.create(
+      user.role === UserRole.CLIENT ? { ...dto, clientId: user.id } : dto,
+    );
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -208,8 +215,9 @@ export class ConsultationsController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateConsultationDto,
+    @Req() req: ConsultationRequest,
   ): Promise<ConsultationResponseDto> {
-    return this.consultationsService.update(id, dto);
+    return this.consultationsService.update(id, dto, this.scope(req));
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -232,8 +240,8 @@ export class ConsultationsController {
   @ApiResponse({ status: 400, description: 'Already cancelled' })
   @ApiResponse({ status: 403, description: 'Cannot cancel completed consultation, or insufficient role' })
   @ApiResponse({ status: 404, description: 'Consultation not found' })
-  cancel(@Param('id') id: string): ConsultationResponseDto {
-    return this.consultationsService.cancel(id);
+  cancel(@Param('id') id: string, @Req() req: ConsultationRequest): Promise<ConsultationResponseDto> {
+    return this.consultationsService.cancel(id, this.scope(req));
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -252,7 +260,7 @@ export class ConsultationsController {
   @ApiResponse({ status: 200, description: 'Consultation deleted successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden – insufficient role' })
   @ApiResponse({ status: 404, description: 'Consultation not found' })
-  remove(@Param('id') id: string): { message: string } {
-    return this.consultationsService.remove(id);
+  remove(@Param('id') id: string, @Req() req: ConsultationRequest): Promise<{ message: string }> {
+    return this.consultationsService.remove(id, this.scope(req));
   }
 }
