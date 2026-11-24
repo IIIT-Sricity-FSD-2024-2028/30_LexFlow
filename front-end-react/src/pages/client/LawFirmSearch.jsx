@@ -7,6 +7,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useResource } from '../../store/resource.js';
+import { firmDirectory } from '../../store/slices/intakeSlice.js';
 import { navigate } from '../../router.jsx';
 import {
   Button, Card, Badge, Modal, PageHeader, Loading, ErrorBanner, EmptyState,
@@ -30,9 +32,10 @@ export default function LawFirmSearch() {
   const [location, setLocation] = useState('');
   const [area, setArea] = useState('');
   const [sortBy, setSortBy] = useState('rating');
-  const [firms, setFirms] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { data: firms = [], loading, error: requestError, load } = useResource(firmDirectory, {
+    keyword, location, practiceArea: area, sortBy,
+  });
+  const error = requestError ? `Could not load firms: ${requestError.message} (Is the backend running?)` : '';
 
   /* ── Profile overlay state ── */
   const [profile, setProfile] = useState(null); // the full firm being previewed
@@ -45,27 +48,11 @@ export default function LawFirmSearch() {
   const [description, setDescription] = useState('');
   const [bookingBusy, setBookingBusy] = useState(false);
 
-  /* Fetch firms with the current filters. */
-  const load = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const list = await api.lawFirms.getAll({ keyword, location, practiceArea: area, sortBy }, 'client');
-      setFirms(Array.isArray(list) ? list : []);
-    } catch (err) {
-      setError(`Could not load firms: ${err.message} (Is the backend running?)`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Search as you type: reload whenever a filter changes (short delay so we
-  // don't send a request for every single keystroke).
+  // Delay the search so typing does not send a request for every keystroke.
   useEffect(() => {
-    const t = setTimeout(load, 250);
-    return () => clearTimeout(t);
-    /* eslint-disable-next-line */
-  }, [keyword, location, area, sortBy]);
+    const timer = setTimeout(load, 250);
+    return () => clearTimeout(timer);
+  }, [load]);
 
   /* Open the booking modal for a firm (resets the form each time). */
   const openBooking = (firm) => {

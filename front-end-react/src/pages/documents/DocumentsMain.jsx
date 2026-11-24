@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useCaseList } from '../../store/slices/mattersSlice.js';
 import { navigate } from '../../router.jsx';
 import {
   Button, Card, Badge, PageHeader, Loading, ErrorBanner, EmptyState, Input, FilterDropdown,
@@ -18,42 +19,28 @@ export default function DocumentsMain() {
   const role = (user?.role || 'client').toLowerCase();
   const isClient = role === 'client'; // client view: no need to repeat their own name on each card
 
-  const [cases, setCases] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { data: cases, loading, error, load } = useCaseList(user, role);
+  const [names, setNames] = useState({});
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState([]); // ['Active','Pending','Closed']
   const [sortKey, setSortKey] = useState(null);          // 'caseName' | 'id'
   const [sortAsc, setSortAsc] = useState(true);
   const [view, setView] = useState('grid');              // 'grid' | 'list'
 
-  /* Load the role-scoped case list. */
+  useEffect(() => { load(); }, [load]);
+
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const filters = role === 'client' && user?.id ? { clientId: user.id }
-          : role === 'lawyer' && user?.id ? { lawyerId: user.id }
-          : user?.firmId ? { firmId: user.firmId } : {};
-        const list = await api.cases.getAll(filters, role);
-        const arr = Array.isArray(list) ? list : [];
-        // Cases carry only client_id / lawyer_id; resolve them to names.
-        const ids = [...new Set(arr.flatMap((c) => [c.client_id, c.lawyer_id]).filter(Boolean))];
-        const names = {};
-        await Promise.allSettled(ids.map((id) =>
-          api.users.getById(id, role).then((u) => { names[id] = u.fullName || u.name; })));
-        setCases(arr.map((c) => ({
-          ...c,
-          client_name: c.client_name || names[c.client_id],
-          lawyer_name: c.lawyer_name || names[c.lawyer_id],
-        })));
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [role, user?.id, user?.firmId]);
+    if (!cases) return;
+    let current = true;
+    const ids = [...new Set(cases.flatMap((record) => [record.client_id, record.lawyer_id]).filter(Boolean))];
+    Promise.all(ids.map(async (id) => {
+      const person = await api.users.getById(id, role).catch(() => null);
+      return [id, person?.fullName || person?.name];
+    })).then((entries) => {
+      if (current) setNames(Object.fromEntries(entries));
+    });
+    return () => { current = false; };
+  }, [cases, role]);
 
   /* Build the display model per case (same fallbacks as the vanilla script). */
   const cards = useMemo(() => {
@@ -63,14 +50,14 @@ export default function DocumentsMain() {
       if (v === 'closed') return 'Closed';
       return 'Active';
     };
-    let list = cases.map((c) => ({
+    let list = (cases ?? []).map((c) => ({
       id: String(c.id),
       cnr: c.cnr || '',
-      client: c.client_name || c.clientName || 'Unknown Client',
+      client: c.client_name || names[c.client_id] || c.clientName || 'Unknown Client',
       status: mapStatus(c.status),
       caseType: c.case_type || c.title || 'Case',
       caseName: c.brief_description || c.case_type || 'Case', // e.g. "Property dispute - Sharma vs Gupta"
-      lawyer: c.lawyer_name || c.lawyerName || 'Unknown Lawyer',
+      lawyer: c.lawyer_name || names[c.lawyer_id] || c.lawyerName || 'Unknown Lawyer',
       court: c.court || 'District Court',
     }));
 
@@ -90,7 +77,7 @@ export default function DocumentsMain() {
       });
     }
     return list;
-  }, [cases, search, statusFilter, sortKey, sortAsc]);
+  }, [cases, names, search, statusFilter, sortKey, sortAsc]);
 
   const statusTone = (s) => (s === 'Active' ? 'green' : s === 'Closed' ? 'red' : 'amber');
 
@@ -139,7 +126,7 @@ export default function DocumentsMain() {
       </div>
 
       {loading && <Loading text="Loading cases…" />}
-      {!loading && error && <ErrorBanner message={`Error loading cases: ${error}`} onRetry={() => window.location.reload()} />}
+      {!loading && error && <ErrorBanner message={`Error loading cases: ${error.message}`} onRetry={load} />}
       {!loading && !error && cards.length === 0 && <EmptyState icon="document" title="No cases match your criteria." />}
 
       {/* ── Grid view ── */}

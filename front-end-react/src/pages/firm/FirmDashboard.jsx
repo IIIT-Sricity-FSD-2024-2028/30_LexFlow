@@ -5,9 +5,13 @@
  * firm-consultation-dashboard).
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useResource } from '../../store/resource.js';
+import { consultationList } from '../../store/slices/intakeSlice.js';
+import { useAppDispatch } from '../../store/hooks.js';
+import { casesInvalidated } from '../../store/slices/mattersSlice.js';
 import {
   Button, Card, Badge, StatusBadge, PageHeader, Loading, ErrorBanner, EmptyState, Table, Th, Td, Select, StatCard,
   Input, FilterDropdown, ChipGroup,
@@ -20,35 +24,20 @@ export default function FirmDashboard() {
   const { user, toast } = useApp();
   const role = (user?.role || 'firmadmin').toLowerCase();
 
-  const [consultations, setConsultations] = useState([]);
-  const [lawyers, setLawyers] = useState([]);       // for the assignment dropdown
-  const [chosen, setChosen] = useState({});          // consultationId -> lawyerId
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const dispatch = useAppDispatch();
+  const { data, loading, error: requestError, load } = useResource(consultationList, {
+    role, firmId: user?.firmId, actorId: user?.id,
+  });
+  const consultations = data?.consultations ?? [];
+  const lawyers = data?.lawyers ?? [];
+  const error = requestError?.status === 403 ? 'Access denied. Please log in as a firm admin.'
+    : requestError ? `Could not load: ${requestError.message}` : '';
+  const [chosen, setChosen] = useState({});
 
   /* Search + filters (applied on this page, to both the requests and the table). */
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All'); // active table only
   const [modeFilter, setModeFilter] = useState('All');     // VIDEO | CHAT | INPERSON
-
-  /* Load consultations + the firm's lawyers. */
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const filters = user?.firmId ? { firmId: user.firmId } : {};
-      const [cons, law] = await Promise.all([
-        api.consultations.getAll(filters, role),
-        role === 'firmadmin' ? api.users.getLawyers(user?.firmId, role) : [], // only admins assign lawyers
-      ]);
-      setConsultations(Array.isArray(cons) ? cons : []);
-      setLawyers((Array.isArray(law) ? law : []).filter((u) => (u.role || '').toLowerCase() === 'lawyer'));
-    } catch (err) {
-      setError(err.status === 403 ? 'Access denied. Please log in as a firm admin.' : `Could not load: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [role, user?.firmId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -85,7 +74,7 @@ export default function FirmDashboard() {
         lawyerName: lawyer?.fullName || lawyer?.name,
       }, role);
       toast('Consultation accepted and lawyer assigned.');
-      load();
+      load(true);
     } catch (err) {
       toast(`Failed to accept: ${err.message}`, 'error');
     }
@@ -97,7 +86,7 @@ export default function FirmDashboard() {
     try {
       await api.consultations.cancel(id, role);
       toast('Consultation request rejected.');
-      load();
+      load(true);
     } catch (err) {
       toast(`Failed to reject: ${err.message}`, 'error');
     }
@@ -109,7 +98,7 @@ export default function FirmDashboard() {
     try {
       await api.consultations.cancel(id, role);
       toast('Consultation cancelled.');
-      load();
+      load(true);
     } catch (err) {
       toast(`Failed to cancel: ${err.message}`, 'error');
     }
@@ -132,10 +121,11 @@ export default function FirmDashboard() {
         status: 'Active',
         filed_date: new Date().toISOString().slice(0, 10),
       }, role);
+      dispatch(casesInvalidated());
       // Mark the consultation finished so it leaves the active table.
       await api.consultations.update(cons.id, { status: 'COMPLETED' }, role);
       toast(`Successfully converted to Case ${cnr}!`);
-      load();
+      load(true);
     } catch (err) {
       toast(`Failed to convert: ${err.message}`, 'error');
     }

@@ -5,9 +5,12 @@
  * Serves firmAdmin and lawyer (interns are blocked by the route guard).
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useResource } from '../../store/resource.js';
+import { useAppDispatch } from '../../store/hooks.js';
+import { firmBilling, invoiceSaved, invoiceRemoved, subscriptionUpdated, chargeSaved } from '../../store/slices/firmManagementSlice.js';
 import {
   Button, Card, Badge, StatusBadge, PageHeader, Loading, ErrorBanner, StatCard,
   Modal, Field, Input, Select, Table, Th, Td,
@@ -21,16 +24,15 @@ export default function FirmBilling() {
   const { user, toast } = useApp();
   const role = (user?.role || 'firmadmin').toLowerCase();
 
-  /* ── Data ── */
-  const [invoices, setInvoices] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [clients, setClients] = useState([]);           // for the "bill to" dropdown
-  const [invoiceCases, setInvoiceCases] = useState(null);
-  const [charges, setCharges] = useState([]);           // platform subscription charges
-  const [subscription, setSubscription] = useState(null); // { tier, monthlyPrice, pendingTier }
-  const [tiers, setTiers] = useState([]);               // available plans
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const dispatch = useAppDispatch();
+  const { data, key, loading, error: requestError, load } = useResource(firmBilling, {
+    role, firmId: user?.firmId, userId: user?.id,
+  });
+  const {
+    invoices = [], payments = [], clients = [], invoiceCases = null,
+    charges = [], subscription = null, tiers = [],
+  } = data ?? {};
+  const error = requestError ? `Failed to load billing data: ${requestError.message}` : '';
 
   /* ── Toolbar state ── */
   const [search, setSearch] = useState('');
@@ -50,44 +52,6 @@ export default function FirmBilling() {
   /* Extra headers the billing endpoints expect. */
   const hdrs = () => ({ 'x-user-id': user?.id || '' });
 
-  /* ── Load everything ── */
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const [inv, pay, cl, cases] = await Promise.all([
-        api.billing.getInvoices(role, hdrs()),
-        api.billing.getPayments(role, hdrs()),
-        api.billing.getClients(role, hdrs()).catch(() => []),
-        api.billing.getCases(role).catch(() => null),
-      ]);
-      setInvoices(Array.isArray(inv) ? inv : []);
-      setPayments(Array.isArray(pay) ? pay : []);
-      setClients(Array.isArray(cl) ? cl : []);
-      setInvoiceCases(Array.isArray(cases) ? cases : null);
-
-      // Subscription pieces fail independently so the page still works.
-      try {
-        const ch = await api.platform.getCharges(role, user?.firmId, user?.id);
-        setCharges(Array.isArray(ch) ? ch : []);
-      } catch { /* ignore */ }
-      if (user?.firmId) {
-        try {
-          const sub = await api.platform.getSubscription(user.firmId, role, user?.id);
-          setSubscription(sub);
-        } catch { /* ignore */ }
-        try {
-          const t = await api.platform.getTierPlans(role);
-          setTiers(Array.isArray(t) ? t : []);
-        } catch { /* ignore */ }
-      }
-    } catch (err) {
-      setError(`Failed to load billing data: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [role, user?.firmId, user?.id]);
-
   useEffect(() => { load(); }, [load]);
 
   /* Re-read charges + subscription from the backend (the source of truth).
@@ -97,8 +61,7 @@ export default function FirmBilling() {
       api.platform.getCharges(role, user?.firmId, user?.id),
       api.platform.getSubscription(user.firmId, role, user?.id),
     ]);
-    setCharges(Array.isArray(ch) ? ch : []);
-    setSubscription(sub);
+    dispatch(subscriptionUpdated({ key, subscription: sub, charges: ch }));
     return sub;
   };
 
@@ -137,7 +100,7 @@ export default function FirmBilling() {
         amount: Number(c.amount), status: c.status, dueDate: c.dueDate,
       }, role, hdrs());
       // keep the names picked in the form in case the API response omits them
-      setInvoices((list) => [{ clientName: c.clientName, clientEmail: c.clientEmail, ...created }, ...list]); // newest on top
+      dispatch(invoiceSaved({ key, invoice: { clientName: c.clientName, clientEmail: c.clientEmail, ...created } }));
       toast('Invoice created.');
       setCreating(null);
     } catch (err) {
@@ -159,7 +122,7 @@ export default function FirmBilling() {
         clientId: e.clientId, caseId: e.caseId ? Number(e.caseId) : undefined,
         amount: Number(e.amount), status: e.status, dueDate: e.dueDate,
       }, role, hdrs());
-      setInvoices((list) => list.map((i) => (i.id === e.id ? { ...i, ...updated } : i)));
+      dispatch(invoiceSaved({ key, invoice: { ...updated, id: e.id } }));
       toast('Invoice updated.');
       setEditing(null);
     } catch (err) {
@@ -173,7 +136,7 @@ export default function FirmBilling() {
     if (!window.confirm(`Delete invoice ${inv.id}? This cannot be undone.`)) return;
     try {
       await api.billing.deleteInvoice(inv.id, role, hdrs());
-      setInvoices((list) => list.filter((i) => i.id !== inv.id));
+      dispatch(invoiceRemoved({ key, id: inv.id }));
       toast('Invoice deleted.');
     } catch (err) {
       toast(`Delete failed: ${err.message}`, 'error');
@@ -198,7 +161,7 @@ export default function FirmBilling() {
     setPayingId(charge.id);
     try {
       const settledCharge = await api.platform.updateChargeStatus(charge.id, 'Paid', role, user?.id, paymentMethod);
-      setCharges((list) => list.map((entry) => entry.id === charge.id ? settledCharge : entry));
+      dispatch(chargeSaved({ key, charge: settledCharge }));
       setCheckoutCharge(null);
       const before = subscription;
       const sub = await reloadSubscription().catch(() => null);
@@ -236,7 +199,7 @@ export default function FirmBilling() {
     setPlanBusy(true);
     try {
       const result = await api.platform.requestTierChange(user.firmId, plan.tier, role, user?.id);
-      setSubscription(result.subscription);
+      dispatch(subscriptionUpdated({ key, subscription: result.subscription }));
       await reloadSubscription().catch(() => null);
       if (result.charge) setCheckoutCharge(result.charge);
       else toast(cancelling ? 'Pending plan change cancelled.' : plan.tier + ' is scheduled for your next renewal.');
@@ -252,7 +215,7 @@ export default function FirmBilling() {
     try {
       const charge = await api.platform.prepareRenewal(user.firmId, role);
       setCheckoutCharge(charge);
-      setCharges((list) => list.some((item) => item.id === charge.id) ? list : [...list, charge]);
+      dispatch(chargeSaved({ key, charge }));
     } catch (err) {
       toast('Could not prepare renewal: ' + err.message, 'error');
       await reloadSubscription().catch(() => null);
@@ -267,7 +230,8 @@ export default function FirmBilling() {
     if (changes.autoRenew === false && !window.confirm('Cancel automatic renewal at the end of your paid period?')) return;
     setPlanBusy(true);
     try {
-      setSubscription(await api.platform.updateRenewal(user.firmId, changes, role));
+      const updated = await api.platform.updateRenewal(user.firmId, changes, role);
+      dispatch(subscriptionUpdated({ key, subscription: updated }));
       setSavingMethod(false);
       await reloadSubscription().catch(() => null);
       toast(remove ? 'Payment method removed.' : changes.autoRenew ? 'Automatic renewal enabled.' : 'Automatic renewal cancelled.');

@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useCaseList } from '../../store/slices/mattersSlice.js';
 import { navigate } from '../../router.jsx';
 import {
   Button, Card, Badge, PageHeader, Loading, ErrorBanner, EmptyState, Pagination, Input,
@@ -17,35 +18,23 @@ const PER_PAGE = 3; // same page size as the vanilla app
 export default function ClientCases() {
   const { user } = useApp();
 
-  const [cases, setCases] = useState([]);
-  const [firmNames, setFirmNames] = useState({}); // 'firm-1' -> 'Sharma & Associates'
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const role = (user?.role || 'client').toLowerCase();
+  const { data: cases = [], loading, error: requestError, load } = useCaseList(user, role);
+  const error = requestError ? `Could not load cases: ${requestError.message}` : '';
+  const [firmNames, setFirmNames] = useState({});
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
-  /* Load this client's cases (backend also scopes by role header). */
-  const load = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const filters = user?.id ? { clientId: user.id } : {};
-      const role = (user?.role || 'client').toLowerCase();
-      const list = await api.cases.getAll(filters, role);
-      setCases(Array.isArray(list) ? list : []);
-      // Cases only hold the firm id, so load the firm directory to show names.
-      try {
-        const firms = await api.lawFirms.getAll({}, role);
-        setFirmNames(Object.fromEntries((Array.isArray(firms) ? firms : []).map((f) => [f.id, f.name])));
-      } catch { /* ids are still shown without names */ }
-    } catch (err) {
-      setError(`Could not load cases: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let current = true;
+    api.lawFirms.getAll({}, role).then((firms) => {
+      if (current && Array.isArray(firms)) {
+        setFirmNames(Object.fromEntries(firms.map((firm) => [firm.id, firm.name])));
+      }
+    }).catch(() => {});
+    return () => { current = false; };
+  }, [role, user?.id]);
 
   /* Client-side search over CNR / title (case-insensitive substring). */
   const filtered = useMemo(() => {

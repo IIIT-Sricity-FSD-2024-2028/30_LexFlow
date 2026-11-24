@@ -5,9 +5,11 @@
  * Validates Bar Number and Aadhaar input formats for the user form.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useResource } from '../../store/resource.js';
+import { firmRoster } from '../../store/slices/firmManagementSlice.js';
 import {
   Button, Card, Badge, PageHeader, Loading, ErrorBanner, EmptyState,
   Modal, Field, Input, Select, Table, Th, Td, Pagination, Avatar,
@@ -27,10 +29,11 @@ const roleTone = { firmadmin: 'purple', superadmin: 'purple', lawyer: 'blue', in
 export default function FirmUsers() {
   const { user, toast } = useApp();
 
-  /* ── Data ── */
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { data: users = [], loading, error: requestError, load } = useResource(firmRoster, {
+    firmId: user?.firmId || 'firm-1',
+    role: (user?.role || 'firmadmin').toLowerCase(),
+  });
+  const error = requestError ? `Could not load users: ${requestError.message}` : '';
 
   /* ── Toolbar ── */
   const [search, setSearch] = useState('');
@@ -40,20 +43,6 @@ export default function FirmUsers() {
   /* ── Add/Edit modal ── */
   const [form, setForm] = useState(null); // null = closed
   const [busy, setBusy] = useState(false);
-
-  /* ── Load the firm's members ── */
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const list = await api.users.getByFirm(user?.firmId || 'firm-1', (localStorage.getItem('userRole') || 'firmadmin').toLowerCase());
-      setUsers(Array.isArray(list) ? list : []);
-    } catch (err) {
-      setError(`Could not load users: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.firmId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -129,7 +118,7 @@ export default function FirmUsers() {
         toast('User created successfully.');
       }
       setForm(null);
-      load();
+      load(true);
     } catch (err) {
       toast(err.message || 'Save failed', 'error');
     } finally {
@@ -147,7 +136,7 @@ export default function FirmUsers() {
     try {
       await api.users.remove(u.id, 'firmadmin');
       toast('User removed successfully.');
-      load();
+      load(true);
     } catch (err) {
       toast(`Delete failed: ${err.message}`, 'error');
     }

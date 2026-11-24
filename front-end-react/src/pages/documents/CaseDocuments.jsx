@@ -9,6 +9,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useResource } from '../../store/resource.js';
+import { useAppDispatch } from '../../store/hooks.js';
+import { caseDocuments, documentSaved, documentRemoved } from '../../store/slices/documentsSlice.js';
 import { navigate } from '../../router.jsx';
 import { Breadcrumb } from '../../components/Layout.jsx';
 import {
@@ -31,11 +34,13 @@ export default function CaseDocuments({ caseId }) {
   const { user, toast } = useApp();
   const role = (user?.role || 'client').toLowerCase();
 
-  const [caseData, setCaseData] = useState(null);
-  const [docs, setDocs] = useState([]);
-  const [activity, setActivity] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');      // null = fine, string = reason
+  const dispatch = useAppDispatch();
+  const { data, key, loading, error: requestError, load } = useResource(caseDocuments, {
+    caseId, role, id: user?.id, firmId: user?.firmId, email: user?.email,
+    hasGrant: !!user?.caseAccess?.[caseId],
+  });
+  const { caseData, files: docs = [], activity = [] } = data ?? {};
+  const error = requestError?.message;
 
   /* Toolbar */
   const [search, setSearch] = useState('');
@@ -57,47 +62,6 @@ export default function CaseDocuments({ caseId }) {
       access: doc?.access || 'SHARED',
     }, role, user?.email);
   }, [caseId, role, user]);
-
-  /* Load the case + its documents + recent activity. */
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      // 1. The case itself.
-      const c = await api.cases.getById(caseId, role);
-
-      // 2. Access check (same rules as the vanilla page).
-      // The backend sends snake_case (client_id, lawyer_id, lawfirm_id).
-      const isOwner = String(c.client_id ?? c.clientId) === String(user?.id);
-      const isFirmStaff = ['firmadmin', 'lawyer', 'intern'].includes(role)
-        && String(c.lawfirm_id ?? c.firmId) === String(user?.firmId);
-      const isAssigned = String(c.lawyer_id ?? c.lawyerId) === String(user?.id);
-      const hasGrant = !!user?.caseAccess?.[caseId];
-      if (role !== 'superadmin' && !isOwner && !isFirmStaff && !isAssigned && !hasGrant) {
-        setError('NO_DOC_ACCESS');
-        return;
-      }
-
-      // 3. Documents + activity feed.
-      const [d, a] = await Promise.all([
-        api.documents.listByCase(caseId, role, user?.email).catch(() => []),
-        api.documents.getActivity(caseId, role, user?.email).catch(() => []),
-      ]);
-      setDocs(Array.isArray(d) ? d : []);
-      setActivity(Array.isArray(a) ? a : []);
-      // The case only has ids; look up the client, lawyer and law firm names.
-      const names = {};
-      await Promise.allSettled([c.client_id, c.lawyer_id].filter(Boolean).map((id) =>
-        api.users.getById(id, role).then((u) => { names[id] = u.fullName || u.name; })));
-      const firms = await api.users.getAllFirms(role).catch(() => []);
-      const firm = (Array.isArray(firms) ? firms : []).find((f) => f.id === c.lawfirm_id);
-      setCaseData({ ...c, clientName: names[c.client_id], lawyerName: names[c.lawyer_id], firmName: firm?.name });
-    } catch {
-      setError('CASE_NOT_FOUND');
-    } finally {
-      setLoading(false);
-    }
-  }, [caseId, role, user?.id, user?.firmId, user?.email]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -123,7 +87,7 @@ export default function CaseDocuments({ caseId }) {
       const created = await api.documents.upload(uploading.file, {
         name: uploading.file.name, caseId, type: uploading.type, fileType: ext, access: 'PRIVATE', version: 1,
       }, role, user?.email);
-      setDocs((l) => [...l, created]);
+      dispatch(documentSaved({ key, document: created }));
       log('uploaded', created);
       toast(`${created.name} uploaded successfully`);
       setUploading(null);
@@ -141,7 +105,7 @@ export default function CaseDocuments({ caseId }) {
       const updated = await api.documents.update(updating.id, updating.file, {
         name: updating.name.trim(), access: updating.access, version: (updating.version || 1) + 1,
       }, role, user?.email);
-      setDocs((l) => l.map((d) => (d.id === updating.id ? { ...d, ...updated } : d)));
+      dispatch(documentSaved({ key, document: { ...updated, id: updating.id } }));
       log('updated', { ...updated, id: updating.id });
       toast('Document updated.');
       setUpdating(null);
@@ -154,11 +118,13 @@ export default function CaseDocuments({ caseId }) {
   const doDelete = async () => {
     try {
       await api.documents.remove(deleting.id, role, user?.email);
-    } catch { /* vanilla also removes locally regardless */ }
-    setDocs((l) => l.filter((d) => d.id !== deleting.id));
-    log('deleted', deleting);
-    toast('Document deleted.');
-    setDeleting(null);
+      dispatch(documentRemoved({ key, id: deleting.id }));
+      log('deleted', deleting);
+      toast('Document deleted.');
+      setDeleting(null);
+    } catch (err) {
+      toast(`Delete failed: ${err.message}`, 'error');
+    }
   };
 
   /* Open the document in a new browser tab (same link the old Download used)

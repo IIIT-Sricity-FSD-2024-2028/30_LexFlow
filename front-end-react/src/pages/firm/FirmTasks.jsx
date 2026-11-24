@@ -8,6 +8,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useResource } from '../../store/resource.js';
+import { taskList, useCaseList } from '../../store/slices/mattersSlice.js';
+import { firmRoster } from '../../store/slices/firmManagementSlice.js';
 import { navigate } from '../../router.jsx';
 import {
   Button, Card, Badge, PageHeader, Loading, ErrorBanner, EmptyState,
@@ -22,12 +25,16 @@ export default function FirmTasks({ caseId }) {
   const role = (user?.role || 'firmadmin').toLowerCase();
   const isLawyer = role === 'lawyer';
 
-  /* ── Data ── */
-  const [tasks, setTasks] = useState([]);
-  const [cases, setCases] = useState([]);
-  const [members, setMembers] = useState([]);    // possible assignees
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const casesRequest = useCaseList(user, role);
+  const taskQuery = useResource(taskList, { firmId: user?.firmId, role });
+  const rosterQuery = useResource(firmRoster, { firmId: user?.firmId, role });
+  const { data: cases = [], load: loadCases } = casesRequest;
+  const { data: tasks = [], load: loadTasks } = taskQuery;
+  const { data: roster = [], load: loadRoster } = rosterQuery;
+  const members = roster.filter((member) => (isLawyer ? ['intern'] : ['lawyer', 'intern']).includes(member.role));
+  const issue = taskQuery.error || casesRequest.error;
+  const loading = taskQuery.loading || casesRequest.loading || rosterQuery.loading;
+  const error = issue ? `Could not load tasks: ${issue.message}` : '';
 
   /* ── Toolbar state ── */
   const [search, setSearch] = useState('');
@@ -42,29 +49,11 @@ export default function FirmTasks({ caseId }) {
   const [viewing, setViewing] = useState(null);  // view modal data
   const [errors, setErrors] = useState({});
 
-  /* ── Load everything this page needs ── */
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      // A lawyer works only on the cases assigned to them (the server also enforces this).
-      const caseFilters = isLawyer ? { lawyerId: user.id } : user?.firmId ? { firmId: user.firmId } : {};
-      const [t, c, m] = await Promise.all([
-        api.tasks.getAll({ firmId: user?.firmId }, role),
-        api.cases.getAll(caseFilters, role),
-        api.users.getByFirm(user?.firmId, role).catch(() => []), // the firm's whole team
-      ]);
-      setTasks(Array.isArray(t) ? t : []);
-      setCases(Array.isArray(c) ? c : []);
-      // Firm admins can assign to lawyers and interns; a lawyer only to interns.
-      const assignable = isLawyer ? ['intern'] : ['lawyer', 'intern'];
-      setMembers((Array.isArray(m) ? m : []).filter((u) => assignable.includes(u.role)));
-    } catch (err) {
-      setError(`Could not load tasks: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [role, isLawyer, user?.id, user?.firmId]);
+  const load = useCallback(() => {
+    loadTasks();
+    loadCases();
+    loadRoster();
+  }, [loadTasks, loadCases, loadRoster]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -146,7 +135,7 @@ export default function FirmTasks({ caseId }) {
         toast('Task created.');
       }
       setForm(null);
-      load();
+      loadTasks(true);
     } catch (err) {
       toast(`Save failed: ${err.message}`, 'error');
     }
@@ -158,7 +147,7 @@ export default function FirmTasks({ caseId }) {
       await api.tasks.update(id, { status: 'Completed' }, role);
       toast('Task marked as completed.');
       setViewing(null);
-      load();
+      loadTasks(true);
     } catch (err) {
       toast(`Failed: ${err.message}`, 'error');
     }
@@ -170,7 +159,7 @@ export default function FirmTasks({ caseId }) {
     try {
       await api.tasks.remove(t.id, role);
       toast('Task deleted.');
-      load();
+      loadTasks(true);
     } catch (err) {
       toast(`Delete failed: ${err.message}`, 'error');
     }

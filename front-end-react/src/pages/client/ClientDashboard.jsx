@@ -5,9 +5,11 @@
  * and a header button that jumps to the law-firm search page.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useResource } from '../../store/resource.js';
+import { consultationList } from '../../store/slices/intakeSlice.js';
 import { navigate } from '../../router.jsx';
 import {
   Button, Card, Badge, StatusBadge, Modal, PageHeader, Loading, ErrorBanner, EmptyState, Table, Th, Td, StatCard,
@@ -20,26 +22,13 @@ const UPCOMING = ['PENDING', 'SCHEDULED', 'CONFIRMED', 'IN PROGRESS', 'IN_PROGRE
 export default function ClientDashboard() {
   const { user, toast } = useApp();
 
-  const [consultations, setConsultations] = useState([]); // all my bookings
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [details, setDetails] = useState(null);           // consultation shown in the modal
-
-  /* Load every consultation for this client from the backend. */
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const clientId = user.id || user.userId || user.clientId;
-      if (!clientId) throw new Error('Could not determine client ID from session.');
-      const list = await api.consultations.getMy(clientId, 'client');
-      setConsultations(Array.isArray(list) ? list : []);
-    } catch (err) {
-      setError(err.status === 403 ? 'Access denied. Please log in as a client.' : `Could not load consultations: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+  const { data, loading, error: requestError, load } = useResource(consultationList, {
+    role: 'client', clientId: user?.id || user?.userId || user?.clientId,
+  });
+  const consultations = data?.consultations ?? [];
+  const error = requestError?.status === 403 ? 'Access denied. Please log in as a client.'
+    : requestError ? `Could not load consultations: ${requestError.message}` : '';
+  const [details, setDetails] = useState(null);
 
   useEffect(() => { load(); }, [load]);
 
@@ -49,7 +38,7 @@ export default function ClientDashboard() {
     try {
       await api.consultations.cancel(id, 'client');
       toast('Consultation cancelled successfully.');
-      load(); // refresh the lists
+      load(true); // refresh the lists
     } catch (err) {
       toast(`Failed to cancel: ${err.message}`, 'error');
     }

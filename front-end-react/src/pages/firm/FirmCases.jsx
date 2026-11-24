@@ -7,6 +7,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useResource } from '../../store/resource.js';
+import { useAppDispatch } from '../../store/hooks.js';
+import { caseSaved, taskList, useCaseList } from '../../store/slices/mattersSlice.js';
 import { navigate } from '../../router.jsx';
 import {
   Button, Card, Badge, StatusBadge, PageHeader, Loading, ErrorBanner, EmptyState,
@@ -22,11 +25,15 @@ export default function FirmCases() {
   const isLawyer = role === 'lawyer';
   const canAssignLawyer = role === 'firmadmin';
 
-  const [cases, setCases] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [clientNames, setClientNames] = useState({}); // 'cl-1' -> 'Client Alice'
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const dispatch = useAppDispatch();
+  const caseQuery = useCaseList(user, role);
+  const taskQuery = useResource(taskList, { firmId: user?.firmId, role });
+  const { data: cases, load: loadCases } = caseQuery;
+  const { data: tasks = [], load: loadTasks } = taskQuery;
+  const [clientNames, setClientNames] = useState({});
+  const issue = caseQuery.error || taskQuery.error;
+  const loading = caseQuery.loading || taskQuery.loading;
+  const error = issue ? `Could not load cases: ${issue.message}` : '';
 
   const [tab, setTab] = useState('all');            // 'all' | 'pending'
   const [search, setSearch] = useState('');
@@ -35,43 +42,30 @@ export default function FirmCases() {
   const [taskStatusFilter, setTaskStatusFilter] = useState('All');
   const [page, setPage] = useState(1);
 
-  /* Load cases + tasks in one go. */
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const caseFilters = role === 'client' && user?.id ? { clientId: user.id }
-        : role === 'lawyer' && user?.id ? { lawyerId: user.id }
-        : user?.firmId ? { firmId: user.firmId } : {};
-      const [c, t] = await Promise.all([
-        api.cases.getAll(caseFilters, role),
-        api.tasks.getAll(
-          // Lawyers see only their own tasks; admins see the whole firm.
-          isLawyer ? { assignedUser: user.fullName || user.name, firmId: user?.firmId } : { firmId: user?.firmId },
-          role
-        ),
-      ]);
-      setCases(Array.isArray(c) ? c : []);
-      setTasks(Array.isArray(t) ? t : []);
-      // Cases only hold the client id, so look the names up.
-      const names = {};
-      const ids = [...new Set((Array.isArray(c) ? c : []).map((x) => x.client_id).filter(Boolean))];
-      await Promise.allSettled(ids.map((cid) =>
-        api.users.getById(cid, role).then((u) => { names[cid] = u.fullName || u.name; })));
-      setClientNames(names);
-    } catch (err) {
-      setError(`Could not load cases: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [role, isLawyer, user?.id, user?.firmId, user?.fullName, user?.name]);
+  const load = useCallback((force = false) => {
+    loadCases(force);
+    loadTasks(force);
+  }, [loadCases, loadTasks]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!cases) return;
+    let current = true;
+    const ids = [...new Set(cases.map((record) => record.client_id).filter(Boolean))];
+    Promise.all(ids.map(async (id) => {
+      const client = await api.users.getById(id, role).catch(() => null);
+      return [id, client?.fullName || client?.name];
+    })).then((entries) => {
+      if (current) setClientNames(Object.fromEntries(entries));
+    });
+    return () => { current = false; };
+  }, [cases, role]);
 
   /* ── Filtering (client-side, like the vanilla scripts) ── */
   const filteredCases = useMemo(() => {
     const q = search.toLowerCase();
-    return cases.filter((c) => {
+    return (cases ?? []).filter((c) => {
       const okSearch = !q
         || `${c.case_type || c.title} ${c.brief_description || ''} ${clientNames[c.client_id] || ''} ${c.cnr}`.toLowerCase().includes(q);
       const okStatus = statusFilter === 'All' || c.status === statusFilter;
@@ -100,8 +94,8 @@ export default function FirmCases() {
     try {
       const lawyer = team.find((l) => l.id === lawyerId);
       // Only lawyer_id is sent: the backend rejects unknown fields like lawyer_name.
-      await api.cases.update(caseId, { lawyer_id: lawyerId }, role);
-      setCases((cs) => cs.map((c) => (c.id === caseId ? { ...c, lawyer_id: lawyerId, lawyer_name: lawyer?.fullName } : c)));
+      const updated = await api.cases.update(caseId, { lawyer_id: lawyerId }, role);
+      dispatch(caseSaved({ id: caseId, ...updated, lawyer_id: lawyerId, lawyer_name: lawyer?.fullName }));
       toast('Lawyer updated.');
     } catch (err) {
       toast(`Failed to update lawyer: ${err.message}`, 'error');
