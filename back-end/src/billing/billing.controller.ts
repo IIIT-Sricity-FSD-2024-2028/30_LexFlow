@@ -1,11 +1,12 @@
+import { FirmWrite } from '../common/decorators/firm-write.decorator';
 import {
   Controller, Get, Post, Body, Patch, Param,
-  Delete, HttpCode, HttpStatus, UseGuards, Headers, Req } from '@nestjs/common';
+  Delete, HttpCode, HttpStatus, UseGuards, Headers, Req, UnauthorizedException } from '@nestjs/common';
 import {
   ApiTags, ApiOperation, ApiResponse, ApiParam, ApiHeader,
 } from '@nestjs/swagger';
 import {
-  BillingService, InvoiceRecord, PaymentRecord, ClientEntry,
+  BillingService, InvoiceRecord, PaymentRecord, ClientEntry, InvoiceCaseEntry,
 } from './billing.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
@@ -21,9 +22,21 @@ const ok = <T>(message: string, data: T): ApiWrapper<T> => ({ success: true, mes
 @ApiHeader({ name: 'role', description: 'client | lawyer | intern | firmadmin | superadmin', required: true })
 @ApiHeader({ name: 'x-user-id', description: 'Caller user-id (for CLIENT/LAWYER scoped views)', required: false })
 @UseGuards(RolesGuard)
+@FirmWrite()
 @Controller('billing')
 export class BillingController {
   constructor(private readonly billingService: BillingService) { }
+
+  private invoiceActor(req: { user?: { role: string; firmId?: string } }) {
+    if (!req.user) throw new UnauthorizedException('Login required');
+    return req.user;
+  }
+
+  @Get('cases')
+  @Roles(UserRole.FIRMADMIN, UserRole.LAWYER)
+  getCases(@Req() req): ApiWrapper<InvoiceCaseEntry[]> {
+    return ok('Cases retrieved successfully', this.billingService.getInvoiceCases(this.invoiceActor(req).firmId));
+  }
 
   // GET /billing/clients
   @Get('clients')
@@ -48,9 +61,8 @@ export class BillingController {
   async createInvoice(
     @Body() dto: CreateInvoiceDto,
     @Req() req,
-    @Headers('x-user-id') callerId: string,
   ): Promise<ApiWrapper<InvoiceRecord>> {
-    return ok('Invoice created successfully', await this.billingService.createInvoice(dto, req.user?.id ?? callerId));
+    return ok('Invoice created successfully', await this.billingService.createInvoice(dto, this.invoiceActor(req).firmId));
   }
 
   // GET /billing/invoices
@@ -105,8 +117,9 @@ export class BillingController {
   async updateInvoice(
     @Param('id') id: string,
     @Body() dto: UpdateInvoiceDto,
+    @Req() req,
   ): Promise<ApiWrapper<InvoiceRecord>> {
-    return ok('Invoice updated successfully', await this.billingService.updateInvoice(id, dto));
+    return ok('Invoice updated successfully', await this.billingService.updateInvoice(id, dto, this.invoiceActor(req)));
   }
 
   // DELETE /billing/invoices/:id

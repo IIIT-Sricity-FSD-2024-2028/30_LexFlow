@@ -11,7 +11,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  ForbiddenException, Req } from '@nestjs/common';
+  BadRequestException,
+  ForbiddenException, UnauthorizedException, Req } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -20,10 +21,12 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import { PlatformService, ChargeStatus } from './platform.service';
+import { PlatformService } from './platform.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { UpdateTierPricingDto } from './dto/update-tier-pricing.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+import { UpdateRenewalDto } from './dto/update-renewal.dto';
+import { SettleChargeDto } from './dto/settle-charge.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../users/dto';
@@ -58,6 +61,11 @@ import { FirmTier } from '../users/users.service';
 @Controller('platform')
 export class PlatformController {
   constructor(private readonly platformService: PlatformService) {}
+
+  private subscriptionActor(req: { user?: { id: string; role: UserRole } }) {
+    if (!req.user) throw new UnauthorizedException('Sign in to manage the subscription.');
+    return req.user;
+  }
 
   // ── Revenue ───────────────────────────────────────────────────────────────
 
@@ -148,25 +156,36 @@ export class PlatformController {
   @ApiOperation({
     summary: 'Request a plan change',
     description:
-      'Issues a one-time charge for the new tier\'s price. The firm stays on its ' +
-      'current plan until that charge is paid — see PATCH /platform/charges/:id. ' +
-      'Requesting the current tier again cancels a pending request instead of erroring. ' +
-      'FIRMADMIN is scoped to their own firm (pass x-user-id); SUPERADMIN may act for any firm.',
+      'A paid plan can schedule a downgrade for its next renewal. Other plan changes take effect after checkout. ' +
+      'Selecting the current plan cancels a pending change. Firm admins manage their own firm.',
   })
   @ApiParam({ name: 'firmId', example: 'firm-1' })
-  @ApiResponse({ status: 200, description: 'Tier-change charge created (or pending request cancelled)' })
+  @ApiResponse({ status: 200, description: 'Plan change scheduled, cancelled, or ready for checkout' })
   @ApiResponse({ status: 400, description: 'Invalid tier' })
   @ApiResponse({ status: 403, description: 'firmadmin requested a change for another firm' })
   @ApiResponse({ status: 404, description: 'No subscription for that firm' })
   requestTierChange(
     @Param('firmId') firmId: string,
-    @Headers('role') role: string,
     @Req() req,
-    @Headers('x-user-id') callerId: string,
     @Body() body: { tier: FirmTier },
   ) {
-    const isSuperAdmin = (req.user?.role ?? (role || '')).toLowerCase() === 'superadmin';
-    return this.platformService.requestTierChange(firmId, body.tier, req.user?.id ?? callerId, isSuperAdmin);
+    const actor = this.subscriptionActor(req);
+    return this.platformService.requestTierChange(firmId, body.tier, actor.id, actor.role === UserRole.SUPERADMIN);
+  }
+
+  @Patch('subscriptions/:firmId/renewal')
+  @Roles(UserRole.FIRMADMIN, UserRole.SUPERADMIN)
+  updateRenewal(@Param('firmId') firmId: string, @Req() req, @Body() body: UpdateRenewalDto) {
+    const actor = this.subscriptionActor(req);
+    return this.platformService.updateRenewal(firmId, actor.id, actor.role === UserRole.SUPERADMIN, body);
+  }
+
+  @Post('subscriptions/:firmId/renew')
+  @Roles(UserRole.FIRMADMIN, UserRole.SUPERADMIN)
+  @HttpCode(HttpStatus.OK)
+  prepareRenewal(@Param('firmId') firmId: string, @Req() req) {
+    const actor = this.subscriptionActor(req);
+    return this.platformService.prepareRenewal(firmId, actor.id, actor.role === UserRole.SUPERADMIN);
   }
 
   @Patch('subscriptions/:firmId')
@@ -183,7 +202,9 @@ export class PlatformController {
   updateSubscription(
     @Param('firmId') firmId: string,
     @Body() dto: UpdateSubscriptionDto,
+    @Req() req,
   ) {
+    this.subscriptionActor(req);
     return this.platformService.updateSubscription(firmId, dto);
   }
 
@@ -229,8 +250,7 @@ export class PlatformController {
     summary: 'Settle a subscription charge',
     description:
       'SUPERADMIN → set any status (Paid, Pending, Overdue).\n' +
-      'FIRMADMIN → may only mark Paid, and only a charge belonging to their own ' +
-      'firm (pass x-user-id); the request body\'s status is ignored for this role.',
+      'FIRMADMIN → can confirm payment for a charge belonging to their own firm.',
   })
   @ApiParam({ name: 'id', example: 'PSUB-FIRM-1-2026-09' })
   @ApiResponse({ status: 200, description: 'Charge updated' })
@@ -238,17 +258,15 @@ export class PlatformController {
   @ApiResponse({ status: 404, description: 'Charge not found' })
   updateCharge(
     @Param('id') id: string,
-    @Headers('role') role: string,
     @Req() req,
-    @Headers('x-user-id') callerId: string,
-    @Body() body: { status: ChargeStatus },
+    @Body() body: SettleChargeDto,
   ) {
-    const effectiveRole = (req.user?.role ?? role ?? '').toLowerCase();
-    const caller = req.user?.id ?? callerId;
-    if (effectiveRole === 'firmadmin') {
-      return this.platformService.payChargeAsFirm(id, caller);
+    const actor = this.subscriptionActor(req);
+    if (actor.role === UserRole.FIRMADMIN) {
+      if (body.status !== 'Paid') throw new BadRequestException('Confirm the payment before settling the charge.');
+      return this.platformService.payChargeAsFirm(id, actor.id, body.paymentMethod);
     }
-    return this.platformService.updateChargeStatus(id, body.status, caller);
+    return this.platformService.updateChargeStatus(id, body.status, actor.id);
   }
 
   // ── Pricing ───────────────────────────────────────────────────────────────

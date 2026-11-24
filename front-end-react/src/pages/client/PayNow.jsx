@@ -13,6 +13,7 @@ import { Breadcrumb } from '../../components/Layout.jsx';
 import { Button, Card, PageHeader, Loading, Field, Input } from '../../components/ui.jsx';
 import Icon from '../../components/Icon.jsx';
 import { money } from '../../lib/format.js';
+import { formatCardNumber, formatCardExpiry, validateCardDetails } from '../../lib/validators.js';
 
 export default function PayNow({ id }) {
   const { user, toast } = useApp();
@@ -50,38 +51,13 @@ export default function PayNow({ id }) {
     })();
   }, [id, user?.id, user?.fullName, user?.name]);
 
-  /* ── Input formatters (same UX as the vanilla LexValidation helpers) ── */
-
-  // Card number: digits only, grouped in blocks of 4 -> "4242 4242 4242 4242".
-  const formatCard = (v) => v.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
-  // Expiry: auto-insert the slash -> "12/27".
-  const formatExpiry = (v) => {
-    const digits = v.replace(/\D/g, '').slice(0, 4);
-    return digits.length > 2 ? digits.slice(0, 2) + '/' + digits.slice(2) : digits;
-  };
-
-  /* Validate every field; returns true when all good. */
-  const validate = () => {
-    const er = {
-      cardName: cardName.trim() ? (/^[a-zA-Z\s'.,-]{2,80}$/.test(cardName.trim()) ? null : 'Enter a valid cardholder name') : 'Cardholder name is required',
-      cardNumber: cardNumber.replace(/\s/g, '').length === 16 ? null : 'Card number must be 16 digits',
-      expiry: /^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry) ? (() => {
-        // "not expired" check: first day AFTER the expiry month must be in the future
-        const [mm, yy] = expiry.split('/').map(Number);
-        const firstOfNext = new Date(2000 + yy, mm, 1);
-        return firstOfNext > new Date() ? null : 'Card has expired';
-      })() : 'Use MM/YY format',
-      cvc: /^\d{3,4}$/.test(cvc) ? null : 'CVC must be 3-4 digits',
-    };
-    setErrors(er);
-    return !Object.values(er).some(Boolean);
-  };
-
   /* Submit the payment. */
   const pay = async (e) => {
     e.preventDefault();
     setPayError('');
-    if (!validate()) {
+    const validation = validateCardDetails({ cardName, cardNumber, expiry, cvc });
+    setErrors(validation);
+    if (Object.values(validation).some(Boolean)) {
       setShake(true);                       // shake the form (visual feedback)
       setTimeout(() => setShake(false), 500);
       return;
@@ -155,12 +131,12 @@ export default function PayNow({ id }) {
                 </Field>
                 <Field label="Card Number" required error={errors.cardNumber}>
                   <Input value={cardNumber} inputMode="numeric" placeholder="4242 4242 4242 4242"
-                    onChange={(e) => setCardNumber(formatCard(e.target.value))} error={!!errors.cardNumber} />
+                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))} error={!!errors.cardNumber} />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Expiry" required error={errors.expiry}>
                     <Input value={expiry} inputMode="numeric" placeholder="MM/YY" maxLength={5}
-                      onChange={(e) => setExpiry(formatExpiry(e.target.value))} error={!!errors.expiry} />
+                      onChange={(e) => setExpiry(formatCardExpiry(e.target.value))} error={!!errors.expiry} />
                   </Field>
                   <Field label="CVC" required error={errors.cvc}>
                     <Input type="password" value={cvc} inputMode="numeric" maxLength={4} placeholder="•••"

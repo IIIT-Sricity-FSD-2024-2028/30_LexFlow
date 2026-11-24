@@ -1,7 +1,17 @@
 import { test, expect } from '@playwright/test';
+import { installTestApi } from './api-fixtures.js';
 
-test.describe('Client Onboarding with Aadhaar Primary Key (12 Numbers, 4-4-4)', () => {
+test.describe('Client Onboarding with Aadhaar formatting (12 Numbers, 4-4-4)', () => {
   test('Aadhaar field enforces 12 numbers in 4-4-4 format during client onboarding', async ({ page }) => {
+    await installTestApi(page, { id: 'cl-20', role: 'client', fullName: 'Test Client' }, {
+      'POST /api/users': (route) => {
+        const body = route.request().postDataJSON();
+        expect(body).toMatchObject({ role: 'client', aadhaar: '9876-5432-1098' });
+        expect(body).not.toHaveProperty('id');
+        expect(body).not.toHaveProperty('aadhaarNumber');
+        return route.fulfill({ status: 201, json: { id: 'cl-20', role: 'client' } });
+      },
+    });
     await page.goto('/#/onboarding/client/1');
     await page.waitForLoadState('networkidle');
 
@@ -41,20 +51,16 @@ test.describe('Client Onboarding with Aadhaar Primary Key (12 Numbers, 4-4-4)', 
     await expect(page).toHaveURL(/.*#\/onboarding\/client\/2/);
     await expect(page.locator('h1')).toContainText('Tell us about your case');
 
-    // Check that sessionStorage has the client draft with Aadhaar as Primary Key ID
-    const draft = await page.evaluate(() => JSON.parse(sessionStorage.getItem('clientDraft') || '{}'));
-    expect(draft.aadhaar).toBe('9876-5432-1098');
-    expect(draft.id).toBe('9876-5432-1098');
-
     // Complete onboarding by clicking "Finish & Go to Dashboard"
     await page.locator('button[type="submit"]').click();
 
     // Should navigate to client dashboard
     await expect(page).toHaveURL(/.*#\/client\/dashboard/);
 
-    // Verify currentUser in localStorage has Aadhaar as primary key
+    // Use the account ID issued by the API.
     const currentUser = await page.evaluate(() => JSON.parse(localStorage.getItem('currentUser') || '{}'));
-    expect(currentUser.id).toBe('9876-5432-1098');
+    expect(currentUser.id).toBe('cl-20');
+    expect(currentUser).not.toHaveProperty('aadhaar');
     expect(currentUser.role).toBe('client');
   });
 });

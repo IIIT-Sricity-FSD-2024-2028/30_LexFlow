@@ -1,14 +1,8 @@
-/**
- * Client Onboarding - Step 1: profile creation.
- * Creates the user on the backend right away, then saves a draft copy in
- * sessionStorage (key: clientDraft) that step 2 reads.
- * 
- * Aadhaar card serves as the primary key for clients, formatted as 12 numbers in 4-4-4 (XXXX-XXXX-XXXX).
- */
-
+/** Client onboarding creates an account and signs in through the API. */
 import { useState } from 'react';
 import OnboardingShell, { FormAlert } from './OnboardingShell.jsx';
 import { api } from '../../api/api.js';
+import { useApp } from '../../context/AppContext.jsx';
 import { navigate } from '../../router.jsx';
 import { Button, Field, Input } from '../../components/ui.jsx';
 import {
@@ -19,11 +13,12 @@ import {
 } from '../../lib/validators.js';
 
 export default function ClientOnboarding1() {
+  const { signIn, toast } = useApp();
   /* One state object for the whole form. */
   const [form, setForm] = useState({
     fullName: '',
     email: '',
-    aadhaar: '', // Aadhaar card as client primary key (12 digits 4-4-4)
+    aadhaar: '',
     phone: '',
     street: '',
     city: '',
@@ -79,35 +74,24 @@ export default function ClientOnboarding1() {
     }
     setBusy(true);
     try {
-      // 1. Create the account with Aadhaar card as the Primary Key (ID)
-      await api.users.create(
-        {
-          id: form.aadhaar.trim(),
-          aadhaar: form.aadhaar.trim(),
-          aadhaarNumber: form.aadhaar.trim(),
-          fullName: form.fullName.trim(),
-          email: form.email.trim().toLowerCase(),
-          role: 'client',
-          password: form.password,
-          phone: normalizeIndianPhone(form.phone) || undefined,
-        },
-        'superadmin' // backend needs this header to allow public account creation
-      );
-
-      // 2. Keep a draft so step 2 can merge case info with profile info.
-      sessionStorage.setItem('clientDraft', JSON.stringify({
-        id: form.aadhaar.trim(),
+      const email = form.email.trim().toLowerCase();
+      await api.users.create({
         aadhaar: form.aadhaar.trim(),
         fullName: form.fullName.trim(),
-        email: form.email.trim().toLowerCase(),
-        phone: normalizeIndianPhone(form.phone),
-        addressLine1: form.street,
-        city: form.city,
-        state: form.state,
-        pinCode: form.zip,
-      }));
+        email,
+        role: 'client',
+        password: form.password,
+        phone: normalizeIndianPhone(form.phone) || undefined,
+      }, 'client');
 
-      navigate('/onboarding/client/2'); // next step
+      const client = await api.auth.login(email, form.password).catch(() => null);
+      if (!client) {
+        toast('Account created. Sign in to continue.');
+        navigate('/signin');
+        return;
+      }
+      signIn(client);
+      navigate('/onboarding/client/2');
     } catch (err) {
       setAlert('Failed to create account: ' + (err.message || 'network error. Please try again.'));
     } finally {
@@ -127,7 +111,7 @@ export default function ClientOnboarding1() {
   return (
     <OnboardingShell steps={['Profile', 'Case Details']} current={0}>
       <h1 className="text-2xl font-bold text-slate-900">Create your client account</h1>
-      <p className="mt-1 text-sm text-slate-500">Step 1 — tell us who you are. Aadhaar is used as your unique client primary key.</p>
+      <p className="mt-1 text-sm text-slate-500">Step 1 — tell us who you are.</p>
 
       <FormAlert message={alert} />
 
@@ -139,9 +123,9 @@ export default function ClientOnboarding1() {
           <Input type="email" placeholder="john@example.com" value={form.email} onChange={set('email')} error={!!errors.email} />
         </Field>
 
-        {/* Aadhaar Card Number - Primary Key (12 digits, 4-4-4 format) */}
+        {/* Aadhaar Card Number */}
         <Field
-          label="Aadhaar Card Number (Primary Key)"
+          label="Aadhaar Card Number"
           required
           error={errors.aadhaar}
           className="md:col-span-2"

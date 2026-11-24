@@ -1,8 +1,14 @@
 import { test, expect } from '@playwright/test';
+import { installTestApi } from './api-fixtures.js';
 
 test.describe('Redux Features, INR Consultation Currency, LawFirm Search and Firm Case Timeline', () => {
 
   test('Find a Law Firm page enforces INR currency, updated placeholder and 0 stars for 0-review Sharma', async ({ page }) => {
+    const firm = { id: 'firm-1', name: 'Sharma & Associates', price: 250, rating: 0, reviews: 0 };
+    await installTestApi(page, { id: 'cl-1', role: 'client', fullName: 'Alice Client' }, {
+      'GET /api/law-firms': [firm],
+      'GET /api/law-firms/firm-1': firm,
+    });
     // 1. Sign in as Client Alice
     await page.goto('/#/signin');
     await page.waitForLoadState('networkidle');
@@ -36,6 +42,18 @@ test.describe('Redux Features, INR Consultation Currency, LawFirm Search and Fir
   });
 
   test('Firm Admin Case Details features editable Case Progress and Timeline & Milestones', async ({ page }) => {
+    const record = {
+      id: 1, lawfirm_id: 'firm-1', lawyer_id: 'lw-1', client_id: 'cl-1',
+      cnr: '100001', case_type: 'Civil', brief_description: 'Property dispute', status: 'Active',
+      progress: 0, timeline: [{ title: 'Case Filed', date: '15 Jan 2026' }],
+    };
+    await installTestApi(page, { id: 'fa-1', role: 'firmadmin', firmId: 'firm-1' }, {
+      'GET /api/cases/1': record,
+      'PATCH /api/cases/1': (route) => {
+        Object.assign(record, route.request().postDataJSON());
+        return route.fulfill({ json: record });
+      },
+    });
     // 1. Log in as Firm Admin
     await page.goto('/#/signin');
     await page.waitForLoadState('networkidle');

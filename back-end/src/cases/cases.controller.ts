@@ -1,3 +1,4 @@
+import { FirmWrite } from '../common/decorators/firm-write.decorator';
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { CasesService } from './cases.service';
 import { CreateCaseDto } from './dto/create-case.dto';
@@ -8,6 +9,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../users/dto';
 
 @ApiTags('cases')
+@FirmWrite()
 @Controller('cases')
 @UseGuards(RolesGuard)
 export class CasesController {

@@ -2,7 +2,7 @@
  * User Management (firmAdmin only) - list, search, filter, add, edit,
  * delete firm members + a JSON export button. Pagination: 8 per page.
  * 
- * Supports Bar Number verification for lawyers and 12-digit (4-4-4) Aadhaar as client primary key.
+ * Validates Bar Number and Aadhaar input formats for the user form.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -115,19 +115,13 @@ export default function FirmUsers() {
         availability: form.availability,
         firmId: user?.firmId || 'firm-1',
         barNumber: form.role === 'lawyer' ? formatBarNumber(form.barNumber) : undefined,
-        barEnrollmentNumber: form.role === 'lawyer' ? formatBarNumber(form.barNumber) : undefined,
         aadhaar: form.role === 'client' ? formatAadhaar(form.aadhaar) : undefined,
-        aadhaarNumber: form.role === 'client' ? formatAadhaar(form.aadhaar) : undefined,
       };
 
       if (form.id) {
         await api.users.update(form.id, payload, 'firmadmin');
         toast('User updated successfully.');
       } else {
-        // If client, set id to Aadhaar primary key
-        if (form.role === 'client') {
-          payload.id = formatAadhaar(form.aadhaar);
-        }
         await api.users.create({
           ...payload,
           password: 'changeme123', // default password, like vanilla
@@ -268,7 +262,6 @@ export default function FirmUsers() {
                       {isClient && aadhaarNum && (
                         <div>
                           <Badge variant="green" className="font-mono text-xs">{aadhaarNum}</Badge>
-                          <span className="mt-0.5 block text-[11px] text-slate-400">Aadhaar (PK)</span>
                         </div>
                       )}
                       {!barNum && !aadhaarNum && <span className="text-xs text-slate-400">—</span>}
@@ -365,9 +358,9 @@ export default function FirmUsers() {
               </Field>
             )}
 
-            {/* Client-specific Aadhaar Card Primary Key input (12 digits, 4-4-4) */}
+            {/* Client Aadhaar field (12 digits, 4-4-4) */}
             {form.role === 'client' && (
-              <Field label="Aadhaar Card Number (Client Primary Key)" required>
+              <Field label="Aadhaar Card Number" required>
                 <Input
                   id="client-aadhaar-input"
                   placeholder="5432-8765-4321"
@@ -377,7 +370,7 @@ export default function FirmUsers() {
                 />
                 {(() => {
                   if (!form.aadhaar) return (
-                    <p className="mt-1 text-xs text-slate-500">12 digits in 4-4-4 format. Used as client primary key.</p>
+                    <p className="mt-1 text-xs text-slate-500">12 digits in 4-4-4 format.</p>
                   );
                   const v = verifyAadhaar(form.aadhaar);
                   return v.isValid ? (

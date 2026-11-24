@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { UsersService } from '../users/users.service';
+import { CasesService } from '../cases/cases.service';
 import { UserRole } from '../users/dto/create-user.dto';
-import { q, tx, parseActorId } from '../db';
+import type { PoolClient } from 'pg';
+import { pool, q, tx, parseActorId } from '../db';
 
 // ── Exported types (referenced by billing.controller.ts) ─────────────────────
 export interface InvoiceRecord {
@@ -12,6 +14,7 @@ export interface InvoiceRecord {
   clientName: string;
   clientEmail: string;
   firmId?: string;
+  caseId?: number;
   caseName: string;
   advocateName: string;
   amount: number;
@@ -36,6 +39,13 @@ export interface ClientEntry {
   id: string;
   fullName: string;
   email: string;
+}
+
+export interface InvoiceCaseEntry {
+  id: number;
+  clientId: string;
+  name: string;
+  cnr: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -64,7 +74,7 @@ function invoiceNumberToId(id: string): string {
 
 const INVOICE_SELECT = `
   SELECT i.invoice_number, i.total_amount, i.status, i.due_date, i.issued_at,
-         i.case_name, i.advocate_name, i.lawfirm_id,
+         i.case_name, i.app_case_id, i.advocate_name, i.lawfirm_id,
          c.id AS client_id, c.name AS client_name, c.email_address AS client_email
   FROM invoices i
   JOIN clients c ON c.id = i.client_id`;
@@ -76,6 +86,7 @@ function rowToInvoice(r: Record<string, unknown>): InvoiceRecord {
     clientName: r.client_name as string,
     clientEmail: (r.client_email as string) || '',
     firmId: r.lawfirm_id != null ? `firm-${r.lawfirm_id}` : undefined,
+    caseId: (r.app_case_id as number | null) ?? undefined,
     caseName: (r.case_name as string) || '',
     advocateName: (r.advocate_name as string) || 'Awaiting Assignment',
     amount: Number(r.total_amount),
@@ -87,7 +98,40 @@ function rowToInvoice(r: Record<string, unknown>): InvoiceRecord {
 
 @Injectable()
 export class BillingService {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly casesService: CasesService,
+  ) {}
+
+  getInvoiceCases(firmId?: string): InvoiceCaseEntry[] {
+    if (!firmId) return [];
+    return this.casesService.findAll({ firmId }).flatMap((record) => {
+      if (!record.client_id) return [];
+      return [{
+        id: record.id,
+        clientId: record.client_id,
+        name: (record.brief_description?.trim() || record.case_type?.trim() || `Case ${record.id}`).slice(0, 255),
+        cnr: record.cnr,
+      }];
+    });
+  }
+
+  private resolveInvoiceCase(
+    firmId: string | undefined,
+    clientId: string,
+    { caseId, caseName }: Pick<CreateInvoiceDto, 'caseId' | 'caseName'>,
+  ): InvoiceCaseEntry {
+    const cases = this.getInvoiceCases(firmId).filter((entry) => entry.clientId === clientId);
+    if (caseId != null) {
+      const selected = cases.find((entry) => entry.id === caseId);
+      if (selected) return selected;
+    } else if (caseName?.trim()) {
+      const name = caseName.trim().toLowerCase();
+      const matches = cases.filter((entry) => entry.name.toLowerCase() === name);
+      if (matches.length === 1) return matches[0];
+    }
+    throw new BadRequestException('Select an existing case for this client in your firm.');
+  }
 
   // ── Client dropdown ───────────────────────────────────────────────────────
   async getClients(callerId: string): Promise<ClientEntry[]> {
@@ -110,14 +154,17 @@ export class BillingService {
     if (!firm) return [];
 
     const fid = Number(firm.id.replace('firm-', ''));
+    const caseClientIds = this.casesService.getFirmClientIds(firm.id);
     const { rows } = await q(
       `SELECT c.id, c.name, c.email_address FROM clients c WHERE c.is_active AND c.id IN (
          SELECT client_id FROM consultations WHERE lawfirm_id = $1
          UNION
          SELECT cc.client_id FROM case_clients cc
-           JOIN cases cs ON cs.id = cc.case_id WHERE cs.lawfirm_id = $1)
+           JOIN cases cs ON cs.id = cc.case_id WHERE cs.lawfirm_id = $1
+         UNION
+         SELECT unnest($2::int[]))
        ORDER BY c.id`,
-      [fid],
+      [fid, caseClientIds],
     );
     return rows.map((c) => ({
       id: `cl-${c.id}`,
@@ -127,14 +174,14 @@ export class BillingService {
   }
 
   // ── Resolve a client by ID ─────────────────────────────────────────────────
-  private async resolveClient(clientId: string): Promise<ClientEntry> {
+  private async resolveClient(clientId: string, db: Pick<PoolClient, 'query'> = pool): Promise<ClientEntry> {
     const parsed = parseActorId(clientId);
     if (!parsed || parsed.kind !== 'cl') {
       throw new NotFoundException(
         `Client "${clientId}" not found. Ensure the user exists and has role=client.`,
       );
     }
-    const { rows } = await q(
+    const { rows } = await db.query(
       `SELECT id, name, email_address FROM clients WHERE id = $1`,
       [parsed.num],
     );
@@ -147,41 +194,26 @@ export class BillingService {
   }
 
   // ── Invoices ──────────────────────────────────────────────────────────────
-  async createInvoice(dto: CreateInvoiceDto, callerId?: string): Promise<InvoiceRecord> {
+  async createInvoice(dto: CreateInvoiceDto, firmId?: string): Promise<InvoiceRecord> {
+    if (!firmId) throw new BadRequestException('The caller must belong to an invoicing firm.');
     const client = await this.resolveClient(dto.clientId);
-
-    // The invoicing firm is the caller's firm — a client is platform-global,
-    // so it can no longer imply the firm on its own.
-    let firmNum: number | null = null;
-    if (callerId) {
-      const firm = await this.usersService.getUserFirm(callerId);
-      firmNum = firm ? Number(firm.id.replace('firm-', '')) : null;
-    }
-    if (!firmNum) {
-      throw new BadRequestException(
-        'Cannot determine the invoicing firm: the caller must be a firm member (x-user-id).',
-      );
-    }
-
+    const invoiceCase = this.resolveInvoiceCase(firmId, client.id, dto);
+    const firmNum = Number(firmId.replace('firm-', ''));
     const dbStatus = toDbStatus(dto.status);
     const number = await tx(async (c) => {
-      // Unique invoice_number; retry the cheap random suffix on the rare clash.
       for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const res = await c.query(
-            `INSERT INTO invoices (lawfirm_id, client_id, invoice_number, total_amount, status,
-                                   due_date, case_name, advocate_name)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING invoice_number`,
-            [firmNum, Number(client.id.replace('cl-', '')), generateInvoiceNumber(),
-             dto.amount, dbStatus, dto.dueDate || null, dto.caseName || null,
-             dto.advocateName || 'Awaiting Assignment'],
-          );
-          return res.rows[0].invoice_number as string;
-        } catch (e) {
-          if (attempt === 2) throw e;
-        }
+        const res = await c.query<{ invoice_number: string }>(
+          `INSERT INTO invoices (lawfirm_id, client_id, invoice_number, total_amount, status,
+                                 due_date, case_name, advocate_name, app_case_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+           ON CONFLICT (invoice_number) DO NOTHING RETURNING invoice_number`,
+          [firmNum, Number(client.id.replace('cl-', '')), generateInvoiceNumber(),
+           dto.amount, dbStatus, dto.dueDate || null, invoiceCase.name,
+           dto.advocateName || 'Awaiting Assignment', invoiceCase.id],
+        );
+        if (res.rows.length) return res.rows[0].invoice_number;
       }
-      throw new Error('unreachable');
+      throw new Error('Could not generate a unique invoice number');
     });
 
     return this.findOneInvoice(number);
@@ -219,38 +251,56 @@ export class BillingService {
     return rows.map(rowToInvoice);
   }
 
-  async findOneInvoice(id: string): Promise<InvoiceRecord> {
-    const { rows } = await q(`${INVOICE_SELECT} WHERE i.invoice_number = $1`, [invoiceNumberToId(id)]);
+  async findOneInvoice(
+    id: string,
+    db: Pick<PoolClient, 'query'> = pool,
+    lock = false,
+  ): Promise<InvoiceRecord> {
+    const rowLock = lock ? 'FOR UPDATE OF i' : '';
+    const { rows } = await db.query(`${INVOICE_SELECT} WHERE i.invoice_number = $1 ${rowLock}`, [invoiceNumberToId(id)]);
     if (!rows.length) throw new NotFoundException(`Invoice ${id} not found`);
     return rowToInvoice(rows[0]);
   }
 
-  async updateInvoice(id: string, dto: UpdateInvoiceDto): Promise<InvoiceRecord> {
-    const existing = await this.findOneInvoice(id);
+  async updateInvoice(
+    id: string,
+    dto: UpdateInvoiceDto,
+    actor: { role: string; firmId?: string },
+  ): Promise<InvoiceRecord> {
+    return tx(async (db) => {
+      const existing = await this.findOneInvoice(id, db, true);
+      if (actor.role !== UserRole.SUPERADMIN && (!actor.firmId || actor.firmId !== existing.firmId)) {
+        throw new ForbiddenException('You can only edit invoices for your own firm.');
+      }
 
-    let clientIdNum: number | null = null;
-    if (dto.clientId && dto.clientId !== existing.clientId) {
-      const client = await this.resolveClient(dto.clientId);
-      clientIdNum = Number(client.id.replace('cl-', ''));
-    }
+      const client = dto.clientId && dto.clientId !== existing.clientId
+        ? await this.resolveClient(dto.clientId, db)
+        : null;
+      const clientIdNum = client ? Number(client.id.replace('cl-', '')) : null;
+      const changingCase = dto.caseId != null || (dto.caseName != null && dto.caseName !== existing.caseName);
+      const invoiceCase = client || changingCase
+        ? this.resolveInvoiceCase(existing.firmId, client?.id ?? existing.clientId, dto)
+        : null;
 
-    const status = toDbStatus(dto.status ?? existing.status);
-    const dueDate = dto.dueDate ?? existing.dueDate ?? null;
+      const status = toDbStatus(dto.status ?? existing.status);
+      const dueDate = dto.dueDate ?? existing.dueDate ?? null;
 
-    await q(
-      `UPDATE invoices SET
-         client_id   = COALESCE($2, client_id),
-         case_name   = COALESCE($3, case_name),
-         advocate_name = COALESCE($4, advocate_name),
-         total_amount = COALESCE($5, total_amount),
-         due_date    = $6,
-         status      = $7
-       WHERE invoice_number = $1`,
-      [invoiceNumberToId(id), clientIdNum, dto.caseName ?? null, dto.advocateName ?? null,
-       dto.amount ?? null, dueDate || null, status],
-    );
+      await db.query(
+        `UPDATE invoices SET
+           client_id   = COALESCE($2, client_id),
+           case_name   = COALESCE($3, case_name),
+           advocate_name = COALESCE($4, advocate_name),
+           total_amount = COALESCE($5, total_amount),
+           due_date    = $6,
+           status      = $7,
+           app_case_id = COALESCE($8, app_case_id)
+         WHERE invoice_number = $1`,
+        [invoiceNumberToId(id), clientIdNum, invoiceCase?.name ?? null, dto.advocateName ?? null,
+         dto.amount ?? null, dueDate || null, status, invoiceCase?.id ?? null],
+      );
 
-    return this.findOneInvoice(id);
+      return this.findOneInvoice(id, db);
+    });
   }
 
   async removeInvoice(id: string): Promise<{ message: string }> {

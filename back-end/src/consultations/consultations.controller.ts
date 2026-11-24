@@ -1,3 +1,4 @@
+import { FirmWrite } from '../common/decorators/firm-write.decorator';
 import {
   Controller,
   Get,
@@ -40,6 +41,7 @@ const ROLE_HEADER_CONFIG = {
 @ApiTags('consultations')
 @ApiHeader(ROLE_HEADER_CONFIG)
 @UseGuards(RolesGuard)
+@FirmWrite()
 @Controller('consultations')
 export class ConsultationsController {
   constructor(private readonly consultationsService: ConsultationsService) {}

@@ -1,3 +1,4 @@
+import { FirmWrite } from '../common/decorators/firm-write.decorator';
 import {
   Controller,
   Post,
@@ -28,6 +29,7 @@ import { FirmOnboardingDto } from './dto/firm-onboarding.dto';
 import { FirmOnboardingResponseDto } from './dto/firm-onboarding-response.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { AuthService } from '../auth/auth.service';
+import { Public } from '../auth/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('users')
@@ -67,6 +69,7 @@ export class UsersController {
     return this.usersService.findUsersByFirm(firmId);
   }
 
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -94,6 +97,7 @@ export class UsersController {
    * POST /users
    * Body: { fullName, email, role }
    */
+  @FirmWrite('client-signup')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -368,6 +372,7 @@ export class UsersController {
    * Update a user
    * PUT /users/:id
    */
+  @FirmWrite()
   @Put(':id')
   @ApiOperation({
     summary: 'Update a user',
@@ -394,6 +399,7 @@ export class UsersController {
    * Delete a user
    * DELETE /users/:id
    */
+  @FirmWrite()
   @Delete(':id')
   @ApiOperation({
     summary: 'Delete a user',

@@ -1,5 +1,5 @@
 /**
- * lib/validators.js - Form validation helpers shared by the onboarding pages.
+ * lib/validators.js - Form validation helpers shared by onboarding and checkout.
  *
  * Each validator returns an ERROR STRING when the value is bad,
  * or null when the value is fine. That makes them easy to use:
@@ -92,6 +92,32 @@ export function validatePassword(v) {
 export function validateConfirm(v, password) {
   if (!v) return 'Please confirm your password.';
   return v === password ? null : 'Passwords do not match.';
+}
+
+export function formatCardNumber(value) {
+  return value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
+}
+
+export function formatCardExpiry(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 4);
+  return digits.length > 2 ? digits.slice(0, 2) + '/' + digits.slice(2) : digits;
+}
+
+function validateCardExpiry(value) {
+  if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(value)) return 'Use MM/YY format';
+  const [month, year] = value.split('/').map(Number);
+  const firstDayAfterExpiry = new Date(2000 + year, month, 1);
+  return firstDayAfterExpiry > new Date() ? null : 'Card has expired';
+}
+
+export function validateCardDetails({ cardName, cardNumber, expiry, cvc }) {
+  const name = cardName.trim();
+  return {
+    cardName: name ? (/^[a-zA-Z\s'.,-]{2,80}$/.test(name) ? null : 'Enter a valid cardholder name') : 'Cardholder name is required',
+    cardNumber: /^\d{16}$/.test(cardNumber.replace(/\s/g, '')) ? null : 'Card number must be 16 digits',
+    expiry: validateCardExpiry(expiry),
+    cvc: /^\d{3,4}$/.test(cvc) ? null : 'CVC must be 3-4 digits',
+  };
 }
 
 /* Optional website URL - must parse and start with http(s) when present. */

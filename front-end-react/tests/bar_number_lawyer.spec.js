@@ -1,7 +1,18 @@
 import { test, expect } from '@playwright/test';
+import { installTestApi } from './api-fixtures.js';
 
 test.describe('Bar Number for Lawyers and Live Verification', () => {
-  test('Firm admin can add lawyer with verified Bar number and client with Aadhaar primary key', async ({ page }) => {
+  test('Firm user forms validate inputs and surface API rejections', async ({ page }) => {
+    await installTestApi(page, { id: 'fa-1', role: 'firmadmin', firmId: 'firm-1' }, {
+      'POST /api/users': async (route) => {
+        const body = route.request().postDataJSON();
+        expect(body).not.toHaveProperty('id');
+        expect(body).not.toHaveProperty('barEnrollmentNumber');
+        expect(body).not.toHaveProperty('aadhaarNumber');
+        const message = body.role === 'lawyer' ? 'The API rejected the lawyer record.' : 'The API rejected the client record.';
+        await route.fulfill({ status: 400, json: { message } });
+      },
+    });
     // 1. Sign in as Firm Admin directly via email/password
     await page.goto('/#/signin');
     await page.waitForLoadState('networkidle');
@@ -42,12 +53,10 @@ test.describe('Bar Number for Lawyers and Live Verification', () => {
     // Click submit
     await page.locator('#submit-user-btn').click();
 
-    // Check user appears in table with Bar Number
-    await expect(page.locator('text=Adv. Vikram Deshmukh')).toBeVisible();
-    await expect(page.locator('text=MAH/7788/2019')).toBeVisible();
-    await expect(page.locator('text=Bar Verified').first()).toBeVisible();
+    await expect(page.getByText('The API rejected the lawyer record.')).toBeVisible();
+    await expect(page.getByText('User created successfully.')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
 
-    // 4. Test adding client with Aadhaar Card primary key in modal
     await page.locator('#add-user-btn').click();
     await expect(page.getByRole('heading', { name: 'Add New User' })).toBeVisible();
     await page.locator('#user-role-select').selectOption('client');
@@ -65,13 +74,14 @@ test.describe('Bar Number for Lawyers and Live Verification', () => {
 
     await page.locator('#submit-user-btn').click();
 
-    // Verify client appears in table with Aadhaar (PK)
-    await expect(page.locator('text=Client Rohit Verma').first()).toBeVisible();
-    await expect(page.locator('text=6543-2109-8765').first()).toBeVisible();
-    await expect(page.locator('text=Aadhaar (PK)').first()).toBeVisible();
+    await expect(page.getByText('The API rejected the client record.')).toBeVisible();
+    await expect(page.getByText('User created successfully.')).toHaveCount(0);
   });
 
   test('Advocate Profile displays verified Bar Council enrollment badge', async ({ page }) => {
+    await installTestApi(page, { id: 'cl-1', role: 'client' }, {
+      'GET /api/users/lw-1': { id: 'lw-1', fullName: 'Lawyer Bob', role: 'lawyer', barNumber: 'MAH/1234/2018', isBarVerified: true },
+    });
     // Sign in as Client Alice
     await page.goto('/#/signin');
     await page.waitForLoadState('networkidle');
@@ -89,6 +99,11 @@ test.describe('Bar Number for Lawyers and Live Verification', () => {
   });
 
   test('Superadmin Lawyers console displays Bar numbers in roster table', async ({ page }) => {
+    const lawyer = { id: 'lw-1', fullName: 'Lawyer Bob', email: 'bob@example.test', role: 'lawyer', barNumber: 'MAH/1234/2018' };
+    await installTestApi(page, { id: 'sa-1', role: 'superadmin' }, {
+      'GET /api/users/lawyers': [lawyer],
+      'GET /api/users': [lawyer],
+    });
     // Sign in as Superadmin
     await page.goto('/#/signin');
     await page.waitForLoadState('networkidle');

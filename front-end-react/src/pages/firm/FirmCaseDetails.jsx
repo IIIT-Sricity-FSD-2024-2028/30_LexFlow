@@ -109,7 +109,7 @@ export default function FirmCaseDetails({ id }) {
   const saveCase = async (updated) => {
     const body = {};
     for (const k of ['consultation_id', 'lawfirm_id', 'lawyer_id', 'client_id', 'cnr', 'case_type',
-      'brief_description', 'status', 'client', 'filed_date', 'progress', 'timeline', 'stage', 'nextHearing']) {
+      'brief_description', 'status', 'client', 'filed_date', 'progress', 'timeline']) {
       if (updated[k] !== undefined && updated[k] !== null) body[k] = updated[k];
     }
     const saved = await api.cases.update(updated.id, body, role);

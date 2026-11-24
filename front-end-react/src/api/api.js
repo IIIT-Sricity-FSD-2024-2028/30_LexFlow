@@ -8,19 +8,31 @@
  *
  * Auth model (same as vanilla):
  *  - JWT access token is stored in localStorage under "access_token"
- *    and sent on EVERY request as  Authorization: Bearer <token>.
+ *    and sent on authenticated requests as Authorization: Bearer <token>.
  *  - A "role" header tells the backend which role is asking.
  *  - For state-changing requests we re-send the "x-csrf-token" cookie value
  *    as a header (double-submit CSRF pattern the backend expects).
  *  - credentials: 'include' keeps the session cookie flowing.
  */
 
-import { mockStore } from './mockStore.js';
+// Remove data and sessions left by the retired browser demo store.
+if (typeof window !== 'undefined') {
+  for (const key of ['lexflow_users', 'lexflow_firms', 'lexflow_cases', 'lexflow_consultations', 'lexflow_store_seeded']) {
+    localStorage.removeItem(key);
+  }
+  const token = localStorage.getItem('access_token');
+  if (!token || token.startsWith('demo_jwt_')) {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('userRole');
+  }
+}
 
 // Base URL for every backend call.
 // In dev, vite.config.js proxies "/api" -> "http://localhost:3000", so we can
 // use a relative path and never have CORS trouble.
 export const BASE_URL = '/api';
+export const SESSION_EXPIRED_EVENT = 'lexflow:session-expired';
 
 /** Read the CSRF cookie the backend sets. Returns null when absent. */
 function getCsrfToken() {
@@ -48,11 +60,11 @@ export function getRole() {
  * Low-level request helper used by every endpoint below.
  * @param {string} method  HTTP verb: "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
  * @param {string} path    backend path, e.g. "/consultations"
- * @param {object} opts    { body, role, extraHeaders, formData }
+ * @param {object} opts    { body, role, extraHeaders, formData, authenticate }
  * @returns parsed JSON (or null for empty responses)
  * @throws Error with .status and .data when the backend answers non-2xx
  */
-async function request(method, path, { body, role, extraHeaders = {}, formData } = {}) {
+async function request(method, path, { body, role, extraHeaders = {}, formData, authenticate = true } = {}) {
   // Start building headers. Content-Type is skipped for FormData - the browser
   // must generate it itself so it can add the multipart boundary.
   const headers = { ...extraHeaders };
@@ -60,7 +72,7 @@ async function request(method, path, { body, role, extraHeaders = {}, formData }
   // Every request carries the role header so the backend can scope the query.
   if (role) headers['role'] = role;
   // Attach the JWT (if the user has logged in).
-  const token = localStorage.getItem('access_token');
+  const token = authenticate ? localStorage.getItem('access_token') : null;
   if (token) headers['Authorization'] = 'Bearer ' + token;
   // Double-submit CSRF: send the cookie's value back as a header on mutations.
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
@@ -84,7 +96,11 @@ async function request(method, path, { body, role, extraHeaders = {}, formData }
 
   // Turn HTTP errors into JS exceptions the pages can catch + show.
   if (!res.ok) {
-    let message = data?.message ?? `HTTP ${res.status}`;
+    if (res.status === 401 && token && token === localStorage.getItem('access_token')) {
+      localStorage.removeItem('access_token');
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
+    let message = data?.message || `HTTP ${res.status}`;
     // Backend sometimes sends message as an array of validation errors.
     if (Array.isArray(message)) message = message.join(', ');
     const err = new Error(message);
@@ -116,77 +132,47 @@ export const api = {
   /* AUTH: login is the only public endpoint. Stores token + returns the user. */
   auth: {
     async login(email, password) {
-      try {
-        const data = await request('POST', '/users/login', {
-          body: { email, password },
-        });
-        if (data?.access_token) {
-          localStorage.setItem('access_token', data.access_token);
-        }
-        return data?.user ?? data;
-      } catch (err) {
-        return mockStore.login(email, password);
+      const data = await request('POST', '/users/login', {
+        body: { email, password },
+        authenticate: false,
+      });
+      if (!data?.access_token || !data?.user) {
+        throw new Error('The server did not return a valid sign-in session.');
       }
+      localStorage.setItem('access_token', data.access_token);
+      return data.user;
     },
   },
 
   /* CONSULTATIONS: bookings made by clients, managed by firms. */
   consultations: {
     // Client: my own bookings. Backend wants the client id in a header.
-    async getMy(clientId, role) {
-      try {
-        return await request('GET', '/consultations/my', { role, extraHeaders: { 'x-client-id': clientId } });
-      } catch (err) {
-        return mockStore.getClientConsultations(clientId);
-      }
+    getMy(clientId, role) {
+      return request('GET', '/consultations/my', { role, extraHeaders: { 'x-client-id': clientId } });
     },
     // Firm/superadmin: list with optional filters { firmId, status, lawyerId... }
-    async getAll(filters, role) {
-      try {
-        return await request('GET', `/consultations${toQuery(filters)}`, { role });
-      } catch (err) {
-        return mockStore.getConsultations(filters, role);
-      }
+    getAll(filters, role) {
+      return request('GET', `/consultations${toQuery(filters)}`, { role });
     },
-    // Who booked through the landing-page workflow (superadmin fallback).
-    async getWorkflowBookings(role) {
-      try {
-        return await request('GET', '/consultations/workflow-bookings', { role });
-      } catch (err) {
-        return mockStore.getConsultations({ bookedViaWorkflow: true }, role);
-      }
+    // Who booked through the landing-page workflow.
+    getWorkflowBookings(role) {
+      return request('GET', '/consultations/workflow-bookings', { role });
     },
     // One consultation by id.
-    async getById(id, role) {
-      try {
-        return await request('GET', `/consultations/${id}`, { role });
-      } catch (err) {
-        return (mockStore.getConsultations() || []).find((c) => c.id === id) || null;
-      }
+    getById(id, role) {
+      return request('GET', `/consultations/${id}`, { role });
     },
     // Client creates a booking from the law-firm search page.
-    async create(data, role) {
-      try {
-        return await request('POST', '/consultations', { body: data, role });
-      } catch (err) {
-        return mockStore.createConsultation(data);
-      }
+    create(data, role) {
+      return request('POST', '/consultations', { body: data, role });
     },
     // Firm staff: assign lawyer / change status / add notes.
-    async update(id, data, role) {
-      try {
-        return await request('PATCH', `/consultations/${id}`, { body: data, role });
-      } catch (err) {
-        return mockStore.updateConsultation(id, data);
-      }
+    update(id, data, role) {
+      return request('PATCH', `/consultations/${id}`, { body: data, role });
     },
     // Client or firm: cancel a booking (no body needed).
-    async cancel(id, role) {
-      try {
-        return await request('PATCH', `/consultations/${id}/cancel`, { role });
-      } catch (err) {
-        return mockStore.cancelConsultation(id);
-      }
+    cancel(id, role) {
+      return request('PATCH', `/consultations/${id}/cancel`, { role });
     },
     // Superadmin: permanently remove a booking.
     remove(id, role) {
@@ -196,63 +182,31 @@ export const api = {
 
   /* USERS: accounts of every kind + law firms + firm onboarding wizard. */
   users: {
-    async getAll(filters, role) {
-      try {
-        return await request('GET', `/users${toQuery(filters)}`, { role });
-      } catch (err) {
-        return mockStore.getUsers(filters, role);
-      }
+    getAll(filters, role) {
+      return request('GET', `/users${toQuery(filters)}`, { role });
     },
-    async getById(id, role) {
-      try {
-        return await request('GET', `/users/${id}`, { role });
-      } catch (err) {
-        return mockStore.getUserById(id);
-      }
+    getById(id, role) {
+      return request('GET', `/users/${id}`, { role });
     },
     // All members of one firm (firm user-management page).
-    async getByFirm(firmId, role) {
-      try {
-        return await request('GET', `/users/firm/${firmId}`, { role });
-      } catch (err) {
-        return mockStore.getUsersByFirm(firmId);
-      }
+    getByFirm(firmId, role) {
+      return request('GET', `/users/firm/${firmId}`, { role });
     },
     // Lawyers of a firm - used for assignment dropdowns + sidebar tier badge.
-    async getLawyers(firmId, role) {
-      try {
-        return await request('GET', `/users/lawyers${toQuery({ firmId })}`, { role });
-      } catch (err) {
-        return mockStore.getLawyers(firmId);
-      }
+    getLawyers(firmId, role) {
+      return request('GET', `/users/lawyers${toQuery({ firmId })}`, { role });
     },
-    async getAllFirms(role) {
-      try {
-        return await request('GET', '/users/firms/all', { role });
-      } catch (err) {
-        return mockStore.getFirms({});
-      }
+    getAllFirms(role) {
+      return request('GET', '/users/firms/all', { role });
     },
-    async create(body, role) {
-      try {
-        return await request('POST', '/users', { body, role });
-      } catch (err) {
-        return mockStore.createUser(body);
-      }
+    create(body, role) {
+      return request('POST', '/users', { body, role });
     },
-    async update(id, body, role) {
-      try {
-        return await request('PUT', `/users/${id}`, { body, role });
-      } catch (err) {
-        return mockStore.updateUser(id, body);
-      }
+    update(id, body, role) {
+      return request('PUT', `/users/${id}`, { body, role });
     },
-    async remove(id, role) {
-      try {
-        return await request('DELETE', `/users/${id}`, { role });
-      } catch (err) {
-        return mockStore.deleteUser(id);
-      }
+    remove(id, role) {
+      return request('DELETE', `/users/${id}`, { role });
     },
 
     /* ── Firm onboarding wizard (3 steps) ── */
@@ -285,29 +239,17 @@ export const api = {
 
   /* CASES: legal cases created from consultations. */
   cases: {
-    async getAll(filters, role) {
-      try {
-        return await request('GET', `/cases${toQuery(filters)}`, { role });
-      } catch (err) {
-        return mockStore.getCases(filters, role);
-      }
+    getAll(filters, role) {
+      return request('GET', `/cases${toQuery(filters)}`, { role });
     },
-    async getById(id, role) {
-      try {
-        return await request('GET', `/cases/${id}`, { role });
-      } catch (err) {
-        return mockStore.getCaseById(id);
-      }
+    getById(id, role) {
+      return request('GET', `/cases/${id}`, { role });
     },
     create(data, role) {
       return request('POST', '/cases', { body: data, role });
     },
-    async update(id, data, role) {
-      try {
-        return await request('PATCH', `/cases/${id}`, { body: data, role });
-      } catch (err) {
-        return mockStore.updateCase(id, data);
-      }
+    update(id, data, role) {
+      return request('PATCH', `/cases/${id}`, { body: data, role });
     },
     remove(id, role) {
       return request('DELETE', `/cases/${id}`, { role });
@@ -332,82 +274,45 @@ export const api = {
 
   /* LAW FIRMS: public directory used by the client search page. */
   lawFirms: {
-    async getAll(filters, role) {
-      try {
-        return await request('GET', `/law-firms${toQuery(filters)}`, { role });
-      } catch (err) {
-        return mockStore.getFirms(filters);
-      }
+    getAll(filters, role) {
+      return request('GET', `/law-firms${toQuery(filters)}`, { role });
     },
-    async getById(id, role) {
-      try {
-        return await request('GET', `/law-firms/${id}`, { role });
-      } catch (err) {
-        return mockStore.getFirmById(id);
-      }
+    getById(id, role) {
+      return request('GET', `/law-firms/${id}`, { role });
     },
   },
 
   /* BILLING: invoices (firm -> client) and payments. */
   billing: {
+    getCases(role) {
+      return request('GET', '/billing/cases', { role });
+    },
     // extraHeaders carry x-user-id / x-user-name exactly like the vanilla client.
-    async getInvoices(role, extraHeaders = {}) {
-      try {
-        return await request('GET', '/billing/invoices', { role, extraHeaders });
-      } catch (err) {
-        return mockStore.getInvoices(role, extraHeaders);
-      }
+    getInvoices(role, extraHeaders = {}) {
+      return request('GET', '/billing/invoices', { role, extraHeaders });
     },
-    async getInvoice(id, role, extraHeaders = {}) {
-      try {
-        return await request('GET', `/billing/invoices/${id}`, { role, extraHeaders });
-      } catch (err) {
-        return mockStore.getInvoice(id);
-      }
+    getInvoice(id, role, extraHeaders = {}) {
+      return request('GET', `/billing/invoices/${id}`, { role, extraHeaders });
     },
-    async createInvoice(body, role, extraHeaders = {}) {
-      try {
-        return await request('POST', '/billing/invoices', { body, role, extraHeaders });
-      } catch (err) {
-        return mockStore.createInvoice(body);
-      }
+    createInvoice(body, role, extraHeaders = {}) {
+      return request('POST', '/billing/invoices', { body, role, extraHeaders });
     },
-    async updateInvoice(id, body, role, extraHeaders = {}) {
-      try {
-        return await request('PATCH', `/billing/invoices/${id}`, { body, role, extraHeaders });
-      } catch (err) {
-        return mockStore.updateInvoice(id, body);
-      }
+    updateInvoice(id, body, role, extraHeaders = {}) {
+      return request('PATCH', `/billing/invoices/${id}`, { body, role, extraHeaders });
     },
-    async deleteInvoice(id, role, extraHeaders = {}) {
-      try {
-        return await request('DELETE', `/billing/invoices/${id}`, { role, extraHeaders });
-      } catch (err) {
-        return mockStore.deleteInvoice(id);
-      }
+    deleteInvoice(id, role, extraHeaders = {}) {
+      return request('DELETE', `/billing/invoices/${id}`, { role, extraHeaders });
     },
-    async getPayments(role, extraHeaders = {}) {
-      try {
-        return await request('GET', '/billing/payments', { role, extraHeaders });
-      } catch (err) {
-        return mockStore.getPayments(role, extraHeaders);
-      }
+    getPayments(role, extraHeaders = {}) {
+      return request('GET', '/billing/payments', { role, extraHeaders });
     },
     // Client pays an invoice: card, UPI, net banking...
-    async recordPayment(invoiceId, paymentMethod, role, extraHeaders = {}) {
-      try {
-        return await request('POST', `/billing/payments/${invoiceId}`, { body: { paymentMethod }, role, extraHeaders });
-      } catch (err) {
-        return mockStore.recordPayment(invoiceId, paymentMethod, role, extraHeaders);
-      }
+    recordPayment(invoiceId, paymentMethod, role, extraHeaders = {}) {
+      return request('POST', `/billing/payments/${invoiceId}`, { body: { paymentMethod }, role, extraHeaders });
     },
     // Clients linked to a firm - used to fill the "bill to" dropdown.
-    async getClients(role, extraHeaders = {}) {
-      try {
-        return await request('GET', '/billing/clients', { role, extraHeaders });
-      } catch (err) {
-        return mockStore.getClients(role, extraHeaders);
-      }
+    getClients(role, extraHeaders = {}) {
+      return request('GET', '/billing/clients', { role, extraHeaders });
     },
   },
 
@@ -435,14 +340,20 @@ export const api = {
         body: { tier }, role, extraHeaders: callerId ? { 'x-user-id': callerId } : {},
       });
     },
+    prepareRenewal(firmId, role) {
+      return request('POST', '/platform/subscriptions/' + firmId + '/renew', { role });
+    },
+    updateRenewal(firmId, changes, role) {
+      return request('PATCH', '/platform/subscriptions/' + firmId + '/renewal', { body: changes, role });
+    },
     getCharges(role, firmId, callerId) {
       return request('GET', `/platform/charges${toQuery({ firmId })}`, {
         role, extraHeaders: callerId ? { 'x-user-id': callerId } : {},
       });
     },
-    updateChargeStatus(id, status, role, callerId) {
+    updateChargeStatus(id, status, role, callerId, paymentMethod) {
       return request('PATCH', `/platform/charges/${id}`, {
-        body: { status }, role, extraHeaders: callerId ? { 'x-user-id': callerId } : {},
+        body: { status, paymentMethod }, role, extraHeaders: callerId ? { 'x-user-id': callerId } : {},
       });
     },
     getTierPlans(role) {

@@ -14,6 +14,8 @@ import {
 } from '../../components/ui.jsx';
 import Icon from '../../components/Icon.jsx';
 import { money, formatDate } from '../../lib/format.js';
+import SubscriptionCheckout from './SubscriptionCheckout.jsx';
+import FirmPlan from './FirmPlan.jsx';
 
 export default function FirmBilling() {
   const { user, toast } = useApp();
@@ -23,6 +25,7 @@ export default function FirmBilling() {
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
   const [clients, setClients] = useState([]);           // for the "bill to" dropdown
+  const [invoiceCases, setInvoiceCases] = useState(null);
   const [charges, setCharges] = useState([]);           // platform subscription charges
   const [subscription, setSubscription] = useState(null); // { tier, monthlyPrice, pendingTier }
   const [tiers, setTiers] = useState([]);               // available plans
@@ -38,7 +41,10 @@ export default function FirmBilling() {
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [checkoutCharge, setCheckoutCharge] = useState(null);
+  const [savingMethod, setSavingMethod] = useState(false);
   const [payingId, setPayingId] = useState(null);   // charge being paid (blocks double clicks)
+  const readOnly = subscription?.hasPaidAccess === false;
   const [planBusy, setPlanBusy] = useState(false);   // a plan request is in flight
 
   /* Extra headers the billing endpoints expect. */
@@ -49,14 +55,16 @@ export default function FirmBilling() {
     setLoading(true);
     setError('');
     try {
-      const [inv, pay, cl] = await Promise.all([
+      const [inv, pay, cl, cases] = await Promise.all([
         api.billing.getInvoices(role, hdrs()),
         api.billing.getPayments(role, hdrs()),
         api.billing.getClients(role, hdrs()).catch(() => []),
+        api.billing.getCases(role).catch(() => null),
       ]);
       setInvoices(Array.isArray(inv) ? inv : []);
       setPayments(Array.isArray(pay) ? pay : []);
       setClients(Array.isArray(cl) ? cl : []);
+      setInvoiceCases(Array.isArray(cases) ? cases : null);
 
       // Subscription pieces fail independently so the page still works.
       try {
@@ -118,14 +126,14 @@ export default function FirmBilling() {
 
   const createInvoice = async () => {
     const c = creating;
-    if (!c.clientId || !c.caseName.trim() || !Number(c.amount) || !c.dueDate) {
-      toast('Please fill client, case name, amount and due date.', 'error');
+    if (!c.clientId || !c.caseId || !Number(c.amount) || !c.dueDate) {
+      toast('Select a client and case, then enter the amount and due date.', 'error');
       return;
     }
     setBusy(true);
     try {
       const created = await api.billing.createInvoice({
-        clientId: c.clientId, caseName: c.caseName.trim(),
+        clientId: c.clientId, caseId: Number(c.caseId),
         amount: Number(c.amount), status: c.status, dueDate: c.dueDate,
       }, role, hdrs());
       // keep the names picked in the form in case the API response omits them
@@ -141,14 +149,14 @@ export default function FirmBilling() {
 
   const saveEdit = async () => {
     const e = editing;
-    if (!e.clientId || !e.caseName.trim() || !Number(e.amount) || !e.dueDate) {
-      toast('Please fill client, case name, amount and due date.', 'error');
+    if (!e.clientId || (e.clientId !== e.originalClientId && !e.caseId) || !Number(e.amount) || !e.dueDate) {
+      toast('Select a client and case, then enter the amount and due date.', 'error');
       return;
     }
     setBusy(true);
     try {
       const updated = await api.billing.updateInvoice(e.id, {
-        clientId: e.clientId, caseName: e.caseName.trim(),
+        clientId: e.clientId, caseId: e.caseId ? Number(e.caseId) : undefined,
         amount: Number(e.amount), status: e.status, dueDate: e.dueDate,
       }, role, hdrs());
       setInvoices((list) => list.map((i) => (i.id === e.id ? { ...i, ...updated } : i)));
@@ -185,14 +193,18 @@ export default function FirmBilling() {
 
   /* Pay one subscription charge. The backend decides whether the pending plan
      becomes active; we just show what it persisted. */
-  const payCharge = async (charge) => {
+  const payCharge = async (charge, paymentMethod) => {
     if (payingId) return; // ignore double clicks while a payment is running
     setPayingId(charge.id);
     try {
-      await api.platform.updateChargeStatus(charge.id, 'Paid', role, user?.id);
+      const settledCharge = await api.platform.updateChargeStatus(charge.id, 'Paid', role, user?.id, paymentMethod);
+      setCharges((list) => list.map((entry) => entry.id === charge.id ? settledCharge : entry));
+      setCheckoutCharge(null);
       const before = subscription;
-      const sub = await reloadSubscription();
-      if (before?.pendingTier && !sub.pendingTier && sub.tier === before.pendingTier) {
+      const sub = await reloadSubscription().catch(() => null);
+      if (!sub) {
+        toast('Payment recorded. Refresh Billing to see your updated plan.');
+      } else if (before?.pendingTier && !sub.pendingTier && sub.tier === before.pendingTier) {
         toast(`Payment recorded. Your plan is now ${sub.tier}.`);
       } else if (sub.pendingTier) {
         const left = (sub.requiredChargeIds || []).length;
@@ -208,23 +220,59 @@ export default function FirmBilling() {
     }
   };
 
-  /* Request a plan change (the backend creates a pending change + one charge;
-     requesting the active plan again cancels an unpaid request). */
-  const switchPlan = async (tier) => {
+  const switchPlan = async (plan) => {
     if (planBusy) return;
-    const cancelling = tier.tier === subscription.tier;
-    const msg = cancelling
+    const cancelling = plan.tier === subscription.tier;
+    const currentIndex = tiers.findIndex((item) => item.tier === subscription.tier);
+    const selectedIndex = tiers.findIndex((item) => item.tier === plan.tier);
+    const downgrade = !cancelling && !readOnly && selectedIndex < currentIndex;
+    const message = cancelling
       ? 'Cancel the pending plan change?'
-      : `Request a change to ${tier.tier}? A charge of ₹${Number(tier.monthlyPrice).toLocaleString('en-IN')} will be issued. ${tier.tier} becomes active only after ALL outstanding charges are paid.`;
-    if (!window.confirm(msg)) return;
+      : downgrade
+        ? 'Schedule ' + plan.tier + ' at ' + money(plan.monthlyPrice, 0) + ' per month for the next renewal?'
+        : 'Continue to checkout for ' + plan.tier + ' at ' + money(plan.monthlyPrice, 0) + '?';
+    if (!window.confirm(message)) return;
+
     setPlanBusy(true);
     try {
-      await api.platform.requestTierChange(user.firmId, tier.tier, role, user?.id);
-      await reloadSubscription();
-      toast(cancelling ? 'Pending plan change cancelled.' : `Plan change to ${tier.tier} requested. Pay the charges below to activate it.`);
+      const result = await api.platform.requestTierChange(user.firmId, plan.tier, role, user?.id);
+      setSubscription(result.subscription);
+      await reloadSubscription().catch(() => null);
+      if (result.charge) setCheckoutCharge(result.charge);
+      else toast(cancelling ? 'Pending plan change cancelled.' : plan.tier + ' is scheduled for your next renewal.');
     } catch (err) {
-      toast(`Plan change failed: ${err.message}`, 'error');
-      try { await reloadSubscription(); } catch { /* keep what we have */ }
+      toast('Plan change failed: ' + err.message, 'error');
+    } finally {
+      setPlanBusy(false);
+    }
+  };
+
+  const renew = async () => {
+    setPlanBusy(true);
+    try {
+      const charge = await api.platform.prepareRenewal(user.firmId, role);
+      setCheckoutCharge(charge);
+      setCharges((list) => list.some((item) => item.id === charge.id) ? list : [...list, charge]);
+    } catch (err) {
+      toast('Could not prepare renewal: ' + err.message, 'error');
+      await reloadSubscription().catch(() => null);
+    } finally {
+      setPlanBusy(false);
+    }
+  };
+
+  const updateRenewal = async (changes) => {
+    const remove = changes.paymentMethod === null;
+    if (remove && !window.confirm('Remove the saved payment method and cancel automatic renewal?')) return;
+    if (changes.autoRenew === false && !window.confirm('Cancel automatic renewal at the end of your paid period?')) return;
+    setPlanBusy(true);
+    try {
+      setSubscription(await api.platform.updateRenewal(user.firmId, changes, role));
+      setSavingMethod(false);
+      await reloadSubscription().catch(() => null);
+      toast(remove ? 'Payment method removed.' : changes.autoRenew ? 'Automatic renewal enabled.' : 'Automatic renewal cancelled.');
+    } catch (err) {
+      toast('Could not update renewal: ' + err.message, 'error');
     } finally {
       setPlanBusy(false);
     }
@@ -235,7 +283,7 @@ export default function FirmBilling() {
       <PageHeader
         title="Billing Management"
         subtitle="Invoices, payments and your platform subscription."
-        actions={<Button onClick={() => { setCreating({ clientId: '', caseName: '', amount: '', status: 'Pending', dueDate: '' }); }}>
+        actions={<Button disabled={readOnly} onClick={() => setCreating({ clientId: '', caseId: '', amount: '', status: 'Pending', dueDate: '' })}>
           <Icon name="plus" size={14} /> Create Invoice
         </Button>}
       />
@@ -258,7 +306,6 @@ export default function FirmBilling() {
             <Card>
               <div className="border-b border-slate-100 p-5">
                 <h2 className="font-bold text-slate-900">Subscription Charges</h2>
-                <p className="text-xs text-slate-400">Demo payments: no real money is moved, they are recorded as "simulated".</p>
               </div>
               <Table fit>
                 <thead><tr><Th>Charge</Th><Th>Period</Th><Th>Tier</Th><Th>Amount</Th><Th>Status</Th><Th>Action</Th></tr></thead>
@@ -274,13 +321,11 @@ export default function FirmBilling() {
                       <Td><StatusBadge status={c.status} /></Td>
                       <Td>
                         {c.status === 'Paid' ? (
-                          <span className="text-xs text-slate-400">
-                            Settled{c.paymentMode ? ` · ${c.paymentMode}` : ''}
-                          </span>
+                          <span className="text-xs text-slate-400">Settled</span>
                         ) : (
                           <div className="flex flex-col items-start gap-1">
-                            <Button className="!px-3 !py-1 !text-xs" loading={payingId === c.id}
-                              disabled={!!payingId} onClick={() => payCharge(c)}>
+                            <Button className="!px-3 !py-1 !text-xs" disabled={!!payingId || planBusy}
+                              onClick={() => setCheckoutCharge(c)}>
                               Pay now
                             </Button>
                             {subscription?.requiredChargeIds?.includes(c.id) && (
@@ -297,72 +342,9 @@ export default function FirmBilling() {
               </Table>
             </Card>
 
-            {/* ── Your plan ── */}
-            <Card className="p-5">
-              <h2 className="font-bold text-slate-900">Your Plan</h2>
-              {subscription ? (() => {
-                const required = charges.filter((c) => subscription.requiredChargeIds?.includes(c.id));
-                const totalDue = required.reduce((sum, c) => sum + Number(c.amount || 0), 0);
-                const pendingCharge = charges.find((c) => c.id === subscription.pendingChargeId);
-                const locked = pendingCharge?.status === 'Paid'; // paid, waiting for other dues
-                return (
-                  <>
-                    <p className="mt-2 text-sm text-slate-600">
-                      Active plan: <b>{subscription.tier}</b> — {money(subscription.monthlyPrice, 0)}/month
-                    </p>
-
-                    {subscription.pendingTier && (
-                      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                        <p className="font-bold">
-                          Pending: {subscription.pendingTier} (not active yet)
-                        </p>
-                        <p className="mt-1">
-                          {subscription.pendingTier} becomes active only after these {required.length} charge
-                          {required.length === 1 ? '' : 's'} {required.length === 1 ? 'is' : 'are'} paid
-                          {required.length > 0 && <> — total <b>{money(totalDue)}</b></>}:
-                        </p>
-                        <ul className="mt-1 list-disc pl-4">
-                          {required.map((c) => (
-                            <li key={c.id}>
-                              {c.kind === 'tier_change' ? `Upgrade to ${c.targetTier}` : `Monthly ${c.period}`} · {money(c.amount)} · {c.status}
-                            </li>
-                          ))}
-                        </ul>
-                        {!locked && (
-                          <Button variant="ghost" className="mt-2 !px-2 !py-1 !text-xs" loading={planBusy}
-                            disabled={planBusy || !!payingId}
-                            onClick={() => switchPlan({ tier: subscription.tier, monthlyPrice: subscription.monthlyPrice })}>
-                            Cancel pending change
-                          </Button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* one button per higher tier (upgrades only, there is no refund flow) */}
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {tiers.filter((t, i) => i > tiers.findIndex((x) => x.tier === subscription.tier) && t.tier !== subscription.pendingTier).map((t) => (
-                        <Button key={t.tier} variant="outline" className="!text-xs"
-                          disabled={planBusy || !!payingId || locked}
-                          onClick={() => switchPlan(t)}>
-                          {subscription.pendingTier ? 'Change request to' : 'Switch to'} {t.tier} — ₹{Number(t.monthlyPrice).toLocaleString('en-IN')}/mo
-                          ({t.lawyerSeats >= 10000 ? '∞' : t.lawyerSeats} lawyers)
-                        </Button>
-                      ))}
-                    </div>
-                    {tiers.length > 0 && tiers[tiers.length - 1].tier === subscription.tier && (
-                      <p className="mt-2 text-xs text-slate-400">You are on the highest plan.</p>
-                    )}
-                    {locked && (
-                      <p className="mt-2 text-xs text-slate-400">
-                        The {subscription.pendingTier} upgrade charge is paid; it activates as soon as the remaining dues are settled.
-                      </p>
-                    )}
-                  </>
-                );
-              })() : (
-                <p className="mt-2 text-sm text-slate-400">Subscription information unavailable.</p>
-              )}
-            </Card>
+            <FirmPlan subscription={subscription} tiers={tiers} charges={charges}
+              busy={planBusy || !!payingId} onSwitch={switchPlan} onRenew={renew}
+              onAddCard={() => setSavingMethod(true)} onUpdateRenewal={updateRenewal} />
           </div>
 
           {/* ── Invoices card ── */}
@@ -402,11 +384,12 @@ export default function FirmBilling() {
                     <Td>
                       <div className="flex gap-1">
                         <IconBtn icon="eye" title="View" onClick={() => setViewing(inv)} />
-                        <IconBtn icon="edit" title="Edit" onClick={() => setEditing({
-                          id: inv.id, clientId: inv.clientId || '', caseName: inv.caseName || '',
+                        <IconBtn icon="edit" title="Edit" disabled={readOnly} onClick={() => setEditing({
+                          id: inv.id, clientId: inv.clientId || '', originalClientId: inv.clientId || '',
+                          caseId: '', caseName: inv.caseName,
                           amount: inv.amount, status: inv.status, dueDate: (inv.dueDate || '').slice(0, 10),
                         })} />
-                        <IconBtn icon="trash" title="Delete" danger onClick={() => deleteInvoice(inv)} />
+                        <IconBtn icon="trash" title="Delete" danger disabled={readOnly} onClick={() => deleteInvoice(inv)} />
                       </div>
                     </Td>
                   </tr>
@@ -442,6 +425,14 @@ export default function FirmBilling() {
         </>
       )}
 
+      {(checkoutCharge || savingMethod) && (
+        <SubscriptionCheckout charge={checkoutCharge} busy={!!payingId || planBusy}
+          onClose={() => { setCheckoutCharge(null); setSavingMethod(false); }}
+          onConfirm={(paymentMethod) => checkoutCharge
+            ? payCharge(checkoutCharge, paymentMethod)
+            : updateRenewal({ paymentMethod, autoRenew: true })} />
+      )}
+
       {/* ════════ CREATE INVOICE MODAL ════════ */}
       <Modal open={!!creating} onClose={() => setCreating(null)} title="Create Invoice"
         footer={<>
@@ -455,7 +446,7 @@ export default function FirmBilling() {
               <Select value={creating.clientId}
                 onChange={(e) => {
                   const opt = e.target.selectedOptions[0];
-                  setCreating((c) => ({ ...c, clientId: e.target.value, clientEmail: opt?.dataset.email || '', clientName: opt?.dataset.name || '' }));
+                  setCreating((c) => ({ ...c, clientId: e.target.value, caseId: '', clientEmail: opt?.dataset.email || '', clientName: opt?.dataset.name || '' }));
                 }}>
                 <option value="">Select client…</option>
                 {clients.map((c) => (
@@ -465,9 +456,8 @@ export default function FirmBilling() {
                 ))}
               </Select>
             </Field>
-            <Field label="Case Name" required>
-              <Input value={creating.caseName} onChange={(e) => setCreating((c) => ({ ...c, caseName: e.target.value }))} />
-            </Field>
+            <InvoiceCaseSelect cases={invoiceCases} clientId={creating.clientId} value={creating.caseId}
+              onChange={(caseId) => setCreating((c) => ({ ...c, caseId }))} />
             <div className="grid grid-cols-2 gap-4">
               <Field label="Amount (₹)" required>
                 <Input type="number" min="1" step="0.01" value={creating.amount}
@@ -495,7 +485,7 @@ export default function FirmBilling() {
         {editing && (
           <div className="space-y-4">
             <Field label="Client" required>
-              <Select value={editing.clientId} onChange={(e) => setEditing((c) => ({ ...c, clientId: e.target.value }))}>
+              <Select value={editing.clientId} onChange={(e) => setEditing((c) => ({ ...c, clientId: e.target.value, caseId: '' }))}>
                 <option value="">Select client…</option>
                 {clients.map((c) => <option key={c.id} value={c.id}>{c.fullName || c.name} — {c.email}</option>)}
                 {/* keep the existing value selectable even if not in the list */}
@@ -504,9 +494,9 @@ export default function FirmBilling() {
                 )}
               </Select>
             </Field>
-            <Field label="Case Name" required>
-              <Input value={editing.caseName} onChange={(e) => setEditing((c) => ({ ...c, caseName: e.target.value }))} />
-            </Field>
+            <InvoiceCaseSelect cases={invoiceCases} clientId={editing.clientId} value={editing.caseId}
+              currentCase={editing.clientId === editing.originalClientId ? editing.caseName || 'Current case' : undefined}
+              onChange={(caseId) => setEditing((c) => ({ ...c, caseId }))} />
             <div className="grid grid-cols-2 gap-4">
               <Field label="Amount (₹)" required>
                 <Input type="number" min="1" step="0.01" value={editing.amount}
@@ -597,9 +587,30 @@ function Row({ label, value }) {
     </div>
   );
 }
-function IconBtn({ icon, title, danger = false, onClick }) {
+function InvoiceCaseSelect({ cases, clientId, value, onChange, currentCase }) {
+  const available = cases?.filter((entry) => entry.clientId === clientId) ?? [];
+  let placeholder = 'Select a case';
+  if (!clientId) placeholder = 'Select a client first';
+  else if (!cases) placeholder = 'Could not load cases';
+  else if (!available.length) placeholder = 'No cases for this client';
+
   return (
-    <button onClick={onClick} title={title} aria-label={title}
+    <Field label="Case" required={!currentCase}>
+      <Select value={value} disabled={!available.length} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{currentCase ? `${currentCase} (keep existing)` : placeholder}</option>
+        {available.map((entry) => (
+          <option key={entry.id} value={entry.id}>
+            {entry.name}{entry.cnr ? ` · CNR ${entry.cnr}` : ''}
+          </option>
+        ))}
+      </Select>
+    </Field>
+  );
+}
+
+function IconBtn({ icon, title, danger = false, disabled, onClick }) {
+  return (
+    <button disabled={disabled} onClick={onClick} title={title} aria-label={title}
       className={`rounded-lg p-1.5 hover:bg-slate-100 ${danger ? 'text-slate-400 hover:text-red-500' : 'text-slate-400 hover:text-indigo-600'}`}>
       <Icon name={icon} size={14} />
     </button>

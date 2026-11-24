@@ -3,6 +3,7 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { AuthModule } from '../auth/auth.module';
+import { CasesModule } from '../cases/cases.module';
 
 /**
  * Users Module
@@ -15,7 +16,7 @@ import { AuthModule } from '../auth/auth.module';
  * - UsersController: Automatically registered with routes
  */
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, CasesModule],
   controllers: [UsersController],
   providers: [UsersService, RolesGuard],
   exports: [UsersService], // Allow other modules to inject UsersService

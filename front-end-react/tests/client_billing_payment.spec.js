@@ -1,7 +1,32 @@
 import { test, expect } from '@playwright/test';
+import { installTestApi } from './api-fixtures.js';
+
+function installBillingApi(page, user, invoice) {
+  const payments = [];
+  return installTestApi(page, user, {
+    'POST /api/users': (route) => route.fulfill({ status: 201, json: user }),
+    'GET /api/billing/invoices': [invoice],
+    ['GET /api/billing/invoices/' + invoice.id]: invoice,
+    'GET /api/billing/payments': payments,
+    ['POST /api/billing/payments/' + invoice.id]: (route) => {
+      expect(route.request().postDataJSON()).toEqual({ paymentMethod: 'Card' });
+      invoice.status = 'Paid';
+      const payment = {
+        id: 'PAY-TEST', invoiceId: invoice.id, amount: invoice.amount,
+        paymentDate: '2026-11-24', paymentMethod: 'Card', status: 'Completed',
+      };
+      payments.push(payment);
+      return route.fulfill({ status: 201, json: payment });
+    },
+  });
+}
 
 test.describe('Client Billing and Payment for New & Existing Clients', () => {
   test('New client onboards and successfully views and pays billing invoice', async ({ page }) => {
+    await installBillingApi(page, { id: 'cl-20', role: 'client', fullName: 'Rohit Malhotra' }, {
+      id: 'INV-NEW', clientId: 'cl-20', caseName: 'Consultation Retainer',
+      amount: 1500, status: 'Pending', dueDate: '2099-12-31',
+    });
     // 1. New client onboards via Client Onboarding Step 1
     await page.goto('/#/onboarding/client/1');
     await page.waitForLoadState('networkidle');
@@ -63,17 +88,17 @@ test.describe('Client Billing and Payment for New & Existing Clients', () => {
     // 4. Fill simulated payment form
     await page.locator('input[placeholder="Name on card"]').fill('Rohit Malhotra');
     await page.locator('input[placeholder="4242 4242 4242 4242"]').fill('4242424242424242');
-    await page.locator('input[placeholder="MM/YY"]').fill('1228');
+    await page.locator('input[placeholder="MM/YY"]').fill('1299');
     await page.locator('input[placeholder="•••"]').fill('789');
 
     // Submit payment
-    await page.locator('button:has-text("Pay")').click();
+    await page.getByRole('button', { name: /^Pay / }).click();
 
     // Check payment success screen
     await expect(page.locator('text=Payment Successful!').first()).toBeVisible();
 
     // Automatically redirected back to billing
-    await page.waitForURL(/.*#\/client\/billing/, { timeout: 10000 });
+    await page.waitForURL(/#\/client\/billing$/, { timeout: 10000 });
     await expect(page.locator('h1')).toContainText('Billing & Payments');
 
     // Verify invoice is marked Paid with badge
@@ -87,6 +112,10 @@ test.describe('Client Billing and Payment for New & Existing Clients', () => {
   });
 
   test('Existing client Alice loads billing, sees invoices, and navigates to pay', async ({ page }) => {
+    await installBillingApi(page, { id: 'cl-1', role: 'client', fullName: 'Alice Client' }, {
+      id: 'INV-9821A', clientId: 'cl-1', caseName: 'Sharma Tech Solutions Merger',
+      amount: 25000, status: 'Pending', dueDate: '2099-12-31',
+    });
     // Sign in as Alice
     await page.goto('/#/signin');
     await page.waitForLoadState('networkidle');
@@ -106,5 +135,7 @@ test.describe('Client Billing and Payment for New & Existing Clients', () => {
     // Verify Alice has billed amounts
     await expect(page.locator('text=Sharma Tech Solutions Merger')).toBeVisible();
     await expect(page.locator('text=INV-9821A')).toBeVisible();
+    await page.getByRole('button', { name: 'Pay Now' }).click();
+    await expect(page.getByRole('heading', { name: 'Pay Invoice' })).toBeVisible();
   });
 });

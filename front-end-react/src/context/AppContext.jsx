@@ -7,6 +7,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks.js';
+import { SESSION_EXPIRED_EVENT } from '../api/api.js';
 import { setUser, setLoginRole, logout, syncUserFromStorage } from '../store/slices/authSlice.js';
 import { showToast } from '../store/slices/toastSlice.js';
 
@@ -68,8 +69,16 @@ export function AppProvider({ children }) {
         dispatch(syncUserFromStorage());
       }
     };
+    const onSessionExpired = () => {
+      dispatch(logout());
+      dispatch(showToast('Your session expired. Please sign in again.', 'error'));
+    };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    };
   }, [dispatch]);
 
   return (

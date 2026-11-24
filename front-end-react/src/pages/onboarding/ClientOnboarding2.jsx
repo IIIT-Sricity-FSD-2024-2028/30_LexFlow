@@ -1,9 +1,4 @@
-/**
- * Client Onboarding - Step 2: optional case details, then finish.
- * The user is already created server-side (step 1). Here we just collect
- * optional info, sign the client in locally, and go to the dashboard.
- */
-
+/** Optional case details after the client has signed in. */
 import { useState } from 'react';
 import OnboardingShell, { FormAlert } from './OnboardingShell.jsx';
 import { navigate } from '../../router.jsx';
@@ -11,7 +6,7 @@ import { useApp } from '../../context/AppContext.jsx';
 import { Button, Field, Input, Select, Textarea } from '../../components/ui.jsx';
 
 export default function ClientOnboarding2() {
-  const { signIn, toast } = useApp();
+  const { user, toast } = useApp();
 
   const [form, setForm] = useState({ caseType: '', courtName: '', cnr: '', description: '' });
   const [alert, setAlert] = useState('');
@@ -19,34 +14,20 @@ export default function ClientOnboarding2() {
   /* Update one field of the form. */
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  /* finish(caseData): reads the step-1 draft, signs the user in, moves on. */
-  const finish = (caseData) => {
-    const draft = JSON.parse(sessionStorage.getItem('clientDraft') || 'null');
-    if (!draft?.fullName || !draft?.email) {
-      setAlert('Profile data is missing. Please go back to Step 1.');
+  const finish = () => {
+    if (user?.role !== 'client') {
+      setAlert('Please sign in to continue.');
       return;
     }
-    // Sign the client in with Aadhaar as Primary Key (ID)
-    const clientId = draft.id || draft.aadhaar || draft.email;
-    signIn({
-      id: clientId,
-      clientId: clientId,
-      aadhaar: draft.aadhaar,
-      aadhaarNumber: draft.aadhaar,
-      fullName: draft.fullName,
-      email: draft.email,
-      role: 'client',
-    });
-    sessionStorage.removeItem('clientDraft');      // draft no longer needed
-    toast('Account created successfully! Redirecting…');
-    setTimeout(() => navigate('/client/dashboard'), 400); // tiny delay so the toast is visible
+    toast('Account created successfully!');
+    navigate('/client/dashboard');
   };
 
   /* Submit = save case details then finish. All step-2 fields are optional. */
   const submit = (e) => {
     e.preventDefault();
     // (In the full backend flow these fields would be attached to a case.)
-    finish(form);
+    finish();
   };
 
   return (
@@ -57,7 +38,7 @@ export default function ClientOnboarding2() {
           <p className="mt-1 text-sm text-slate-500">This step is optional — you can add details later.</p>
         </div>
         {/* Skip = finish immediately with no case data */}
-        <Button variant="outline" onClick={() => finish({})}>Skip →</Button>
+        <Button variant="outline" onClick={finish}>Skip →</Button>
       </div>
 
       <FormAlert message={alert} />

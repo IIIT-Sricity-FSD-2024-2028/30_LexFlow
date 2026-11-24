@@ -1,3 +1,4 @@
+import { FirmWrite } from '../common/decorators/firm-write.decorator';
 import { Controller, Get, Post, Patch, Delete, Body, Query, Param, UseGuards, Req } from '@nestjs/common';
 import { CasesService } from '../cases/cases.service';
 import { TasksService } from './tasks.service';
@@ -6,6 +7,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../users/dto';
 
+@FirmWrite()
 @Controller('tasks')
 @UseGuards(RolesGuard)
 export class TasksController {

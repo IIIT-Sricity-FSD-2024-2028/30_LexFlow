@@ -12,6 +12,7 @@ import { LoggerModule } from './common/logger/logger.module';
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { FirmSubscriptionGuard } from './common/guards/firm-subscription.guard';
 import { APP_GUARD } from '@nestjs/core';
 
 @Module({
@@ -28,7 +29,10 @@ import { APP_GUARD } from '@nestjs/core';
     PlatformModule,
   ],
   controllers: [AppController],
-  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: FirmSubscriptionGuard },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
