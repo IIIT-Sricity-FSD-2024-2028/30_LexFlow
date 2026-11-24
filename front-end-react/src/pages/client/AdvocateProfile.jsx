@@ -72,7 +72,7 @@ export default function AdvocateProfile({ id }) {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="green">Bar Council Verified</Badge>
-                <Badge>{lawyer.barCouncilId || 'BCI Registered'}</Badge>
+                <Badge variant="indigo" className="font-mono">{lawyer.barCouncilId || lawyer.barNumber || lawyer.barEnrollmentNumber || 'BCI Registered'}</Badge>
                 <Badge variant="indigo">{lawyer.experience || '15'}+ Years Experience</Badge>
               </div>
               <p className="mt-2 text-sm text-slate-500">
@@ -86,7 +86,7 @@ export default function AdvocateProfile({ id }) {
             <h2 className="mb-4 font-bold text-slate-900">Professional Details</h2>
             <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
               <Box label="Full Name" value={`Adv. ${name}`} />
-              <Box label="Bar Council ID" value={lawyer.barCouncilId || '—'} />
+              <Box label="Bar Council Enrollment" value={lawyer.barNumber || lawyer.barEnrollmentNumber || lawyer.barCouncilId || '—'} />
               <Box label="Specialisation" value={specialisation} />
               <Box label="Court of Practice" value={lawyer.court || 'District & High Court'} />
               <Box label="Enrolled Since" value={lawyer.enrolledSince || '—'} />

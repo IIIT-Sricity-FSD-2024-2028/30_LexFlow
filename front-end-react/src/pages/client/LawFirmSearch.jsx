@@ -7,6 +7,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useResource } from '../../store/resource.js';
+import { firmDirectory } from '../../store/slices/intakeSlice.js';
 import { navigate } from '../../router.jsx';
 import {
   Button, Card, Badge, Modal, PageHeader, Loading, ErrorBanner, EmptyState,
@@ -30,9 +32,10 @@ export default function LawFirmSearch() {
   const [location, setLocation] = useState('');
   const [area, setArea] = useState('');
   const [sortBy, setSortBy] = useState('rating');
-  const [firms, setFirms] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { data: firms = [], loading, error: requestError, load } = useResource(firmDirectory, {
+    keyword, location, practiceArea: area, sortBy,
+  });
+  const error = requestError ? `Could not load firms: ${requestError.message} (Is the backend running?)` : '';
 
   /* ── Profile overlay state ── */
   const [profile, setProfile] = useState(null); // the full firm being previewed
@@ -45,27 +48,11 @@ export default function LawFirmSearch() {
   const [description, setDescription] = useState('');
   const [bookingBusy, setBookingBusy] = useState(false);
 
-  /* Fetch firms with the current filters. */
-  const load = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const list = await api.lawFirms.getAll({ keyword, location, practiceArea: area, sortBy }, 'client');
-      setFirms(Array.isArray(list) ? list : []);
-    } catch (err) {
-      setError(`Could not load firms: ${err.message} (Is the backend running?)`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Search as you type: reload whenever a filter changes (short delay so we
-  // don't send a request for every single keystroke).
+  // Delay the search so typing does not send a request for every keystroke.
   useEffect(() => {
-    const t = setTimeout(load, 250);
-    return () => clearTimeout(t);
-    /* eslint-disable-next-line */
-  }, [keyword, location, area, sortBy]);
+    const timer = setTimeout(load, 250);
+    return () => clearTimeout(timer);
+  }, [load]);
 
   /* Open the booking modal for a firm (resets the form each time). */
   const openBooking = (firm) => {
@@ -95,7 +82,7 @@ export default function LawFirmSearch() {
         date: toLongDate(date),                              // "May 12, 2026"
         time: `${time} - ${time}`,                           // backend expects a range string
         caseDescription: description.trim() || 'General consultation request.',
-        consultationFee: booking.price ? `$${booking.price}` : '',
+        consultationFee: booking.price ? `₹${booking.price}` : '',
         avatarClass: ['blue', 'green', 'orange', 'purple', 'pink', 'indigo', 'teal'][Math.floor(Math.random() * 7)],
         bookedViaWorkflow: true,                             // tells the backend where it came from
       }, 'client');
@@ -123,7 +110,7 @@ export default function LawFirmSearch() {
       {/* ── Search hero ── */}
       <Card className="mb-8 p-5">
         <div className="grid gap-3 md:grid-cols-4">
-          <Input placeholder="Search firm name, lawyer, or specialty..." value={keyword}
+          <Input placeholder="Search firm name or specialty..." value={keyword}
             onChange={(e) => setKeyword(e.target.value)} className="md:col-span-2" />
           <Select value={location} onChange={(e) => setLocation(e.target.value)}>
             {LOCATIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -173,10 +160,16 @@ export default function LawFirmSearch() {
 
               {/* stats row */}
               <div className="mt-4 flex items-center gap-4 text-xs font-semibold text-slate-600">
-                <span className="flex items-center gap-1 text-amber-500">
-                  ★ {firm.rating || '4.0'} <span className="font-normal text-slate-400">({firm.reviews || 0} reviews)</span>
-                </span>
-                <span>${firm.price || '—'}/hr</span>
+                {(Number(firm.reviews || 0) === 0 || Number(firm.rating || 0) === 0) ? (
+                  <span className="flex items-center gap-1 text-slate-400">
+                    ★ 0.0 <span className="font-normal text-slate-400">(0 reviews)</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-amber-500">
+                    ★ {Number(firm.rating).toFixed(1)} <span className="font-normal text-slate-400">({firm.reviews} reviews)</span>
+                  </span>
+                )}
+                <span>₹{firm.price || '—'}/hr</span>
               </div>
 
               {/* actions */}
@@ -199,8 +192,10 @@ export default function LawFirmSearch() {
             <div className="grid grid-cols-3 gap-3">
               {[
                 ['Experience', `${profile.experience || '10'}+ Years`],
-                ['Consultation Fee', `$${profile.price || 250}/hr`],
-                ['Rating', `${profile.rating || '4.9'}/5 (${profile.reviews || 0} reviews)`],
+                ['Consultation Fee', `₹${profile.price || 250}/hr`],
+                ['Rating', (Number(profile.reviews || 0) === 0 || Number(profile.rating || 0) === 0)
+                  ? '0.0/5 (0 reviews)'
+                  : `${profile.rating || '4.9'}/5 (${profile.reviews || 0} reviews)`],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-xl bg-slate-50 p-3 text-center">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
