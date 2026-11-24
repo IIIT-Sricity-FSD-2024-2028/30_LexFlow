@@ -1,3 +1,4 @@
+import { FirmWrite } from '../common/decorators/firm-write.decorator';
 import {
   Controller,
   Get,
@@ -91,6 +92,7 @@ export class DocumentsController {
 
   // ─── Document Routes ─────────────────────────────────────────────────────
 
+  @FirmWrite()
   @Post()
   @Roles(UserRole.CLIENT, UserRole.LAWYER, UserRole.FIRMADMIN)
   @ApiOperation({ summary: 'Create a new document' })
@@ -145,6 +147,7 @@ export class DocumentsController {
     return doc;
   }
 
+  @FirmWrite()
   @Patch(':id')
   @Roles(UserRole.LAWYER, UserRole.FIRMADMIN, UserRole.INTERN)
   @ApiOperation({ summary: 'Update a document' })
@@ -173,6 +176,7 @@ export class DocumentsController {
     return this.documentsService.update(id, updateDocumentDto, file);
   }
 
+  @FirmWrite()
   @Delete(':id')
   @Roles(UserRole.LAWYER, UserRole.FIRMADMIN)
   @ApiOperation({ summary: 'Delete a document' })
