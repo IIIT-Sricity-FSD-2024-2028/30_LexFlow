@@ -108,7 +108,7 @@ export default function FirmCaseDetails({ id }) {
      have their own endpoint, so send only the fields UpdateCaseDto allows. */
   const saveCase = async (updated) => {
     const body = {};
-    for (const k of ['consultation_id', 'lawfirm_id', 'lawyer_id', 'client_id', 'cnr', 'case_type',
+    for (const k of ['consultation_id', 'lawfirm_id', 'client_id', 'cnr', 'case_type',
       'brief_description', 'status', 'client', 'filed_date', 'progress', 'timeline']) {
       if (updated[k] !== undefined && updated[k] !== null) body[k] = updated[k];
     }

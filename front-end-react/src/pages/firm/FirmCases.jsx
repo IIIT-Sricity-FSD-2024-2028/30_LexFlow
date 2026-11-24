@@ -20,6 +20,7 @@ export default function FirmCases() {
   const { user, toast } = useApp();
   const role = (user?.role || 'firmadmin').toLowerCase();
   const isLawyer = role === 'lawyer';
+  const canAssignLawyer = role === 'firmadmin';
 
   const [cases, setCases] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -110,10 +111,11 @@ export default function FirmCases() {
   /* The lawyers shown in the per-card dropdown. */
   const [team, setTeam] = useState([]);
   useEffect(() => {
+    if (!canAssignLawyer || !user?.firmId) return;
     api.users.getLawyers(user?.firmId, role)
       .then((l) => setTeam((Array.isArray(l) ? l : []).filter((u) => (u.role || '').toLowerCase() === 'lawyer')))
       .catch(() => {});
-  }, [role, user?.firmId]);
+  }, [canAssignLawyer, role, user?.firmId]);
 
   const pendingCount = tasks.filter((t) => t.status === 'Pending').length;
   // How many filters on the current tab are not "All" (shown on the Filters button).
@@ -190,7 +192,7 @@ export default function FirmCases() {
           </div>
           <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
             {/* inline lawyer reassignment (admin convenience) */}
-            {!isLawyer && (
+            {canAssignLawyer && (
               <Select value={c.lawyer_id || c.lawyerId || ''} className="!w-44 !text-xs"
                 onChange={(e) => changeLawyer(c.id, e.target.value)}>
                 <option value="">Assign lawyer…</option>

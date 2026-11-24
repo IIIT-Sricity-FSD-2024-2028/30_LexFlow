@@ -1131,7 +1131,7 @@
     },
     "/consultations/workflow-bookings": {
       "get": {
-        "description": "Returns a list of all consultations that were created through the client-facing law firm search and booking flow. Only firmadmin and superadmin can access this.",
+        "description": "Returns bookings made through law firm search. Firm admins see bookings for their firm.",
         "operationId": "ConsultationsController_getWorkflowBookings",
         "parameters": [
           {
@@ -1169,7 +1169,7 @@
     },
     "/consultations/my": {
       "get": {
-        "description": "Returns all consultations for the client identified by the x-client-id header. Only the client role may call this endpoint.",
+        "description": "Returns all consultations for the authenticated client.",
         "operationId": "ConsultationsController_getMyConsultations",
         "parameters": [
           {
@@ -1189,15 +1189,6 @@
                 "user"
               ]
             }
-          },
-          {
-            "name": "x-client-id",
-            "required": true,
-            "in": "header",
-            "description": "The ID of the authenticated client (e.g. \"user-2\")",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -1214,8 +1205,8 @@
               }
             }
           },
-          "400": {
-            "description": "Missing x-client-id header"
+          "401": {
+            "description": "Login required"
           },
           "403": {
             "description": "Forbidden – non-client role"

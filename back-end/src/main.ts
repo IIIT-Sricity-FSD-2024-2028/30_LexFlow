@@ -19,8 +19,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const logger = app.get(AppLoggerService);
 
-  // Connect to Postgres, apply the schema delta and seed demo data (no-ops
-  // when already applied/seeded) before any module touches the database.
+  // Apply the PostgreSQL schema and platform defaults before modules use the database.
   await initDb();
 
   // ── Security: Helmet HTTP headers ──────────────────────────────────────────

@@ -9,10 +9,6 @@ export class CasesService implements OnModuleInit {
   private cases: Case[] = [];
   private idCounter = 1;
 
-  constructor() {
-    this.seedCases();
-  }
-
   // Runs once after the DB is ready: use the saved cases if there are any.
   async onModuleInit() {
     this.cases = await loadState('cases', this.cases);
@@ -64,51 +60,6 @@ export class CasesService implements OnModuleInit {
     if (user.role === 'client') return c.client_id === user.id;
     if (user.role === 'lawyer' && c.lawyer_id === user.id) return true;
     return c.lawfirm_id === user.firmId; // firmadmin / lawyer / intern
-  }
-
-  private seedCases() {
-    const now = new Date().toISOString();
-    this.cases = [
-      {
-        id: this.idCounter++,
-        cnr: '100001',
-        case_type: 'Criminal',
-        brief_description: 'State vs John Doe - Narcotics case',
-        status: 'Active',
-        filed_date: '2024-01-15',
-        created_at: now,
-        lawfirm_id: 'firm-1',
-        client_id: 'cl-1', // Client Alice
-        lawyer_id: 'lw-1', // Lawyer Bob
-        client: { opposingParty: 'State of Maharashtra' },
-      },
-      {
-        id: this.idCounter++,
-        cnr: '100002',
-        case_type: 'Civil',
-        brief_description: 'Property dispute - Sharma vs Gupta',
-        status: 'Active',
-        filed_date: '2024-02-20',
-        created_at: now,
-        lawfirm_id: 'firm-1',
-        client_id: 'cl-1', // Client Alice
-        lawyer_id: 'lw-1', // Lawyer Bob
-        client: { opposingParty: 'Gupta Estates Pvt Ltd' },
-      },
-      {
-        id: this.idCounter++,
-        cnr: '100003',
-        case_type: 'Corporate',
-        brief_description: 'Contract breach - TechCorp vs SoftSystems',
-        status: 'Pending',
-        filed_date: '2024-03-05',
-        created_at: now,
-        lawfirm_id: 'firm-1',
-        client_id: 'cl-1', // Client Alice
-        lawyer_id: 'lw-1', // Lawyer Bob
-        client: { opposingParty: 'SoftSystems Ltd' },
-      },
-    ];
   }
 
   async create(createCaseDto: CreateCaseDto): Promise<Case> {

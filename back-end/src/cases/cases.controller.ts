@@ -58,7 +58,11 @@ export class CasesController {
   @Patch(':id')
   @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.INTERN)
   @ApiOperation({ summary: 'Update a case' })
-  update(@Param('id') id: string, @Body() updateCaseDto: UpdateCaseDto) {
+  update(@Param('id') id: string, @Body() updateCaseDto: UpdateCaseDto, @Req() req: any) {
+    const user = this.currentUser(req);
+    if (user.role === UserRole.INTERN && updateCaseDto.lawyer_id !== undefined) {
+      throw new ForbiddenException('Interns cannot assign or reassign a lawyer.');
+    }
     return this.casesService.update(+id, updateCaseDto);
   }
 
