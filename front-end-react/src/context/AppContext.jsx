@@ -1,18 +1,14 @@
 /**
- * context/AppContext.jsx - The ONE global state of the app (useContext).
+ * context/AppContext.jsx - Global state interface backed by Redux Toolkit.
  *
- * React lets us share values with every component through a "Context".
- * We chose useContext over Redux because the app only needs to share a few
- * small things: the signed-in user, the chosen login role and toast messages.
- *
- * Anything inside <AppProvider> can read these with  useApp().
+ * Provides a backward-compatible useApp() hook for existing components
+ * while delegating state management, actions, and reducers to Redux Toolkit.
  */
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getCurrentUser } from '../api/api.js';
-
-// 1. Create the context object (this is the "channel" components tune into).
-const AppContext = createContext(null);
+import { useEffect, useCallback } from 'react';
+import { useAppDispatch, useAppSelector } from '../store/hooks.js';
+import { SESSION_EXPIRED_EVENT } from '../api/api.js';
+import { setUser, setLoginRole, logout, syncUserFromStorage, showToast } from '../store/slices/appSlice.js';
 
 /* ── Helper: which page should each role land on after signing in? ── */
 export function dashboardPathFor(role) {
@@ -23,93 +19,79 @@ export function dashboardPathFor(role) {
   return '#/signin';
 }
 
-/* ── The provider component: wraps <App /> and owns the shared state ── */
-export function AppProvider({ children }) {
+/* ── Backward-compatible hook backed by Redux Toolkit ── */
+export function useApp() {
+  const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.app.user);
+  const loginRole = useAppSelector((state) => state.app.loginRole);
+  const toasts = useAppSelector((state) => state.app.toasts);
 
-  /* The signed-in user object (null = nobody logged in).
-     We read it ONCE when the app starts from localStorage. */
-  const [user, setUser] = useState(() => getCurrentUser());
-
-  /* The role picked in the landing page "Login" dropdown
-     (client / firmadmin / intern). The sign-in page uses it to validate
-     the portal and to point the "Sign up" link at the right onboarding. */
-  const [loginRole, setLoginRole] = useState(
-    () => localStorage.getItem('loginRole') || ''
+  const toast = useCallback(
+    (message, type = 'success') => {
+      dispatch(showToast(message, type));
+    },
+    [dispatch]
   );
 
-  /* Toast notifications (small popups bottom-right, like the vanilla app).
-     Shape: { id, message, type: 'success' | 'error' } */
-  const [toasts, setToasts] = useState([]);
+  const signIn = useCallback(
+    (rawUser) => {
+      dispatch(setUser(rawUser));
+      const map = { firmadmin: 'firmAdmin', superadmin: 'superAdmin' };
+      return { ...rawUser, role: map[rawUser?.role] || rawUser?.role || '' };
+    },
+    [dispatch]
+  );
 
-  /* Show a toast for 3.5 seconds. useCallback keeps the same function
-     identity between renders so children don't re-render needlessly. */
-  const toast = useCallback((message, type = 'success') => {
-    const id = Date.now() + Math.random(); // unique key for React lists
-    setToasts((list) => [...list, { id, message, type }]);
-    setTimeout(() => {
-      // Remove only THIS toast when its time is up.
-      setToasts((list) => list.filter((t) => t.id !== id));
-    }, 3500);
-  }, []);
+  const signOut = useCallback(() => {
+    dispatch(logout());
+    window.location.hash = '';
+  }, [dispatch]);
 
-  /* Called by the SignIn page after a successful backend login. */
-  const signIn = (rawUser) => {
-    // Backend roles arrive as "firmadmin"; the UI expects "firmAdmin".
-    // We normalise once, here, so every page can trust user.role.
-    const map = { firmadmin: 'firmAdmin', superadmin: 'superAdmin' };
-    const normalized = { ...rawUser, role: map[rawUser?.role] || rawUser?.role || '' };
-    localStorage.setItem('currentUser', JSON.stringify(normalized));
-    localStorage.setItem('userRole', normalized.role);
-    localStorage.removeItem('loginRole'); // one-time use, like the vanilla app
-    setUser(normalized);
-    return normalized;
-  };
+  const chooseLoginRole = useCallback(
+    (role) => {
+      dispatch(setLoginRole(role));
+    },
+    [dispatch]
+  );
 
-  /* Clear every auth artefact and go back to the landing page. */
-  const signOut = () => {
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('loginRole');
-    sessionStorage.removeItem('clientDraft');    // half-finished client onboarding
-    sessionStorage.removeItem('firmDraft');      // half-finished firm onboarding
-    setUser(null);
-    window.location.hash = '';                    // back to landing
-  };
+  return { user, loginRole, chooseLoginRole, signIn, signOut, toast, toasts };
+}
 
-  /* Keep the role dropdown selection in sync with localStorage so the
-     sign-in page can read it after a reload. */
-  const chooseLoginRole = (role) => {
-    localStorage.setItem('loginRole', role);
-    setLoginRole(role);
-  };
+/* ── AppProvider wraps the tree and synchronizes storage events into Redux ── */
+export function AppProvider({ children }) {
+  const dispatch = useAppDispatch();
+  const toasts = useAppSelector((state) => state.app.toasts);
 
-  /* Sign-out from another browser tab should also clear this tab. */
   useEffect(() => {
-    const onStorage = (e) => { if (e.key === 'currentUser') setUser(getCurrentUser()); };
+    const onStorage = (e) => {
+      if (e.key === 'currentUser' || e.key === 'loginRole') {
+        dispatch(syncUserFromStorage());
+      }
+    };
+    const onSessionExpired = () => {
+      dispatch(logout());
+      dispatch(showToast('Your session expired. Please sign in again.', 'error'));
+    };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
-
-  /* The value every consumer receives. */
-  const value = { user, loginRole, chooseLoginRole, signIn, signOut, toast, toasts };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    };
+  }, [dispatch]);
 
   return (
-    <AppContext.Provider value={value}>
+    <>
       {children}
-      {/* Toast stack lives here so it appears on every page. */}
       <ToastStack toasts={toasts} />
-    </AppContext.Provider>
+    </>
   );
 }
 
-/* Tiny hook so any component can do:  const { user, toast } = useApp(); */
-export function useApp() {
-  return useContext(AppContext);
-}
-
-/* Renders the floating toasts (bottom-right corner). */
+/* Renders floating toasts from Redux store */
 function ToastStack({ toasts }) {
+  if (!toasts || toasts.length === 0) return null;
+
   return (
     <div className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2">
       {toasts.map((t) => (
