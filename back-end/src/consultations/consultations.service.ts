@@ -11,6 +11,7 @@ import {
   ConsultationStatus,
 } from './dto';
 import { UsersService } from '../users/users.service';
+import { loadState, tx } from '../db';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Internal data model (richer than the response DTO)
@@ -49,19 +50,48 @@ export interface WorkflowBookingRecord {
   requestedTime: string;
 }
 
+export type ConsultationScope = Partial<Pick<Consultation, 'firmId' | 'clientId' | 'lawyerId'>>;
+
+interface ConsultationState {
+  consultations: Consultation[];
+  workflowBookings: WorkflowBookingRecord[];
+  nextId: number;
+}
+
+const STATE_KEY = 'consultations';
+
 @Injectable()
 export class ConsultationsService {
-  // ── In-memory stores ──────────────────────────────────────────────────────
-  private consultations: Consultation[] = [];
-  private workflowBookings: WorkflowBookingRecord[] = [];
-  private idCounter = 1000;
+  private readonly initialState = this.seedData();
 
-  constructor(private readonly usersService: UsersService) {
-    this.seedData();
+  constructor(private readonly usersService: UsersService) {}
+
+  private readState() {
+    return loadState(STATE_KEY, this.initialState);
+  }
+
+  private async writeState<T>(change: (state: ConsultationState) => T): Promise<T> {
+    return tx(async (db) => {
+      await db.query(
+        'INSERT INTO app_state (key, data) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
+        [STATE_KEY, JSON.stringify(this.initialState)],
+      );
+      // Read after acquiring the row lock so two servers can book concurrently.
+      const { rows } = await db.query<{ data: ConsultationState }>(
+        'SELECT data FROM app_state WHERE key = $1 FOR UPDATE',
+        [STATE_KEY],
+      );
+      const state = rows[0].data;
+      const result = change(state);
+      await db.query('UPDATE app_state SET data = $2 WHERE key = $1', [
+        STATE_KEY, JSON.stringify(state),
+      ]);
+      return result;
+    });
   }
 
   // ── Seeded data so the dashboards are populated on first start ─────────────
-  private seedData(): void {
+  private seedData(): ConsultationState {
     const now = new Date();
 
     const seed: Consultation[] = [
@@ -455,25 +485,11 @@ export class ConsultationsService {
       },
     ];
 
-    this.consultations = seed;
-    this.idCounter = 914;
-
-    // Pre-populate workflow bookings tracking for seeded workflow consultations
-    seed
-      .filter((c) => c.bookedViaWorkflow)
-      .forEach((c) => {
-        this.workflowBookings.push({
-          consultationId: c.id,
-          clientId: c.clientId,
-          clientName: c.clientName,
-          firmId: c.firmId,
-          firmName: c.firmName,
-          bookedAt: c.createdAt,
-          consultationType: c.type,
-          requestedDate: c.date,
-          requestedTime: c.time,
-        });
-      });
+    return {
+      consultations: seed,
+      workflowBookings: seed.filter((c) => c.bookedViaWorkflow).map(this.toBooking),
+      nextId: now.getTime(),
+    };
   }
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
@@ -482,13 +498,10 @@ export class ConsultationsService {
    * GET all consultations with optional filters.
    * Accessible by firmadmin / lawyer / superadmin.
    */
-  findAll(filters: {
-    clientId?: string;
-    firmId?: string;
+  async findAll(filters: ConsultationScope & {
     status?: string;
-    lawyerId?: string;
-  }): ConsultationResponseDto[] {
-    let results = [...this.consultations];
+  }): Promise<ConsultationResponseDto[]> {
+    let { consultations: results } = await this.readState();
 
     if (filters.clientId) {
       results = results.filter((c) => c.clientId === filters.clientId);
@@ -512,96 +525,70 @@ export class ConsultationsService {
    * GET consultations belonging to a specific client.
    * Accessible by client role (client ID read from header/query).
    */
-  findByClientId(clientId: string): ConsultationResponseDto[] {
-    if (!clientId) {
-      throw new BadRequestException(
-        'x-client-id header is required for this endpoint',
-      );
-    }
-    return this.consultations
-      .filter((c) => c.clientId === clientId)
-      .map(this.toResponse);
-  }
-
   /**
    * GET a single consultation by ID.
    * Accessible by all roles.
    */
-  findOne(id: string): ConsultationResponseDto {
-    const consultation = this.consultations.find((c) => c.id === id);
+  async findOne(id: string, scope: ConsultationScope): Promise<ConsultationResponseDto> {
+    const state = await this.readState();
+    return this.toResponse(this.getConsultation(state, id, scope));
+  }
+
+  private getConsultation(state: ConsultationState, id: string, scope: ConsultationScope) {
+    const consultation = state.consultations.find((c) => c.id === id &&
+      (!scope.firmId || c.firmId === scope.firmId) &&
+      (!scope.clientId || c.clientId === scope.clientId) &&
+      (!scope.lawyerId || c.lawyerId === scope.lawyerId));
     if (!consultation) {
       throw new NotFoundException(`Consultation with ID "${id}" not found`);
     }
-    return this.toResponse(consultation);
+    return consultation;
   }
 
   /**
    * POST — Create a new consultation (client booking).
    */
-  create(dto: CreateConsultationDto): ConsultationResponseDto {
-    const id = `CONS-${this.idCounter++}`;
-    const now = new Date();
+  async create(dto: CreateConsultationDto): Promise<ConsultationResponseDto> {
+    const [client, firm] = await Promise.all([
+      this.usersService.findOne(dto.clientId),
+      this.usersService.getFirmById(dto.firmId),
+    ]);
+    if (client.role !== 'client') throw new BadRequestException('Select a registered client');
 
-    const consultation: Consultation = {
-      id,
-      clientId: dto.clientId,
-      clientName: dto.clientName,
-      firmId: dto.firmId,
-      firmName: dto.firmName,
-      lawyerId: dto.lawyerId,
-      lawyerName: dto.lawyerName || 'Awaiting Assignment',
-      type: dto.type,
-      date: dto.date,
-      time: dto.time,
-      status: ConsultationStatus.PENDING,
-      caseDescription: dto.caseDescription,
-      consultationFee: dto.consultationFee,
-      avatarClass: dto.avatarClass || 'blue',
-      bookedViaWorkflow: dto.bookedViaWorkflow ?? false,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.consultations.push(consultation);
-
-    // If booked via the client search/discovery workflow, track it separately
-    if (consultation.bookedViaWorkflow) {
-      this.workflowBookings.push({
-        consultationId: id,
-        clientId: consultation.clientId,
-        clientName: consultation.clientName,
-        firmId: consultation.firmId,
-        firmName: consultation.firmName,
-        bookedAt: now,
-        consultationType: consultation.type,
-        requestedDate: consultation.date,
-        requestedTime: consultation.time,
-      });
-    }
-
-    return this.toResponse(consultation);
+    return this.writeState((state) => {
+      const now = new Date();
+      const consultation: Consultation = {
+        ...dto,
+        id: `CONS-${state.nextId++}`,
+        clientId: client.id,
+        clientName: client.fullName,
+        firmId: firm.id,
+        firmName: firm.name,
+        lawyerName: dto.lawyerName || 'Awaiting Assignment',
+        status: ConsultationStatus.PENDING,
+        avatarClass: dto.avatarClass || 'blue',
+        bookedViaWorkflow: dto.bookedViaWorkflow ?? false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      state.consultations.push(consultation);
+      if (consultation.bookedViaWorkflow) state.workflowBookings.push(this.toBooking(consultation));
+      return this.toResponse(consultation);
+    });
   }
 
   /**
    * PATCH — Update a consultation (firm admin assigns lawyer / changes status).
    */
-  async update(id: string, dto: UpdateConsultationDto): Promise<ConsultationResponseDto> {
-    const index = this.consultations.findIndex((c) => c.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Consultation with ID "${id}" not found`);
-    }
-
-    const existing = this.consultations[index];
-
-    // Prevent updating already-cancelled or completed consultations
-    if (
-      existing.status === ConsultationStatus.CANCELLED ||
-      existing.status === ConsultationStatus.COMPLETED
-    ) {
-      throw new ForbiddenException(
-        `Cannot update a consultation that is ${existing.status}`,
-      );
-    }
+  async update(id: string, dto: UpdateConsultationDto, scope: ConsultationScope): Promise<ConsultationResponseDto> {
+    const updated = await this.writeState((state) => {
+      const existing = this.getConsultation(state, id, scope);
+      if (existing.status === ConsultationStatus.CANCELLED || existing.status === ConsultationStatus.COMPLETED) {
+        throw new ForbiddenException(`Cannot update a consultation that is ${existing.status}`);
+      }
+      Object.assign(existing, dto, { status: dto.status ?? existing.status, updatedAt: new Date() });
+      return this.toResponse(existing);
+    });
 
     // Logic for conversion: If status is being set to CONFIRMED (Accepted),
     // convert the prospect into a client of this law firm.
@@ -609,79 +596,69 @@ export class ConsultationsService {
       try {
         // Clients are platform-global now; the consultation itself is the
         // firm link, so this is bookkeeping only.
-        await this.usersService.updateUser(existing.clientId, {
-          firmId: existing.firmId,
+        await this.usersService.updateUser(updated.clientId, {
+          firmId: updated.firmId,
         });
-        console.log(`[Backend] User ${existing.clientId} converted to Client of Firm ${existing.firmId}`);
       } catch (err) {
-        console.warn(`[Backend] Failed to convert user ${existing.clientId} to client: ${err.message}`);
+        console.warn(`[Backend] Failed to convert user ${updated.clientId} to client: ${err.message}`);
       }
     }
-
-    this.consultations[index] = {
-      ...existing,
-      ...dto,
-      updatedAt: new Date(),
-    };
-
-    return this.toResponse(this.consultations[index]);
+    return updated;
   }
 
   /**
    * PATCH /:id/cancel — Cancel a consultation (client or firmadmin).
    * Extracted as a named method to enforce business rules.
    */
-  cancel(id: string): ConsultationResponseDto {
-    const index = this.consultations.findIndex((c) => c.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Consultation with ID "${id}" not found`);
-    }
-
-    const existing = this.consultations[index];
-
-    if (existing.status === ConsultationStatus.COMPLETED) {
-      throw new ForbiddenException('Cannot cancel a completed consultation');
-    }
-    if (existing.status === ConsultationStatus.CANCELLED) {
-      throw new BadRequestException('Consultation is already cancelled');
-    }
-
-    this.consultations[index] = {
-      ...existing,
-      status: ConsultationStatus.CANCELLED,
-      updatedAt: new Date(),
-    };
-
-    return this.toResponse(this.consultations[index]);
+  cancel(id: string, scope: ConsultationScope): Promise<ConsultationResponseDto> {
+    return this.writeState((state) => {
+      const existing = this.getConsultation(state, id, scope);
+      if (existing.status === ConsultationStatus.COMPLETED) {
+        throw new ForbiddenException('Cannot cancel a completed consultation');
+      }
+      if (existing.status === ConsultationStatus.CANCELLED) {
+        throw new BadRequestException('Consultation is already cancelled');
+      }
+      existing.status = ConsultationStatus.CANCELLED;
+      existing.updatedAt = new Date();
+      return this.toResponse(existing);
+    });
   }
 
   /**
    * DELETE — Hard delete a consultation record (firmadmin / superadmin only).
    */
-  remove(id: string): { message: string } {
-    const index = this.consultations.findIndex((c) => c.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Consultation with ID "${id}" not found`);
-    }
-
-    this.consultations.splice(index, 1);
-    // Also remove from workflow tracking if present
-    const wbIndex = this.workflowBookings.findIndex(
-      (wb) => wb.consultationId === id,
-    );
-    if (wbIndex !== -1) {
-      this.workflowBookings.splice(wbIndex, 1);
-    }
-
-    return { message: `Consultation ${id} deleted successfully` };
+  remove(id: string, scope: ConsultationScope): Promise<{ message: string }> {
+    return this.writeState((state) => {
+      const existing = this.getConsultation(state, id, scope);
+      state.consultations.splice(state.consultations.indexOf(existing), 1);
+      state.workflowBookings = state.workflowBookings.filter((wb) => wb.consultationId !== id);
+      return { message: `Consultation ${id} deleted successfully` };
+    });
   }
 
   /**
    * GET /workflow-bookings — Returns all consultations booked via the client
    * search/discovery workflow. Intended for firm admins to see organic demand.
    */
-  getWorkflowBookings(): WorkflowBookingRecord[] {
-    return [...this.workflowBookings];
+  async getWorkflowBookings(firmId?: string): Promise<WorkflowBookingRecord[]> {
+    const { workflowBookings } = await this.readState();
+    return workflowBookings.filter((booking) => !firmId || booking.firmId === firmId)
+      .map((booking) => ({ ...booking, bookedAt: new Date(booking.bookedAt) }));
+  }
+
+  private toBooking(c: Consultation): WorkflowBookingRecord {
+    return {
+      consultationId: c.id,
+      clientId: c.clientId,
+      clientName: c.clientName,
+      firmId: c.firmId,
+      firmName: c.firmName,
+      bookedAt: c.createdAt,
+      consultationType: c.type,
+      requestedDate: c.date,
+      requestedTime: c.time,
+    };
   }
 
   // ── Mapper ────────────────────────────────────────────────────────────────
@@ -703,8 +680,8 @@ export class ConsultationsService {
       avatarClass: c.avatarClass,
       bookedViaWorkflow: c.bookedViaWorkflow,
       notes: c.notes,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
+      createdAt: new Date(c.createdAt),
+      updatedAt: new Date(c.updatedAt),
     };
   }
 }
