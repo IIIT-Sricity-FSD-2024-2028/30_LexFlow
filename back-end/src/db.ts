@@ -287,9 +287,140 @@ CREATE TABLE IF NOT EXISTS app_state (
 );
 `;
 
-let initPromise: Promise<void> | null = null;
+// ── Demo seed: mirrors the old in-memory seed so local dev works the same. ───
+async function seedDemoIfEmpty(): Promise<void> {
+  const { rows } = await q<{ n: string }>('SELECT count(*)::text AS n FROM lawfirm_meta');
+  if (rows[0].n !== '0') return;
 
-async function ensurePlatformDefaults(): Promise<void> {
+  const now = new Date();
+  const firms: Array<[number, string, string, string, string]> = [
+    [1, 'Sharma & Associates', 'Growth', 'contact@sharma.law', '21, Connaught Place, New Delhi'],
+    [2, 'Khanna & Co', 'Growth', 'info@khanna.law', 'Nariman Point, Mumbai'],
+    [3, 'Tech Legal Bangalore', 'Growth', 'blr@techlegal.test', 'MG Road, Bangalore'],
+    [4, 'Coastal Legal Chennai', 'Growth', 'chennai@coastal.test', 'Marina Beach Road, Chennai'],
+    [5, 'Cyber Law Experts Hyderabad', 'Growth', 'hyd@cyber.test', 'Hitech City, Hyderabad'],
+  ];
+  for (const [id, name, tier, email, address] of firms) {
+    await q(
+      `INSERT INTO lawfirm_meta (id, name, tier, address, avg_rating, firm_size) OVERRIDING SYSTEM VALUE
+       VALUES ($1, $2, $3, $4, 4.5, 10)`,
+      [id, name, tier, address],
+    );
+    await q(
+      `INSERT INTO lawfirm_contact_details (lawfirm_id, email, phone_number)
+       VALUES ($1, $2, $3)`,
+      [id, [email], ['9876543210']],
+    );
+  }
+  // Keep identity sequences ahead of the explicit ids above.
+  await q(
+    `SELECT setval(pg_get_serial_sequence('lawfirm_meta','id'), (SELECT max(id) FROM lawfirm_meta))`,
+  );
+
+  interface SeedActor {
+    kind: ActorKind;
+    firm?: number;
+    name: string;
+    email: string;
+    password: string;
+  }
+  const actors: SeedActor[] = [
+    { kind: 'sa', name: 'Super Admin', email: 'superadmin@lexflow.test', password: 'superadminpass' },
+    { kind: 'fa', firm: 1, name: 'Rajesh Sharma', email: 'firmadmin@lexflow.test', password: 'firmadminpass' },
+    { kind: 'fa', firm: 2, name: 'Ananya Khanna', email: 'ananya@khanna.law', password: 'firmadminpass' },
+    { kind: 'fa', firm: 3, name: 'Siddharth Reddy', email: 'siddharth@techlegal.test', password: 'firmadminpass' },
+    { kind: 'fa', firm: 4, name: 'Meenakshi Iyer', email: 'meenakshi@coastal.test', password: 'firmadminpass' },
+    { kind: 'fa', firm: 5, name: 'Vikram Singh', email: 'vikram@cyber.test', password: 'firmadminpass' },
+    { kind: 'lw', firm: 1, name: 'Lawyer Bob', email: 'bob@lawyer.test', password: 'lawyerpass' },
+    { kind: 'lw', firm: 1, name: 'Lawyer Amit', email: 'amit@sharma.law', password: 'lawyerpass' },
+    { kind: 'lw', firm: 1, name: 'Lawyer Sunita', email: 'sunita@sharma.law', password: 'lawyerpass' },
+    { kind: 'lw', firm: 2, name: 'Lawyer Rahul', email: 'rahul@khanna.law', password: 'lawyerpass' },
+    { kind: 'lw', firm: 2, name: 'Lawyer Priya', email: 'priya@khanna.law', password: 'lawyerpass' },
+    { kind: 'lw', firm: 2, name: 'Lawyer Vikram', email: 'vikram@khanna.law', password: 'lawyerpass' },
+    { kind: 'lw', firm: 3, name: 'Lawyer David', email: 'david@techlegal.test', password: 'lawyerpass' },
+    { kind: 'lw', firm: 3, name: 'Lawyer Suman', email: 'suman@techlegal.test', password: 'lawyerpass' },
+    { kind: 'lw', firm: 3, name: 'Lawyer Karthik', email: 'karthik@techlegal.test', password: 'lawyerpass' },
+    { kind: 'lw', firm: 4, name: 'Lawyer Elena', email: 'elena@coastal.test', password: 'lawyerpass' },
+    { kind: 'lw', firm: 4, name: 'Lawyer Arjun', email: 'arjun@coastal.test', password: 'lawyerpass' },
+    { kind: 'lw', firm: 4, name: 'Lawyer Divya', email: 'divya@coastal.test', password: 'lawyerpass' },
+    { kind: 'lw', firm: 5, name: 'Lawyer Sneha', email: 'sneha@cyber.test', password: 'lawyerpass' },
+    { kind: 'lw', firm: 5, name: 'Lawyer Rohan', email: 'rohan@cyber.test', password: 'lawyerpass' },
+    { kind: 'in', firm: 1, name: 'Intern Charlie', email: 'charlie@intern.test', password: 'internpass' },
+    { kind: 'in', firm: 1, name: 'Intern Aman', email: 'aman@sharma.law', password: 'internpass' },
+    { kind: 'in', firm: 1, name: 'Intern Riya', email: 'riya@sharma.law', password: 'internpass' },
+    { kind: 'in', firm: 2, name: 'Intern Karan', email: 'karan@khanna.law', password: 'internpass' },
+    { kind: 'in', firm: 2, name: 'Intern Ishita', email: 'ishita@khanna.law', password: 'internpass' },
+    { kind: 'in', firm: 2, name: 'Intern Sameer', email: 'sameer@khanna.law', password: 'internpass' },
+    { kind: 'in', firm: 3, name: 'Intern Arjun', email: 'arjun@techlegal.test', password: 'internpass' },
+    { kind: 'in', firm: 3, name: 'Intern Kavya', email: 'kavya@techlegal.test', password: 'internpass' },
+    { kind: 'in', firm: 3, name: 'Intern Manish', email: 'manish@techlegal.test', password: 'internpass' },
+    { kind: 'in', firm: 4, name: 'Intern Pooja', email: 'pooja@coastal.test', password: 'internpass' },
+    { kind: 'in', firm: 4, name: 'Intern Surya', email: 'surya@coastal.test', password: 'internpass' },
+    { kind: 'in', firm: 4, name: 'Intern Lakshmi', email: 'lakshmi@coastal.test', password: 'internpass' },
+    { kind: 'in', firm: 5, name: 'Intern Tushar', email: 'tushar@cyber.test', password: 'internpass' },
+    { kind: 'in', firm: 5, name: 'Intern Neha', email: 'neha@cyber.test', password: 'internpass' },
+    { kind: 'in', firm: 5, name: 'Intern Sahil', email: 'sahil@cyber.test', password: 'internpass' },
+    { kind: 'cl', name: 'Client Alice', email: 'alice@client.test', password: 'clientpass' },
+    { kind: 'cl', name: 'Client Naveen', email: 'naveen@cyber.test', password: 'clientpass' },
+    { kind: 'cl', name: 'Client Dave', email: 'dave@client.test', password: 'clientpass' },
+    { kind: 'cl', name: 'Client Eve', email: 'eve@client.test', password: 'clientpass' },
+    { kind: 'cl', name: 'Client Frank', email: 'frank@client.test', password: 'clientpass' },
+    { kind: 'cl', name: 'Client Grace', email: 'grace@client.test', password: 'clientpass' },
+    { kind: 'cl', name: 'Client Henry', email: 'henry@client.test', password: 'clientpass' },
+    { kind: 'cl', name: 'Client Irene', email: 'irene@client.test', password: 'clientpass' },
+    { kind: 'cl', name: 'Client Jake', email: 'jake@client.test', password: 'clientpass' },
+    { kind: 'cl', name: 'Client Laura', email: 'laura@client.test', password: 'clientpass' },
+    { kind: 'cl', name: 'Client Mark', email: 'mark@client.test', password: 'clientpass' },
+  ];
+
+  for (const a of actors) {
+    const hash = hashPassword(a.password);
+    if (a.kind === 'sa') {
+      await q(
+        `INSERT INTO platform_admin (name, email, password_hash) VALUES ($1,$2,$3)`,
+        [a.name, a.email, hash],
+      );
+    } else if (a.kind === 'fa') {
+      await q(
+        `INSERT INTO lawfirm_admin (lawfirm_id, name, email, password_hash) VALUES ($1,$2,$3,$4)`,
+        [a.firm, a.name, a.email, hash],
+      );
+    } else if (a.kind === 'cl') {
+      await q(
+        `INSERT INTO clients (client_type, name, contact_number, email_address, address, password_hash)
+         VALUES ('Individual', $1, '', $2, '-', $3)`,
+        [a.name, a.email, hash],
+      );
+    } else {
+      const table = a.kind === 'lw' ? 'lawyers' : 'interns';
+      await q(
+        `INSERT INTO ${table} (lawfirm_id, name, email, contact_number, password_hash) VALUES ($1,$2,$3,'',$4)`,
+        [a.firm, a.name, a.email, hash],
+      );
+    }
+  }
+
+  // Clients are platform-global; a client belongs to a firm through a
+  // consultation or a case. Seed one consultation per client→firm pairing so
+  // the billing client dropdown works out of the box.
+  const firmOfEmail = (email: string): number => {
+    if (['alice@client.test', 'dave@client.test'].includes(email)) return 1;
+    if (['eve@client.test', 'frank@client.test'].includes(email)) return 2;
+    if (['grace@client.test', 'henry@client.test'].includes(email)) return 3;
+    if (['irene@client.test', 'jake@client.test'].includes(email)) return 4;
+    return 5; // laura, mark, naveen
+  };
+  const clients = await q<{ id: number; email_address: string }>(
+    `SELECT id, email_address FROM clients`,
+  );
+  for (const c of clients.rows) {
+    await q(
+      `INSERT INTO consultations (client_id, lawfirm_id, status, subject)
+       VALUES ($1, $2, 'Pending', 'Initial consultation')`,
+      [c.id, firmOfEmail(c.email_address)],
+    );
+  }
+
   await q(
     `INSERT INTO tier_pricing (tier, monthly_price) VALUES
        ('Starter', 2999), ('Growth', 9999), ('Enterprise', 24999)
@@ -298,27 +429,80 @@ async function ensurePlatformDefaults(): Promise<void> {
   await q(
     `INSERT INTO platform_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING`,
   );
+
+  console.log(`[db] Seeded demo firms/users (${now.toISOString()})`);
 }
 
-async function provisionFirstPlatformAdmin(): Promise<void> {
-  const email = process.env.INITIAL_PLATFORM_ADMIN_EMAIL?.trim().toLowerCase();
-  const password = process.env.INITIAL_PLATFORM_ADMIN_PASSWORD;
-  if (!email || !password) return;
+let initPromise: Promise<void> | null = null;
 
-  await q(
-    `INSERT INTO platform_admin (name, email, password_hash)
-     SELECT $1, $2, $3 WHERE NOT EXISTS (SELECT 1 FROM platform_admin)
-     ON CONFLICT (email) DO NOTHING`,
-    ['Platform Administrator', email, hashPassword(password)],
-  );
+// Different rating / reviews / hourly rate / practice areas per demo firm.
+// Rating/reviews/rate are only set while empty; areas are topped up if missing.
+const FIRM_PROFILES: Array<[number, number, number, number, string[]]> = [
+  // [firm id, rating, reviews, hourly rate, practice areas]
+  [1, 4.8, 97, 180, ['Corporate Law', 'Contract Disputes', 'Civil Law']],
+  [2, 4.6, 142, 220, ['Banking & Finance', 'Corporate Law', 'Tax Law']],
+  [3, 4.9, 63, 160, ['Intellectual Property', 'Technology Law', 'Contract Disputes']],
+  [4, 4.4, 48, 120, ['Maritime Law', 'Property Law', 'Civil Law']],
+  [5, 4.7, 85, 200, ['Cyber Law', 'Data Privacy', 'Criminal Law']],
+];
+
+async function seedFirmProfiles(): Promise<void> {
+  for (const [id, rating, reviews, rate, areas] of FIRM_PROFILES) {
+    await q(
+      `UPDATE lawfirm_meta SET avg_rating = $2, review_count = $3, hourly_rate = $4
+       WHERE id = $1 AND hourly_rate IS NULL`,
+      [id, rating, reviews, rate],
+    );
+    // Link each area (skips ones already linked, and firms that don't exist).
+    for (const name of areas) {
+      await q(`INSERT INTO practice_areas (name) VALUES ($1) ON CONFLICT (name) DO NOTHING`, [name]);
+      await q(
+        `INSERT INTO lawfirm_practice_areas (lawfirm_id, practice_area_id)
+         SELECT $1, id FROM practice_areas
+         WHERE name = $2 AND EXISTS (SELECT 1 FROM lawfirm_meta WHERE id = $1)
+         ON CONFLICT DO NOTHING`,
+        [id, name],
+      );
+    }
+  }
 }
 
-/** Connect and apply the schema and platform defaults once per process. */
+// Phone / address / account type for the demo clients. Only fills blanks, so
+// real edits are never overwritten.
+const CLIENT_PROFILES: Array<[string, string, string, string]> = [
+  // [email, phone, address, 'Individual' | 'Business']
+  ['alice@client.test', '9876500001', '14, Lodhi Road, New Delhi', 'Individual'],
+  ['naveen@cyber.test', '9876500002', '8, Hitech City, Hyderabad', 'Individual'],
+  ['dave@client.test', '9876500003', '22, Bandra West, Mumbai', 'Individual'],
+  ['eve@client.test', '9876500004', '5, Nariman Point, Mumbai', 'Business'],
+  ['frank@client.test', '9876500005', '31, Koramangala, Bangalore', 'Business'],
+  ['grace@client.test', '9876500006', '12, Anna Salai, Chennai', 'Individual'],
+  ['henry@client.test', '9876500007', '40, Connaught Place, New Delhi', 'Individual'],
+  ['irene@client.test', '9876500008', '9, MG Road, Bangalore', 'Individual'],
+  ['jake@client.test', '9876500009', '27, Jubilee Hills, Hyderabad', 'Business'],
+  ['laura@client.test', '9876500010', '3, Marine Drive, Mumbai', 'Individual'],
+  ['mark@client.test', '9876500011', '18, T Nagar, Chennai', 'Individual'],
+];
+
+async function seedClientProfiles(): Promise<void> {
+  for (const [email, phone, address, type] of CLIENT_PROFILES) {
+    await q(
+      `UPDATE clients SET
+         contact_number = CASE WHEN contact_number = '' THEN $2 ELSE contact_number END,
+         address        = CASE WHEN address IN ('', '-') THEN $3 ELSE address END,
+         client_type    = CASE WHEN contact_number = '' THEN $4 ELSE client_type END
+       WHERE email_address = $1`,
+      [email, phone, address, type],
+    );
+  }
+}
+
+/** Connect, apply the schema delta, seed demo data once per process. */
 export function initDb(): Promise<void> {
   if (!initPromise) {
     initPromise = (async () => {
       // Base schema first (no-op if the database is already provisioned), then
-      // the delta tables and columns on top.
+      // the delta tables/columns on top, then demo data.
       await q(BASE_SCHEMA);
       await q(SCHEMA_DELTA);
       // One MONTHLY charge per subscription per period. This used to be a table
@@ -338,8 +522,9 @@ export function initDb(): Promise<void> {
            ON subscription_charges (subscription_id)
            WHERE kind = 'tier_change' AND status <> 'Paid'`,
       ).catch((e) => console.warn('[db] one_open_tier_change index not created:', e.message));
-      await ensurePlatformDefaults();
-      await provisionFirstPlatformAdmin();
+      await seedDemoIfEmpty();
+      await seedFirmProfiles();
+      await seedClientProfiles();
     })();
   }
   return initPromise;
