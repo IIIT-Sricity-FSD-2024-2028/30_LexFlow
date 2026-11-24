@@ -1,7 +1,7 @@
 /**
  * components/Sidebar.jsx - The left navigation shown on every dashboard page.
  *
- * One component replaces the vanilla sidebar.html + sidebar.js pair.
+ * Configured with React Router's <Link> for client-side transitions.
  * The links it shows depend on the signed-in role:
  *   client     -> Consultations, Cases, Documents, Billing, Find a Law Firm
  *   firm staff -> Consultations, Cases, Tasks, Documents, Billing (not intern), User Mgmt (admin only)
@@ -9,12 +9,13 @@
  */
 
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { api } from '../api/api.js';
 import Icon from './Icon.jsx';
 import { roleLabel } from '../lib/format.js';
 
-/* One navigation entry: { to: hash route, label, icon } */
+/* One navigation entry: { to: route path, label, icon } */
 const CLIENT_NAV = [
   { to: '/client/dashboard', label: 'Consultations', icon: 'calendar' },
   { to: '/client/cases', label: 'Cases', icon: 'briefcase' },
@@ -43,7 +44,7 @@ const SUPER_NAV = [
   { to: '/superadmin/settings', label: 'Settings', icon: 'settings' },
 ];
 
-export default function Sidebar({ currentPath, open, onClose }) {
+export default function Sidebar({ currentPath = '/', open, onClose }) {
   const { user, signOut } = useApp();
   const role = (user?.role || '').toLowerCase();
 
@@ -52,7 +53,7 @@ export default function Sidebar({ currentPath, open, onClose }) {
   if (['firmadmin', 'lawyer', 'intern'].includes(role)) nav = FIRM_NAV;
   if (role === 'superadmin') nav = SUPER_NAV;
 
-  /* Firm tier badge - fetched once for firm staff (vanilla sidebar.js did this). */
+  /* Firm tier badge - fetched once for firm staff. */
   const [tier, setTier] = useState(null);
   useEffect(() => {
     if (!['firmadmin', 'lawyer', 'intern'].includes(role) || !user?.firmId) return;
@@ -74,7 +75,6 @@ export default function Sidebar({ currentPath, open, onClose }) {
     >
       {/* Brand row */}
       <div className="flex items-center gap-2.5 px-5 py-5">
-        {/* small bar-chart logo drawn with SVG */}
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
           <rect width="24" height="24" rx="6" fill="rgba(255,255,255,0.15)" />
           <path d="M7 6h2v12H7V6zm4 4h2v8h-2v-8zm4-2h2v10h-2V8z" fill="#fff" />
@@ -88,16 +88,16 @@ export default function Sidebar({ currentPath, open, onClose }) {
           .filter((item) => !item.onlyAdmin || role === 'firmadmin') // hide admin-only links
           .filter((item) => !(role === 'intern' && item.label === 'Billing')) // interns can't see billing
           .map((item) => (
-            <a
+            <Link
               key={item.to}
-              href={`#${item.to}`}
+              to={item.to}
               onClick={onClose} /* close mobile menu after tapping */
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
                 ${isActive(item.to) ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
             >
               <Icon name={item.icon} />
               {item.label}
-            </a>
+            </Link>
           ))}
       </nav>
 

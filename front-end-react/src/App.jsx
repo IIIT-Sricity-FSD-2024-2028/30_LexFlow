@@ -1,13 +1,13 @@
 /**
- * App.jsx - The top-level component. Its ONLY job is routing:
- * look at the URL and decide which page component to draw.
+ * App.jsx - Top-level application component configured with React Router (react-router-dom).
  *
- * Public pages (landing, sign-in, onboarding) render directly.
- * Dashboard pages are wrapped in <Layout roles={[...]}> which checks
- * "is this person allowed to see this page?" before rendering.
+ * Configures declarative routes using <Routes> and <Route>.
+ * Protected routes are wrapped in <Layout roles={[...]}> to enforce role-based access.
  */
 
-import { useRoute, matchRoute } from './router.jsx';
+import { useEffect } from 'react';
+import { Routes, Route, useNavigate, useParams, Link } from 'react-router-dom';
+import { setGlobalNavigate } from './router.jsx';
 import { AppProvider } from './context/AppContext.jsx';
 import Layout from './components/Layout.jsx';
 
@@ -30,8 +30,7 @@ import ClientBilling from './pages/client/ClientBilling.jsx';
 import PayNow from './pages/client/PayNow.jsx';
 import Transactions from './pages/client/Transactions.jsx';
 
-
-/* Firm + lawyer pages (lawyers reuse these - roles param controls access) */
+/* Firm + lawyer pages */
 import FirmDashboard from './pages/firm/FirmDashboard.jsx';
 import FirmCases from './pages/firm/FirmCases.jsx';
 import FirmCaseDetails from './pages/firm/FirmCaseDetails.jsx';
@@ -54,75 +53,98 @@ import SAConsultations from './pages/superadmin/SAConsultations.jsx';
 import SAInvoices from './pages/superadmin/SAInvoices.jsx';
 import SASettings from './pages/superadmin/SASettings.jsx';
 
+/**
+ * Higher-Order Component to automatically pass route params (:id, :caseId) as props.
+ */
+function withRouteParams(Component) {
+  return function WithRouteParamsWrapper(props) {
+    const params = useParams();
+    return <Component {...params} {...props} />;
+  };
+}
+
+const ParamClientCaseDetails = withRouteParams(ClientCaseDetails);
+const ParamAdvocateProfile = withRouteParams(AdvocateProfile);
+const ParamPayNow = withRouteParams(PayNow);
+const ParamFirmCaseDetails = withRouteParams(FirmCaseDetails);
+const ParamFirmTasks = withRouteParams(FirmTasks);
+const ParamCaseDocuments = withRouteParams(CaseDocuments);
+
+/** Synchronizes React Router's navigate hook with the global navigate helper. */
+function NavigationBridge() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    setGlobalNavigate(navigate);
+  }, [navigate]);
+  return null;
+}
+
 export default function App() {
-  const path = useRoute(); // re-renders this component on every hash change
+  return (
+    <AppProvider>
+      <NavigationBridge />
+      <Routes>
+        {/* Public pages */}
+        <Route path="/" element={<Landing />} />
+        <Route path="/signin" element={<SignIn />} />
 
-  /* A tiny helper: match "/client/cases/:id" style patterns in one line. */
-  const m = (pattern) => matchRoute(path, pattern);
+        {/* Onboarding wizards */}
+        <Route path="/onboarding/client/1" element={<ClientOnboarding1 />} />
+        <Route path="/onboarding/client/2" element={<ClientOnboarding2 />} />
+        <Route path="/onboarding/firm/1" element={<FirmOnboarding1 />} />
+        <Route path="/onboarding/firm/2" element={<FirmOnboarding2 />} />
+        <Route path="/onboarding/firm/3" element={<FirmOnboarding3 />} />
 
-  /* Find the first matching route and remember what to render. */
-  let page = null;
+        {/* Client portal */}
+        <Route path="/client/dashboard" element={<Layout roles={['client']}><ClientDashboard /></Layout>} />
+        <Route path="/client/search" element={<Layout roles={['client']}><LawFirmSearch /></Layout>} />
+        <Route path="/client/cases" element={<Layout roles={['client']}><ClientCases /></Layout>} />
+        <Route path="/client/cases/:id" element={<Layout roles={['client']}><ParamClientCaseDetails /></Layout>} />
+        <Route path="/client/advocate/:id" element={<Layout roles={['client']}><ParamAdvocateProfile /></Layout>} />
+        <Route path="/client/billing" element={<Layout roles={['client']}><ClientBilling /></Layout>} />
+        <Route path="/client/billing/pay/:id" element={<Layout roles={['client']}><ParamPayNow /></Layout>} />
+        <Route path="/client/transactions" element={<Layout roles={['client']}><Transactions /></Layout>} />
 
-  if (m('/')) page = <Landing />;
-  else if (m('/signin')) page = <SignIn />;
+        {/* Firm portal */}
+        <Route path="/firm/dashboard" element={<Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmDashboard /></Layout>} />
+        <Route path="/firm/cases" element={<Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmCases /></Layout>} />
+        <Route path="/firm/cases/:id" element={<Layout roles={['firmadmin', 'lawyer', 'intern']}><ParamFirmCaseDetails /></Layout>} />
+        <Route path="/firm/tasks" element={<Layout roles={['firmadmin', 'lawyer', 'intern']}><ParamFirmTasks /></Layout>} />
+        <Route path="/firm/tasks/:caseId" element={<Layout roles={['firmadmin', 'lawyer', 'intern']}><ParamFirmTasks /></Layout>} />
+        <Route path="/firm/billing" element={<Layout roles={['firmadmin', 'lawyer']}><FirmBilling /></Layout>} />
+        <Route path="/firm/users" element={<Layout roles={['firmadmin']}><FirmUsers /></Layout>} />
 
-  /* ── Onboarding wizards (public) ── */
-  else if (m('/onboarding/client/1')) page = <ClientOnboarding1 />;
-  else if (m('/onboarding/client/2')) page = <ClientOnboarding2 />;
-  else if (m('/onboarding/firm/1')) page = <FirmOnboarding1 />;
-  else if (m('/onboarding/firm/2')) page = <FirmOnboarding2 />;
-  else if (m('/onboarding/firm/3')) page = <FirmOnboarding3 />;
+        {/* Documents / activity log */}
+        <Route path="/documents" element={<Layout><DocumentsMain /></Layout>} />
+        <Route path="/documents/:caseId" element={<Layout><ParamCaseDocuments /></Layout>} />
+        <Route path="/activity-log" element={<Layout><ActivityLog /></Layout>} />
 
-  /* ── Client portal (only clients; superadmin may peek too) ── */
-  else if (m('/client/dashboard')) page = <Layout roles={['client']}><ClientDashboard /></Layout>;
-  else if (m('/client/search')) page = <Layout roles={['client']}><LawFirmSearch /></Layout>;
-  else if (m('/client/cases')) page = <Layout roles={['client']}><ClientCases /></Layout>;
-  else if (m('/client/cases/:id')) page = <Layout roles={['client']}><ClientCaseDetails {...m('/client/cases/:id')} /></Layout>;
-  else if (m('/client/advocate/:id')) page = <Layout roles={['client']}><AdvocateProfile {...m('/client/advocate/:id')} /></Layout>;
-  else if (m('/client/billing')) page = <Layout roles={['client']}><ClientBilling /></Layout>;
-  else if (m('/client/billing/pay/:id')) page = <Layout roles={['client']}><PayNow {...m('/client/billing/pay/:id')} /></Layout>;
-  else if (m('/client/transactions')) page = <Layout roles={['client']}><Transactions /></Layout>;
+        {/* Superadmin console */}
+        <Route path="/superadmin/dashboard" element={<Layout roles={['superadmin']}><SADashboard /></Layout>} />
+        <Route path="/superadmin/revenue" element={<Layout roles={['superadmin']}><SARevenue /></Layout>} />
+        <Route path="/superadmin/firms" element={<Layout roles={['superadmin']}><SAFirms /></Layout>} />
+        <Route path="/superadmin/lawyers" element={<Layout roles={['superadmin']}><SALawyers /></Layout>} />
+        <Route path="/superadmin/users" element={<Layout roles={['superadmin']}><SAUsers /></Layout>} />
+        <Route path="/superadmin/consultations" element={<Layout roles={['superadmin']}><SAConsultations /></Layout>} />
+        <Route path="/superadmin/invoices" element={<Layout roles={['superadmin']}><SAInvoices /></Layout>} />
+        <Route path="/superadmin/settings" element={<Layout roles={['superadmin']}><SASettings /></Layout>} />
 
-
-  /* ── Firm portal (admin + lawyer + intern; superadmin may peek too) ── */
-  else if (m('/firm/dashboard')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmDashboard /></Layout>;
-  else if (m('/firm/cases')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmCases /></Layout>;
-  else if (m('/firm/cases/:id')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmCaseDetails {...m('/firm/cases/:id')} /></Layout>;
-  else if (m('/firm/tasks')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmTasks /></Layout>;
-  else if (m('/firm/tasks/:caseId')) page = <Layout roles={['firmadmin', 'lawyer', 'intern']}><FirmTasks {...m('/firm/tasks/:caseId')} /></Layout>;
-  else if (m('/firm/billing')) page = <Layout roles={['firmadmin', 'lawyer']}><FirmBilling /></Layout>;
-  else if (m('/firm/users')) page = <Layout roles={['firmadmin']}><FirmUsers /></Layout>;
-
-
-  /* ── Documents / activity log (any signed-in role; data is role-scoped) ── */
-  else if (m('/documents')) page = <Layout><DocumentsMain /></Layout>;
-  else if (m('/documents/:caseId')) page = <Layout><CaseDocuments {...m('/documents/:caseId')} /></Layout>;
-  else if (m('/activity-log')) page = <Layout><ActivityLog /></Layout>;
-
-
-  /* ── Superadmin console ── */
-  else if (m('/superadmin/dashboard')) page = <Layout roles={['superadmin']}><SADashboard /></Layout>;
-  else if (m('/superadmin/revenue')) page = <Layout roles={['superadmin']}><SARevenue /></Layout>;
-  else if (m('/superadmin/firms')) page = <Layout roles={['superadmin']}><SAFirms /></Layout>;
-  else if (m('/superadmin/lawyers')) page = <Layout roles={['superadmin']}><SALawyers /></Layout>;
-  else if (m('/superadmin/users')) page = <Layout roles={['superadmin']}><SAUsers /></Layout>;
-  else if (m('/superadmin/consultations')) page = <Layout roles={['superadmin']}><SAConsultations /></Layout>;
-  else if (m('/superadmin/invoices')) page = <Layout roles={['superadmin']}><SAInvoices /></Layout>;
-  else if (m('/superadmin/settings')) page = <Layout roles={['superadmin']}><SASettings /></Layout>;
-
-  /* Unknown URL -> simple 404 message. */
-  else page = (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center">
-        <p className="text-4xl font-bold text-slate-300">404</p>
-        <p className="mt-2 text-slate-500">Page not found.</p>
-        <a href="#/" className="mt-4 inline-block text-sm font-semibold text-indigo-600 hover:underline">
-          Back to home
-        </a>
-      </div>
-    </div>
+        {/* 404 Fallback */}
+        <Route
+          path="*"
+          element={
+            <div className="flex min-h-screen items-center justify-center">
+              <div className="text-center">
+                <p className="text-4xl font-bold text-slate-300">404</p>
+                <p className="mt-2 text-slate-500">Page not found.</p>
+                <Link to="/" className="mt-4 inline-block text-sm font-semibold text-indigo-600 hover:underline">
+                  Back to home
+                </Link>
+              </div>
+            </div>
+          }
+        />
+      </Routes>
+    </AppProvider>
   );
-
-  /* AppProvider gives every page access to useApp() (user, toast, ...). */
-  return <AppProvider>{page}</AppProvider>;
 }
