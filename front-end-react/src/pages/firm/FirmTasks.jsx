@@ -8,6 +8,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useResource } from '../../store/resource.js';
+import { taskList, useCaseList } from '../../store/slices/mattersSlice.js';
+import { firmRoster } from '../../store/slices/firmManagementSlice.js';
 import { navigate } from '../../router.jsx';
 import {
   Button, Card, Badge, PageHeader, Loading, ErrorBanner, EmptyState,
@@ -22,12 +25,16 @@ export default function FirmTasks({ caseId }) {
   const role = (user?.role || 'firmadmin').toLowerCase();
   const isLawyer = role === 'lawyer';
 
-  /* ── Data ── */
-  const [tasks, setTasks] = useState([]);
-  const [cases, setCases] = useState([]);        // to resolve "Case ID/CNR" inputs
-  const [members, setMembers] = useState([]);    // possible assignees
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const casesRequest = useCaseList(user, role);
+  const taskQuery = useResource(taskList, { firmId: user?.firmId, role });
+  const rosterQuery = useResource(firmRoster, { firmId: user?.firmId, role });
+  const { data: cases = [], load: loadCases } = casesRequest;
+  const { data: tasks = [], load: loadTasks } = taskQuery;
+  const { data: roster = [], load: loadRoster } = rosterQuery;
+  const members = roster.filter((member) => (isLawyer ? ['intern'] : ['lawyer', 'intern']).includes(member.role));
+  const issue = taskQuery.error || casesRequest.error;
+  const loading = taskQuery.loading || casesRequest.loading || rosterQuery.loading;
+  const error = issue ? `Could not load tasks: ${issue.message}` : '';
 
   /* ── Toolbar state ── */
   const [search, setSearch] = useState('');
@@ -38,32 +45,15 @@ export default function FirmTasks({ caseId }) {
 
   /* ── Modals ── */
   const [form, setForm] = useState(null);        // create/edit modal data
+  const [caseSearch, setCaseSearch] = useState('');
   const [viewing, setViewing] = useState(null);  // view modal data
   const [errors, setErrors] = useState({});
 
-  /* ── Load everything this page needs ── */
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      // A lawyer works only on the cases assigned to them (the server also enforces this).
-      const caseFilters = isLawyer ? { lawyerId: user.id } : user?.firmId ? { firmId: user.firmId } : {};
-      const [t, c, m] = await Promise.all([
-        api.tasks.getAll({ firmId: user?.firmId }, role),
-        api.cases.getAll(caseFilters, role),
-        api.users.getByFirm(user?.firmId, role).catch(() => []), // the firm's whole team
-      ]);
-      setTasks(Array.isArray(t) ? t : []);
-      setCases(Array.isArray(c) ? c : []);
-      // Firm admins can assign to lawyers and interns; a lawyer only to interns.
-      const assignable = isLawyer ? ['intern'] : ['lawyer', 'intern'];
-      setMembers((Array.isArray(m) ? m : []).filter((u) => assignable.includes(u.role)));
-    } catch (err) {
-      setError(`Could not load tasks: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [role, isLawyer, user?.id, user?.firmId]);
+  const load = useCallback(() => {
+    loadTasks();
+    loadCases();
+    loadRoster();
+  }, [loadTasks, loadCases, loadRoster]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -98,12 +88,18 @@ export default function FirmTasks({ caseId }) {
   const safePage = Math.min(page, pages);
   const visible = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
-  /* The case whose id / cnr / title matches the text typed in the modal. */
-  const resolveCase = (input) =>
-    cases.find((c) =>
-      String(c.id) === String(input) || c.cnr === input ||
-      (c.case_type || c.title || '').toLowerCase() === String(input || '').toLowerCase()
-    );
+  const formCase = cases.find((c) => String(c.id) === form?.caseId);
+  const caseQuery = caseSearch.trim().toLowerCase();
+  const matchingCases = cases.filter((c) =>
+    `${c.title || ''} ${c.case_type || ''} ${c.brief_description || ''} ${c.cnr || ''}`
+      .toLowerCase().includes(caseQuery),
+  );
+  const caseOptions = formCase && !matchingCases.includes(formCase)
+    ? [formCase, ...matchingCases]
+    : matchingCases;
+  const assigneeNames = (record) => record?.team?.length
+    ? record.team.map((m) => m.name)
+    : members.map((m) => m.fullName || m.name);
 
   /* ── CRUD handlers ── */
 
@@ -111,27 +107,23 @@ export default function FirmTasks({ caseId }) {
   const saveTask = async () => {
     const er = {
       name: form.name.trim() ? null : 'Task name is required',
-      caseInput: form.caseInput.trim() ? null : 'Case ID/CNR is required',
+      caseId: formCase || (form.id && !form.caseId) ? null : 'Select a case.',
       dueDate: form.dueDate ? null : 'Due date is required',
     };
     setErrors(er);
     if (Object.values(er).some(Boolean)) return;
 
-    const resolved = resolveCase(form.caseInput.trim());
-    if (!form.id && !resolved) { // a new task must be attached to a real case
-      setErrors({ caseInput: 'No matching case. Use a case id, CNR or title.' });
-      return;
-    }
     const payload = {
       name: form.name.trim(),
-      // store the case title, not whatever was typed (a CNR/id would show as the "case" in the table)
-      caseTitle: resolved ? (resolved.case_type || resolved.title || form.caseInput.trim()) : form.caseInput.trim(),
       assignedUser: form.assignee,
       priority: form.priority,
       dueDate: form.dueDate,
       description: form.description || '',
-      caseId: resolved ? String(resolved.id) : '',
-      caseCnr: resolved ? (resolved.cnr || '') : '',
+      ...(formCase && {
+        caseId: String(formCase.id),
+        caseTitle: formCase.case_type || formCase.title || caseName(formCase),
+        caseCnr: formCase.cnr || '',
+      }),
       firmId: user?.firmId || 'firm-1',
     };
     try {
@@ -143,7 +135,7 @@ export default function FirmTasks({ caseId }) {
         toast('Task created.');
       }
       setForm(null);
-      load();
+      loadTasks(true);
     } catch (err) {
       toast(`Save failed: ${err.message}`, 'error');
     }
@@ -155,7 +147,7 @@ export default function FirmTasks({ caseId }) {
       await api.tasks.update(id, { status: 'Completed' }, role);
       toast('Task marked as completed.');
       setViewing(null);
-      load();
+      loadTasks(true);
     } catch (err) {
       toast(`Failed: ${err.message}`, 'error');
     }
@@ -167,7 +159,7 @@ export default function FirmTasks({ caseId }) {
     try {
       await api.tasks.remove(t.id, role);
       toast('Task deleted.');
-      load();
+      loadTasks(true);
     } catch (err) {
       toast(`Delete failed: ${err.message}`, 'error');
     }
@@ -184,7 +176,7 @@ export default function FirmTasks({ caseId }) {
           {selectedCase && (
             <Button variant="outline" onClick={() => { setCaseFilter('All'); navigate('/firm/tasks'); }}>All Tasks</Button>
           )}
-          <Button onClick={() => { setErrors({}); setForm({ name: '', caseInput: selectedCase ? String(selectedCase.id) : '', assignee: '', priority: 'LOW', dueDate: '', description: '' }); }}>
+          <Button disabled={loading || !!error} onClick={openCreate}>
             <Icon name="plus" size={14} /> New Task
           </Button>
         </div>}
@@ -276,23 +268,32 @@ export default function FirmTasks({ caseId }) {
             <Field label="Task Name" required error={errors.name}>
               <Input value={form.name} maxLength={200} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} error={!!errors.name} />
             </Field>
-            <Field label="Case ID / CNR" required error={errors.caseInput}>
-              <Input value={form.caseInput} maxLength={30} placeholder="Type a case id, CNR or title"
-                onChange={(e) => setForm((f) => ({ ...f, caseInput: e.target.value }))} error={!!errors.caseInput} />
-              {resolveCase(form.caseInput.trim()) && (
-                <span className="mt-1 block text-xs font-medium text-emerald-600">
-                  Matched: {resolveCase(form.caseInput.trim()).case_type || resolveCase(form.caseInput.trim()).title}
-                </span>
+            <div className="space-y-2">
+              {cases.length > 0 && (
+                <Input type="search" aria-label="Search cases" placeholder="Search by case name or CNR"
+                  value={caseSearch} onChange={(e) => setCaseSearch(e.target.value)} />
               )}
-            </Field>
+              <Field label="Case" required error={errors.caseId}>
+                <Select value={form.caseId} error={!!errors.caseId} disabled={!caseOptions.length}
+                  onChange={(e) => selectFormCase(e.target.value)}>
+                  <option value="" disabled>
+                    {form.legacyCase || (cases.length ? 'Select a case' : 'No cases available')}
+                  </option>
+                  {caseOptions.map((c) => (
+                    <option key={c.id} value={String(c.id)}>
+                      {c.case_type || c.title || caseName(c)}{c.cnr ? ` · CNR ${c.cnr}` : ''}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              {caseQuery && !matchingCases.length && (
+                <p role="status" className="text-xs text-slate-500">No cases match your search.</p>
+              )}
+            </div>
             <Field label="Assignee">
-              {/* If the typed case has a team, offer just those members (vanilla rule). */}
               <Select value={form.assignee} onChange={(e) => setForm((f) => ({ ...f, assignee: e.target.value }))}>
                 <option value="">Select…</option>
-                {(resolveCase(form.caseInput.trim())?.team?.length
-                  ? resolveCase(form.caseInput.trim()).team.map((m) => m.name)
-                  : members.map((m) => m.fullName || m.name)
-                ).map((name) => <option key={name} value={name}>{name}</option>)}
+                {assigneeNames(formCase).map((name) => <option key={name} value={name}>{name}</option>)}
               </Select>
             </Field>
             {/* priority segmented toggle */}
@@ -347,15 +348,36 @@ export default function FirmTasks({ caseId }) {
     </>
   );
 
+  function openCreate() {
+    setErrors({});
+    setCaseSearch('');
+    setForm({
+      name: '', caseId: selectedCase ? String(selectedCase.id) : '', assignee: '',
+      priority: 'LOW', dueDate: '', description: '',
+    });
+  }
+
+  function selectFormCase(id) {
+    const assignees = assigneeNames(cases.find((c) => String(c.id) === id));
+    setCaseSearch('');
+    setErrors((previous) => ({ ...previous, caseId: null }));
+    setForm((f) => ({ ...f, caseId: id, assignee: assignees.includes(f.assignee) ? f.assignee : '' }));
+  }
+
   /* Prefill the edit modal (converting the due date back to YYYY-MM-DD). */
   function openEdit(t) {
     setViewing(null);
     setErrors({});
+    setCaseSearch('');
+    const record = t.caseId
+      ? cases.find((c) => String(c.id) === String(t.caseId))
+      : cases.find((c) => t.caseCnr && c.cnr === t.caseCnr);
     let iso = '';
     const d = new Date(t.dueDate);
     if (!isNaN(d)) iso = d.toISOString().split('T')[0];
     setForm({
-      id: t.id, name: t.name || '', caseInput: t.caseTitle || '', assignee: t.assignedUser || '',
+      id: t.id, name: t.name || '', caseId: record ? String(record.id) : '',
+      legacyCase: record ? '' : caseLabel(t), assignee: t.assignedUser || '',
       priority: t.priority || 'MEDIUM', dueDate: iso, description: t.description || '',
     });
   }

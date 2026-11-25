@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { useAppDispatch } from '../../store/hooks.js';
+import { caseSaved } from '../../store/slices/mattersSlice.js';
 import { navigate } from '../../router.jsx';
 import { Breadcrumb } from '../../components/Layout.jsx';
 import {
@@ -19,6 +21,7 @@ import { formatDate } from '../../lib/format.js';
 
 export default function FirmCaseDetails({ id }) {
   const { user, toast } = useApp();
+  const dispatch = useAppDispatch();
   const role = (user?.role || 'firmadmin').toLowerCase();
 
   /* ── Page data ── */
@@ -33,6 +36,15 @@ export default function FirmCaseDetails({ id }) {
   const [editClient, setEditClient] = useState(null);   // edit client details form
   const [addTask, setAddTask] = useState(null);         // new task form
   const [modalErrors, setModalErrors] = useState({});   // per-modal validation errors
+
+  /* ── Tab state ('overview' | 'timeline') ── */
+  const [activeTab, setActiveTab] = useState('overview');
+
+  /* ── Editable Progress and Timeline state ── */
+  const [progressInput, setProgressInput] = useState(0);
+  const [savingProgress, setSavingProgress] = useState(false);
+  const [timelineModal, setTimelineModal] = useState(null); // { index, title, date, note, upcoming }
+  const [savingTimeline, setSavingTimeline] = useState(false);
 
   /* ── Load the case + related data ── */
   const load = useCallback(async () => {
@@ -85,6 +97,12 @@ export default function FirmCaseDetails({ id }) {
       .catch(() => {});
   }, [role, user?.firmId]);
 
+  useEffect(() => {
+    if (caseData?.progress !== undefined && caseData?.progress !== null) {
+      setProgressInput(caseData.progress);
+    }
+  }, [caseData?.progress]);
+
   /* ── Derived values ── */
   const pendingTasks = (tasks || []).filter((t) => t.status !== 'Completed' && String(t.caseId) === String(caseData?.id));
   const client = caseData?.client || {};
@@ -93,12 +111,13 @@ export default function FirmCaseDetails({ id }) {
      have their own endpoint, so send only the fields UpdateCaseDto allows. */
   const saveCase = async (updated) => {
     const body = {};
-    for (const k of ['consultation_id', 'lawfirm_id', 'lawyer_id', 'client_id', 'cnr', 'case_type',
-      'brief_description', 'status', 'client', 'filed_date']) {
+    for (const k of ['consultation_id', 'lawfirm_id', 'client_id', 'cnr', 'case_type',
+      'brief_description', 'status', 'client', 'filed_date', 'progress', 'timeline']) {
       if (updated[k] !== undefined && updated[k] !== null) body[k] = updated[k];
     }
     const saved = await api.cases.update(updated.id, body, role);
-    setCaseData((c) => ({ ...c, ...saved }));
+    setCaseData((c) => ({ ...c, ...saved, ...body }));
+    dispatch(caseSaved({ id: updated.id, ...body, ...saved }));
     return saved;
   };
 
@@ -133,78 +152,277 @@ export default function FirmCaseDetails({ id }) {
         </div>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* ════════ LEFT COLUMN ════════ */}
-        <div className="space-y-6">
-          {/* client details card */}
-          <Card className="p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-bold text-slate-900">Client Details</h2>
-              <button className="text-xs font-semibold text-indigo-600 hover:underline"
-                onClick={() => { setModalErrors({}); setEditClient({ opposingParty: client.opposingParty || '' }); }}>
-                Edit
-              </button>
-            </div>
-            {/* name / email / phone come from the client's real account */}
-            <InfoRow label="Client" value={caseData.clientUser?.fullName || '—'} />
-            <InfoRow label="Email" value={caseData.clientUser?.email || '—'} />
-            <InfoRow label="Phone" value={caseData.clientUser?.phone || '—'} />
-            <InfoRow label="Address" value={caseData.clientUser?.address || '—'} />
-            <InfoRow label="Account Type" value={caseData.clientUser?.accountType || '—'} />
-            <InfoRow label="Opposing Party" value={client.opposingParty || 'Not added yet'} />
-          </Card>
-
-          {/* pending tasks card */}
-          <Card className="p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 font-bold text-slate-900">
-                Pending Tasks <Badge variant="amber">{pendingTasks.length}</Badge>
-              </h2>
-              <button className="text-xs font-semibold text-indigo-600 hover:underline"
-                onClick={() => { setModalErrors({}); setAddTask({ name: '', assignee: '', priority: 'MEDIUM', dueDate: '' }); }}>
-                + Assign New Task
-              </button>
-            </div>
-            {pendingTasks.length === 0 ? (
-              <p className="text-sm text-slate-400">No pending tasks.</p>
-            ) : (
-              <div className="space-y-3">
-                {pendingTasks.map((t) => (
-                  <label key={t.id} className="flex items-center gap-3 rounded-lg bg-slate-50 p-3">
-                    {/* ticking the checkbox completes the task */}
-                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300" onChange={() => completeTask(t.id)} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-800">{t.name}</p>
-                      <p className="text-xs text-slate-400">Due {fmtDate(t.dueDate)}</p>
-                    </div>
-                    <Badge variant={t.priority === 'HIGH' ? 'red' : 'green'}>{t.priority}</Badge>
-                  </label>
-                ))}
-              </div>
-            )}
-            <Button variant="outline" className="mt-4 w-full !text-xs" onClick={() => navigate(`/firm/tasks/${caseData.id}`)}>
-              View All Tasks
-            </Button>
-          </Card>
-        </div>
-
-        {/* ════════ RIGHT COLUMN ════════ */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* case information card */}
-          <Card className="p-6">
-            <h2 className="mb-4 font-bold text-slate-900">Case Information</h2>
-            <div className="grid gap-x-6 sm:grid-cols-2">
-              <InfoRow label="CNR Number" value={caseData.cnr || '—'} />
-              <InfoRow label="Case Type" value={title} />
-              <InfoRow label="Status" value={caseData.status || 'Ongoing'} />
-              <InfoRow label="Filed Date" value={formatDate(caseData.filed_date || caseData.filedDate)} />
-              <InfoRow label="Law Firm" value={caseData.firmName || '—'} />
-              <InfoRow label="Assigned Lawyer" value={caseData.lawyerName || 'Not assigned yet'} />
-            </div>
-            <InfoRow label="Description" value={caseData.brief_description || '—'} />
-          </Card>
-        </div>
+      {/* ── Tabs navigation ── */}
+      <div className="mb-6 flex gap-2 border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => setActiveTab('overview')}
+          className={`border-b-2 px-5 py-3 text-sm font-semibold transition ${
+            activeTab === 'overview'
+              ? 'border-brand font-bold text-brand'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Overview
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('timeline')}
+          className={`border-b-2 px-5 py-3 text-sm font-semibold transition ${
+            activeTab === 'timeline'
+              ? 'border-brand font-bold text-brand'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Timeline & Case Progress
+        </button>
       </div>
+
+      {activeTab === 'overview' && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* ════════ LEFT COLUMN ════════ */}
+          <div className="space-y-6">
+            {/* client details card */}
+            <Card className="p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-bold text-slate-900">Client Details</h2>
+                <button className="text-xs font-semibold text-indigo-600 hover:underline"
+                  onClick={() => { setModalErrors({}); setEditClient({ opposingParty: client.opposingParty || '' }); }}>
+                  Edit
+                </button>
+              </div>
+              {/* name / email / phone come from the client's real account */}
+              <InfoRow label="Client" value={caseData.clientUser?.fullName || '—'} />
+              <InfoRow label="Email" value={caseData.clientUser?.email || '—'} />
+              <InfoRow label="Phone" value={caseData.clientUser?.phone || '—'} />
+              <InfoRow label="Address" value={caseData.clientUser?.address || '—'} />
+              <InfoRow label="Account Type" value={caseData.clientUser?.accountType || '—'} />
+              <InfoRow label="Opposing Party" value={client.opposingParty || 'Not added yet'} />
+            </Card>
+
+            {/* pending tasks card */}
+            <Card className="p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 font-bold text-slate-900">
+                  Pending Tasks <Badge variant="amber">{pendingTasks.length}</Badge>
+                </h2>
+                <button className="text-xs font-semibold text-indigo-600 hover:underline"
+                  onClick={() => { setModalErrors({}); setAddTask({ name: '', assignee: '', priority: 'MEDIUM', dueDate: '' }); }}>
+                  + Assign New Task
+                </button>
+              </div>
+              {pendingTasks.length === 0 ? (
+                <p className="text-sm text-slate-400">No pending tasks.</p>
+              ) : (
+                <div className="space-y-3">
+                  {pendingTasks.map((t) => (
+                    <label key={t.id} className="flex items-center gap-3 rounded-lg bg-slate-50 p-3">
+                      {/* ticking the checkbox completes the task */}
+                      <input type="checkbox" className="h-4 w-4 rounded border-slate-300" onChange={() => completeTask(t.id)} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-slate-800">{t.name}</p>
+                        <p className="text-xs text-slate-400">Due {fmtDate(t.dueDate)}</p>
+                      </div>
+                      <Badge variant={t.priority === 'HIGH' ? 'red' : 'green'}>{t.priority}</Badge>
+                    </label>
+                  ))}
+                </div>
+              )}
+              <Button variant="outline" className="mt-4 w-full !text-xs" onClick={() => navigate(`/firm/tasks/${caseData.id}`)}>
+                View All Tasks
+              </Button>
+            </Card>
+          </div>
+
+          {/* ════════ RIGHT COLUMN ════════ */}
+          <div className="space-y-6 lg:col-span-2">
+            {/* case information card */}
+            <Card className="p-6">
+              <h2 className="mb-4 font-bold text-slate-900">Case Information</h2>
+              <div className="grid gap-x-6 sm:grid-cols-2">
+                <InfoRow label="CNR Number" value={caseData.cnr || '—'} />
+                <InfoRow label="Case Type" value={title} />
+                <InfoRow label="Status" value={caseData.status || 'Ongoing'} />
+                <InfoRow label="Filed Date" value={formatDate(caseData.filed_date || caseData.filedDate)} />
+                <InfoRow label="Law Firm" value={caseData.firmName || '—'} />
+                <InfoRow label="Assigned Lawyer" value={caseData.lawyerName || 'Not assigned yet'} />
+              </div>
+              <InfoRow label="Description" value={caseData.brief_description || '—'} />
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'timeline' && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Progress Card (Left Column) */}
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h2 className="font-bold text-slate-900">Case Progress</h2>
+              <p className="mt-2 text-3xl font-extrabold text-brand">
+                {caseData.progress || 0}% <span className="text-sm font-medium text-slate-500">Complete</span>
+              </p>
+              <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-brand transition-all duration-700"
+                  style={{ width: `${Math.min(100, Math.max(0, caseData.progress || 0))}%` }}
+                />
+              </div>
+
+              {/* Editable parts */}
+              <div className="mt-6 border-t border-slate-100 pt-5">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Update Progress</p>
+                <div className="mt-3 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={progressInput}
+                      onChange={(e) => setProgressInput(Number(e.target.value))}
+                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-brand"
+                    />
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={progressInput}
+                        onChange={(e) => setProgressInput(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+                        className="w-14 rounded-md border border-slate-300 px-2 py-1 text-center text-xs font-bold text-slate-800"
+                      />
+                      <span className="text-xs font-bold text-slate-500">%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {[0, 25, 50, 75, 100].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setProgressInput(preset)}
+                        className={`rounded-md border px-2 py-1 text-[11px] font-semibold transition ${
+                          progressInput === preset
+                            ? 'border-brand bg-brand text-white'
+                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
+                        }`}
+                      >
+                        {preset}%
+                      </button>
+                    ))}
+                  </div>
+
+                  <Button
+                    loading={savingProgress}
+                    onClick={handleSaveProgress}
+                    className="w-full !py-1.5 !text-xs"
+                  >
+                    Save Progress
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Timeline Card (Right Column, lg:col-span-2) */}
+          <div className="space-y-6 lg:col-span-2">
+            <Card className="p-6">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-bold text-slate-900">Timeline</h2>
+                  <p className="text-xs text-slate-500">Milestones and key dates for this case.</p>
+                </div>
+                <Button
+                  onClick={() => {
+                    setModalErrors({});
+                    setTimelineModal({
+                      index: -1,
+                      title: '',
+                      date: formatDate(new Date().toISOString()),
+                      note: '',
+                      upcoming: false,
+                    });
+                  }}
+                  className="!py-1.5 !text-xs"
+                >
+                  <Icon name="plus" size={14} /> Add Event
+                </Button>
+              </div>
+
+              {(caseData.timeline || []).length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-200 py-8 text-center">
+                  <p className="text-sm text-slate-400">No timeline events recorded.</p>
+                  <Button
+                    variant="outline"
+                    className="mt-3 !text-xs"
+                    onClick={() => {
+                      setModalErrors({});
+                      setTimelineModal({
+                        index: -1,
+                        title: '',
+                        date: formatDate(new Date().toISOString()),
+                        note: '',
+                        upcoming: false,
+                      });
+                    }}
+                  >
+                    + Add First Event
+                  </Button>
+                </div>
+              ) : (
+                <ol className="relative space-y-5 border-l-2 border-slate-100 pl-5">
+                  {(caseData.timeline || []).map((t, i) => (
+                    <li key={i} className="group relative">
+                      <span className="absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-white bg-brand shadow-sm" />
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className={`text-sm font-bold ${t.grey ? 'text-slate-400' : 'text-slate-800'}`}>{t.title}</p>
+                            {t.upcoming && <Badge variant="amber">UPCOMING</Badge>}
+                          </div>
+                          <p className="text-xs text-slate-400">{t.date}</p>
+                          {(t.note || t.description) && (
+                            <p className="mt-1 text-xs text-slate-600">{t.note || t.description}</p>
+                          )}
+                        </div>
+
+                        {/* Editable actions */}
+                        <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition">
+                          <button
+                            type="button"
+                            title="Edit Event"
+                            onClick={() => {
+                              setModalErrors({});
+                              setTimelineModal({
+                                index: i,
+                                title: t.title || '',
+                                date: t.date || '',
+                                note: t.note || t.description || '',
+                                upcoming: !!t.upcoming,
+                              });
+                            }}
+                            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
+                          >
+                            <Icon name="edit" size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            title="Delete Event"
+                            onClick={() => handleDeleteTimelineEvent(i)}
+                            className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                          >
+                            <Icon name="trash" size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </Card>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════ MODALS ══════════════ */}
 
@@ -280,10 +498,123 @@ export default function FirmCaseDetails({ id }) {
         )}
       </Modal>
 
+      {/* ── Add / Edit Timeline Event Modal ── */}
+      <Modal open={!!timelineModal} onClose={() => setTimelineModal(null)}
+        title={timelineModal?.index >= 0 ? 'Edit Timeline Event' : 'Add Timeline Event'}
+        footer={<>
+          <Button variant="ghost" onClick={() => setTimelineModal(null)}>Cancel</Button>
+          <Button loading={savingTimeline} onClick={handleSaveTimelineModal}>
+            {timelineModal?.index >= 0 ? 'Save Changes' : 'Add Event'}
+          </Button>
+        </>}>
+        {timelineModal && (
+          <div className="space-y-4">
+            <Field label="Event Title" required error={modalErrors.eventTitle}>
+              <Input placeholder="e.g. Chargesheet Submitted, Bail Hearing, Plaint Filed..."
+                value={timelineModal.title} maxLength={200}
+                onChange={(e) => setTimelineModal((m) => ({ ...m, title: e.target.value }))}
+                error={!!modalErrors.eventTitle} />
+            </Field>
+
+            <Field label="Event Date" required error={modalErrors.eventDate}>
+              <div className="flex gap-2">
+                <Input placeholder="e.g. 15 Jan 2026"
+                  value={timelineModal.date}
+                  onChange={(e) => setTimelineModal((m) => ({ ...m, date: e.target.value }))}
+                  error={!!modalErrors.eventDate}
+                  className="flex-1" />
+                <Button type="button" variant="outline" className="!text-xs whitespace-nowrap"
+                  onClick={() => setTimelineModal((m) => ({ ...m, date: formatDate(new Date().toISOString()) }))}>
+                  Today
+                </Button>
+              </div>
+            </Field>
+
+            <Field label="Notes / Description">
+              <Input placeholder="Brief details or observations about this milestone..."
+                value={timelineModal.note} maxLength={300}
+                onChange={(e) => setTimelineModal((m) => ({ ...m, note: e.target.value }))} />
+            </Field>
+
+            <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 cursor-pointer">
+              <input type="checkbox" checked={timelineModal.upcoming}
+                onChange={(e) => setTimelineModal((m) => ({ ...m, upcoming: e.target.checked }))}
+                className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand" />
+              <div>
+                <p className="text-xs font-bold text-slate-800">Mark as Upcoming Milestone</p>
+                <p className="text-[11px] text-slate-500">Displays an 'UPCOMING' badge on this milestone</p>
+              </div>
+            </label>
+          </div>
+        )}
+      </Modal>
+
     </>
   );
 
   /* ══════════════ ACTION HANDLERS (defined after JSX, hoisted functions) ══════════════ */
+
+  /* Handle saving progress percentage */
+  async function handleSaveProgress() {
+    setSavingProgress(true);
+    try {
+      const val = Math.min(100, Math.max(0, Number(progressInput) || 0));
+      await saveCase({ ...caseData, progress: val });
+      toast('Case progress updated successfully.');
+    } catch (err) {
+      toast(`Failed to update progress: ${err.message}`, 'error');
+    } finally {
+      setSavingProgress(false);
+    }
+  }
+
+  /* Handle saving timeline event from modal */
+  async function handleSaveTimelineModal() {
+    const errs = {
+      eventTitle: timelineModal.title.trim() ? null : 'Event title is required',
+      eventDate: timelineModal.date.trim() ? null : 'Event date is required',
+    };
+    setModalErrors(errs);
+    if (Object.values(errs).some(Boolean)) return;
+
+    setSavingTimeline(true);
+    try {
+      const eventObj = {
+        title: timelineModal.title.trim(),
+        date: timelineModal.date.trim(),
+        note: timelineModal.note.trim(),
+        description: timelineModal.note.trim(),
+        upcoming: !!timelineModal.upcoming,
+      };
+
+      const currentTimeline = [...(caseData.timeline || [])];
+      if (timelineModal.index >= 0) {
+        currentTimeline[timelineModal.index] = { ...currentTimeline[timelineModal.index], ...eventObj };
+      } else {
+        currentTimeline.push(eventObj);
+      }
+
+      await saveCase({ ...caseData, timeline: currentTimeline });
+      toast(timelineModal.index >= 0 ? 'Timeline event updated.' : 'Timeline event added.');
+      setTimelineModal(null);
+    } catch (err) {
+      toast(`Failed to save event: ${err.message}`, 'error');
+    } finally {
+      setSavingTimeline(false);
+    }
+  }
+
+  /* Handle deleting timeline event */
+  async function handleDeleteTimelineEvent(index) {
+    if (!window.confirm('Delete this timeline event?')) return;
+    try {
+      const currentTimeline = (caseData.timeline || []).filter((_, i) => i !== index);
+      await saveCase({ ...caseData, timeline: currentTimeline });
+      toast('Timeline event deleted.');
+    } catch (err) {
+      toast(`Failed to delete event: ${err.message}`, 'error');
+    }
+  }
 
   /* Tick a pending task checkbox -> mark it Completed on the backend. */
   async function completeTask(taskId) {

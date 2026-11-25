@@ -988,9 +988,150 @@
         ]
       }
     },
+    "/cases": {
+      "post": {
+        "operationId": "CasesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new case",
+        "tags": [
+          "cases"
+        ]
+      },
+      "get": {
+        "operationId": "CasesController_findAll",
+        "parameters": [
+          {
+            "name": "firmId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clientId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lawyerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all cases with optional filtering",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/cases/{id}": {
+      "get": {
+        "operationId": "CasesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get a case by ID",
+        "tags": [
+          "cases"
+        ]
+      },
+      "patch": {
+        "operationId": "CasesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a case",
+        "tags": [
+          "cases"
+        ]
+      },
+      "delete": {
+        "operationId": "CasesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a case",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
     "/consultations/workflow-bookings": {
       "get": {
-        "description": "Returns a list of all consultations that were created through the client-facing law firm search and booking flow. Only firmadmin and superadmin can access this.",
+        "description": "Returns bookings made through law firm search. Firm admins see bookings for their firm.",
         "operationId": "ConsultationsController_getWorkflowBookings",
         "parameters": [
           {
@@ -1028,7 +1169,7 @@
     },
     "/consultations/my": {
       "get": {
-        "description": "Returns all consultations for the client identified by the x-client-id header. Only the client role may call this endpoint.",
+        "description": "Returns all consultations for the authenticated client.",
         "operationId": "ConsultationsController_getMyConsultations",
         "parameters": [
           {
@@ -1048,15 +1189,6 @@
                 "user"
               ]
             }
-          },
-          {
-            "name": "x-client-id",
-            "required": true,
-            "in": "header",
-            "description": "The ID of the authenticated client (e.g. \"user-2\")",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -1073,8 +1205,8 @@
               }
             }
           },
-          "400": {
-            "description": "Missing x-client-id header"
+          "401": {
+            "description": "Login required"
           },
           "403": {
             "description": "Forbidden – non-client role"
@@ -1471,147 +1603,6 @@
         ]
       }
     },
-    "/cases": {
-      "post": {
-        "operationId": "CasesController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCaseDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Create a new case",
-        "tags": [
-          "cases"
-        ]
-      },
-      "get": {
-        "operationId": "CasesController_findAll",
-        "parameters": [
-          {
-            "name": "firmId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "clientId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "lawyerId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get all cases with optional filtering",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
-    "/cases/{id}": {
-      "get": {
-        "operationId": "CasesController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get a case by ID",
-        "tags": [
-          "cases"
-        ]
-      },
-      "patch": {
-        "operationId": "CasesController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCaseDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Update a case",
-        "tags": [
-          "cases"
-        ]
-      },
-      "delete": {
-        "operationId": "CasesController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Delete a case",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
     "/documents/activity": {
       "get": {
         "operationId": "DocumentsController_findActivity",
@@ -1874,6 +1865,39 @@
         ]
       }
     },
+    "/billing/cases": {
+      "get": {
+        "operationId": "BillingController_getCases",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
     "/billing/clients": {
       "get": {
         "operationId": "BillingController_getClients",
@@ -1933,14 +1957,6 @@
             "in": "header",
             "description": "client | lawyer | intern | firmadmin | superadmin",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -2917,7 +2933,7 @@
     },
     "/platform/subscriptions/{firmId}/tier-change": {
       "post": {
-        "description": "Issues a one-time charge for the new tier's price. The firm stays on its current plan until that charge is paid — see PATCH /platform/charges/:id. Requesting the current tier again cancels a pending request instead of erroring. FIRMADMIN is scoped to their own firm (pass x-user-id); SUPERADMIN may act for any firm.",
+        "description": "A paid plan can schedule a downgrade for its next renewal. Other plan changes take effect after checkout. Selecting the current plan cancels a pending change. Firm admins manage their own firm.",
         "operationId": "PlatformController_requestTierChange",
         "parameters": [
           {
@@ -2946,27 +2962,11 @@
               "example": "firm-1",
               "type": "string"
             }
-          },
-          {
-            "name": "role",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Tier-change charge created (or pending request cancelled)"
+            "description": "Plan change scheduled, cancelled, or ready for checkout"
           },
           "400": {
             "description": "Invalid tier"
@@ -2979,6 +2979,98 @@
           }
         },
         "summary": "Request a plan change",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/subscriptions/{firmId}/renewal": {
+      "patch": {
+        "operationId": "PlatformController_updateRenewal",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "firmId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRenewalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/subscriptions/{firmId}/renew": {
+      "post": {
+        "operationId": "PlatformController_prepareRenewal",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "description": "Caller user id — required on the charges endpoints when role is \"firmadmin\", to resolve their firm",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "header",
+            "description": "Must be \"superadmin\" for most endpoints; \"firmadmin\" is also accepted on the charges endpoints, scoped to the caller's own firm",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "firmId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
         "tags": [
           "platform"
         ]
@@ -3049,7 +3141,7 @@
     },
     "/platform/charges/{id}": {
       "patch": {
-        "description": "SUPERADMIN → set any status (Paid, Pending, Overdue).\nFIRMADMIN → may only mark Paid, and only a charge belonging to their own firm (pass x-user-id); the request body's status is ignored for this role.",
+        "description": "SUPERADMIN → set any status (Paid, Pending, Overdue).\nFIRMADMIN → can confirm payment for a charge belonging to their own firm.",
         "operationId": "PlatformController_updateCharge",
         "parameters": [
           {
@@ -3078,24 +3170,18 @@
               "example": "PSUB-FIRM-1-2026-09",
               "type": "string"
             }
-          },
-          {
-            "name": "role",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettleChargeDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Charge updated"
@@ -3364,6 +3450,16 @@
             "type": "string",
             "example": "available"
           },
+          "barNumber": {
+            "type": "string",
+            "description": "Bar Council enrollment number (lawyers)",
+            "example": "MAH/1234/2018"
+          },
+          "aadhaar": {
+            "type": "string",
+            "description": "12-digit Aadhaar card number in 4-4-4 format (primary key for clients)",
+            "example": "5432-8765-4321"
+          },
           "accountType": {
             "type": "string",
             "example": "Individual",
@@ -3459,6 +3555,16 @@
           "availability": {
             "type": "string",
             "example": "available"
+          },
+          "barNumber": {
+            "type": "string",
+            "description": "Bar Council enrollment number for lawyers (e.g. MAH/1234/2018 or DL/5678/2015)",
+            "example": "MAH/1234/2018"
+          },
+          "aadhaar": {
+            "type": "string",
+            "description": "12-digit Indian Aadhaar card number in 4-4-4 format acting as client primary key",
+            "example": "5432-8765-4321"
           },
           "firmId": {
             "type": "string",
@@ -3661,6 +3767,16 @@
             "type": "string",
             "example": "available"
           },
+          "barNumber": {
+            "type": "string",
+            "description": "Bar Council enrollment number for lawyers (e.g. MAH/1234/2018 or DL/5678/2015)",
+            "example": "MAH/1234/2018"
+          },
+          "aadhaar": {
+            "type": "string",
+            "description": "12-digit Indian Aadhaar card number in 4-4-4 format acting as client primary key",
+            "example": "5432-8765-4321"
+          },
           "firmId": {
             "type": "string",
             "example": "firm-1"
@@ -3805,6 +3921,14 @@
           "message",
           "createdAt"
         ]
+      },
+      "CreateCaseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateCaseDto": {
+        "type": "object",
+        "properties": {}
       },
       "ConsultationResponseDto": {
         "type": "object",
@@ -4051,14 +4175,6 @@
           }
         }
       },
-      "CreateCaseDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateCaseDto": {
-        "type": "object",
-        "properties": {}
-      },
       "CreateDocumentDto": {
         "type": "object",
         "properties": {
@@ -4137,10 +4253,13 @@
             "description": "User ID of the client (from GET /billing/clients dropdown)",
             "example": "user-2"
           },
+          "caseId": {
+            "type": "number",
+            "description": "ID of the case selected from the firm’s cases"
+          },
           "caseName": {
             "type": "string",
-            "description": "Case name",
-            "example": "Property Dispute vs. Urban Developers"
+            "description": "Exact case name for older clients that send a name instead of an ID"
           },
           "advocateName": {
             "type": "string",
@@ -4170,7 +4289,6 @@
         },
         "required": [
           "clientId",
-          "caseName",
           "amount",
           "dueDate"
         ]
@@ -4182,8 +4300,13 @@
             "type": "string",
             "description": "New client user ID"
           },
+          "caseId": {
+            "type": "number",
+            "description": "ID of the replacement case"
+          },
           "caseName": {
-            "type": "string"
+            "type": "string",
+            "description": "Exact case name for older clients"
           },
           "advocateName": {
             "type": "string"
@@ -4363,6 +4486,10 @@
           "avatarColor"
         ]
       },
+      "UpdateRenewalDto": {
+        "type": "object",
+        "properties": {}
+      },
       "UpdateSubscriptionDto": {
         "type": "object",
         "properties": {
@@ -4385,6 +4512,10 @@
             ]
           }
         }
+      },
+      "SettleChargeDto": {
+        "type": "object",
+        "properties": {}
       },
       "UpdateTierPricingDto": {
         "type": "object",

@@ -8,17 +8,31 @@
  *
  * Auth model (same as vanilla):
  *  - JWT access token is stored in localStorage under "access_token"
- *    and sent on EVERY request as  Authorization: Bearer <token>.
+ *    and sent on authenticated requests as Authorization: Bearer <token>.
  *  - A "role" header tells the backend which role is asking.
  *  - For state-changing requests we re-send the "x-csrf-token" cookie value
  *    as a header (double-submit CSRF pattern the backend expects).
  *  - credentials: 'include' keeps the session cookie flowing.
  */
 
+// Remove data and sessions left by the retired browser demo store.
+if (typeof window !== 'undefined') {
+  for (const key of ['lexflow_users', 'lexflow_firms', 'lexflow_cases', 'lexflow_consultations', 'lexflow_store_seeded']) {
+    localStorage.removeItem(key);
+  }
+  const token = localStorage.getItem('access_token');
+  if (!token || token.startsWith('demo_jwt_')) {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('userRole');
+  }
+}
+
 // Base URL for every backend call.
 // In dev, vite.config.js proxies "/api" -> "http://localhost:3000", so we can
 // use a relative path and never have CORS trouble.
 export const BASE_URL = '/api';
+export const SESSION_EXPIRED_EVENT = 'lexflow:session-expired';
 
 /** Read the CSRF cookie the backend sets. Returns null when absent. */
 function getCsrfToken() {
@@ -46,11 +60,11 @@ export function getRole() {
  * Low-level request helper used by every endpoint below.
  * @param {string} method  HTTP verb: "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
  * @param {string} path    backend path, e.g. "/consultations"
- * @param {object} opts    { body, role, extraHeaders, formData }
+ * @param {object} opts    { body, role, extraHeaders, formData, authenticate }
  * @returns parsed JSON (or null for empty responses)
  * @throws Error with .status and .data when the backend answers non-2xx
  */
-async function request(method, path, { body, role, extraHeaders = {}, formData } = {}) {
+async function request(method, path, { body, role, extraHeaders = {}, formData, authenticate = true } = {}) {
   // Start building headers. Content-Type is skipped for FormData - the browser
   // must generate it itself so it can add the multipart boundary.
   const headers = { ...extraHeaders };
@@ -58,7 +72,7 @@ async function request(method, path, { body, role, extraHeaders = {}, formData }
   // Every request carries the role header so the backend can scope the query.
   if (role) headers['role'] = role;
   // Attach the JWT (if the user has logged in).
-  const token = localStorage.getItem('access_token');
+  const token = authenticate ? localStorage.getItem('access_token') : null;
   if (token) headers['Authorization'] = 'Bearer ' + token;
   // Double-submit CSRF: send the cookie's value back as a header on mutations.
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
@@ -82,7 +96,11 @@ async function request(method, path, { body, role, extraHeaders = {}, formData }
 
   // Turn HTTP errors into JS exceptions the pages can catch + show.
   if (!res.ok) {
-    let message = data?.message ?? `HTTP ${res.status}`;
+    if (res.status === 401 && token && token === localStorage.getItem('access_token')) {
+      localStorage.removeItem('access_token');
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
+    let message = data?.message || `HTTP ${res.status}`;
     // Backend sometimes sends message as an array of validation errors.
     if (Array.isArray(message)) message = message.join(', ');
     const err = new Error(message);
@@ -115,12 +133,14 @@ export const api = {
   auth: {
     async login(email, password) {
       const data = await request('POST', '/users/login', {
-        body: { email, password }, // role is derived from the user record server-side
+        body: { email, password },
+        authenticate: false,
       });
-      if (data?.access_token) {
-        localStorage.setItem('access_token', data.access_token); // used by request() above
+      if (!data?.access_token || !data?.user) {
+        throw new Error('The server did not return a valid sign-in session.');
       }
-      return data?.user ?? data;
+      localStorage.setItem('access_token', data.access_token);
+      return data.user;
     },
   },
 
@@ -134,7 +154,7 @@ export const api = {
     getAll(filters, role) {
       return request('GET', `/consultations${toQuery(filters)}`, { role });
     },
-    // Who booked through the landing-page workflow (superadmin fallback).
+    // Who booked through the landing-page workflow.
     getWorkflowBookings(role) {
       return request('GET', '/consultations/workflow-bookings', { role });
     },
@@ -264,6 +284,9 @@ export const api = {
 
   /* BILLING: invoices (firm -> client) and payments. */
   billing: {
+    getCases(role) {
+      return request('GET', '/billing/cases', { role });
+    },
     // extraHeaders carry x-user-id / x-user-name exactly like the vanilla client.
     getInvoices(role, extraHeaders = {}) {
       return request('GET', '/billing/invoices', { role, extraHeaders });
@@ -317,14 +340,20 @@ export const api = {
         body: { tier }, role, extraHeaders: callerId ? { 'x-user-id': callerId } : {},
       });
     },
+    prepareRenewal(firmId, role) {
+      return request('POST', '/platform/subscriptions/' + firmId + '/renew', { role });
+    },
+    updateRenewal(firmId, changes, role) {
+      return request('PATCH', '/platform/subscriptions/' + firmId + '/renewal', { body: changes, role });
+    },
     getCharges(role, firmId, callerId) {
       return request('GET', `/platform/charges${toQuery({ firmId })}`, {
         role, extraHeaders: callerId ? { 'x-user-id': callerId } : {},
       });
     },
-    updateChargeStatus(id, status, role, callerId) {
+    updateChargeStatus(id, status, role, callerId, paymentMethod) {
       return request('PATCH', `/platform/charges/${id}`, {
-        body: { status }, role, extraHeaders: callerId ? { 'x-user-id': callerId } : {},
+        body: { status, paymentMethod }, role, extraHeaders: callerId ? { 'x-user-id': callerId } : {},
       });
     },
     getTierPlans(role) {
