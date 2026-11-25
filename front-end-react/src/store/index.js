@@ -25,5 +25,4 @@ export const store = configureStore({
   },
 });
 
-export { useAppDispatch, useAppSelector } from './hooks.js';
 export default store;

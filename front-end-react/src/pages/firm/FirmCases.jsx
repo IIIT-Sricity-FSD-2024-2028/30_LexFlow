@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
 import { useResource } from '../../store/resource.js';
-import { useAppDispatch } from '../../store/hooks.js';
+import { useDispatch } from 'react-redux';
 import { caseSaved, taskList, useCaseList } from '../../store/slices/mattersSlice.js';
 import { navigate } from '../../router.jsx';
 import {
@@ -25,7 +25,7 @@ export default function FirmCases() {
   const isLawyer = role === 'lawyer';
   const canAssignLawyer = role === 'firmadmin';
 
-  const dispatch = useAppDispatch();
+  const dispatch = useDispatch();
   const caseQuery = useCaseList(user, role);
   const taskQuery = useResource(taskList, { firmId: user?.firmId, role });
   const { data: cases, load: loadCases } = caseQuery;

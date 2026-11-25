@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
-import { useAppDispatch } from '../../store/hooks.js';
+import { useDispatch } from 'react-redux';
 import { caseSaved } from '../../store/slices/mattersSlice.js';
 import { navigate } from '../../router.jsx';
 import { Breadcrumb } from '../../components/Layout.jsx';
@@ -21,7 +21,7 @@ import { formatDate } from '../../lib/format.js';
 
 export default function FirmCaseDetails({ id }) {
   const { user, toast } = useApp();
-  const dispatch = useAppDispatch();
+  const dispatch = useDispatch();
   const role = (user?.role || 'firmadmin').toLowerCase();
 
   /* ── Page data ── */

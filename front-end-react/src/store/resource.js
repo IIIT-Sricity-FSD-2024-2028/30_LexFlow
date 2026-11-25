@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from './hooks.js';
+import { useDispatch, useSelector } from 'react-redux';
 
 const idle = { status: 'idle', data: undefined, error: null };
 
@@ -59,9 +59,9 @@ export function createResource(slice, field, fetchData, maxAge = 0) {
 }
 
 export function useResource(resource, params) {
-  const dispatch = useAppDispatch();
+  const dispatch = useDispatch();
   const key = JSON.stringify(params);
-  const entry = useAppSelector((state) => {
+  const entry = useSelector((state) => {
     const current = resource.select(state);
     return current?.key === key ? current : idle;
   });

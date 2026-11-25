@@ -11,7 +11,7 @@ import { useApp } from '../../context/AppContext.jsx';
 import { navigate } from '../../router.jsx';
 import { useResource } from '../../store/resource.js';
 import { consultationList } from '../../store/slices/intakeSlice.js';
-import { useAppDispatch } from '../../store/hooks.js';
+import { useDispatch } from 'react-redux';
 import { casesInvalidated } from '../../store/slices/mattersSlice.js';
 import {
   Button, Card, Badge, StatusBadge, PageHeader, Loading, ErrorBanner, EmptyState, Table, Th, Td, Select, StatCard,
@@ -25,7 +25,7 @@ export default function FirmDashboard() {
   const { user, toast } = useApp();
   const role = (user?.role || 'firmadmin').toLowerCase();
 
-  const dispatch = useAppDispatch();
+  const dispatch = useDispatch();
   const { data, loading, error: requestError, load } = useResource(consultationList, {
     role, firmId: user?.firmId, actorId: user?.id,
   });

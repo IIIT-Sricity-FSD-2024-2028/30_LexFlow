@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
 import { useResource } from '../../store/resource.js';
-import { useAppDispatch } from '../../store/hooks.js';
+import { useDispatch } from 'react-redux';
 import { caseDocuments, documentSaved, documentRemoved } from '../../store/slices/documentsSlice.js';
 import { navigate } from '../../router.jsx';
 import { Breadcrumb } from '../../components/Layout.jsx';
@@ -34,7 +34,7 @@ export default function CaseDocuments({ caseId }) {
   const { user, toast } = useApp();
   const role = (user?.role || 'client').toLowerCase();
 
-  const dispatch = useAppDispatch();
+  const dispatch = useDispatch();
   const { data, key, loading, error: requestError, load } = useResource(caseDocuments, {
     caseId, role, id: user?.id, firmId: user?.firmId, email: user?.email,
     hasGrant: !!user?.caseAccess?.[caseId],

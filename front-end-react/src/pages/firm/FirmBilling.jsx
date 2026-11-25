@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
 import { useResource } from '../../store/resource.js';
-import { useAppDispatch } from '../../store/hooks.js';
+import { useDispatch } from 'react-redux';
 import { firmBilling, invoiceSaved, invoiceRemoved, subscriptionUpdated, chargeSaved } from '../../store/slices/firmManagementSlice.js';
 import {
   Button, Card, Badge, StatusBadge, PageHeader, Loading, ErrorBanner, StatCard,
@@ -24,7 +24,7 @@ export default function FirmBilling() {
   const { user, toast } = useApp();
   const role = (user?.role || 'firmadmin').toLowerCase();
 
-  const dispatch = useAppDispatch();
+  const dispatch = useDispatch();
   const { data, key, loading, error: requestError, load } = useResource(firmBilling, {
     role, firmId: user?.firmId, userId: user?.id,
   });

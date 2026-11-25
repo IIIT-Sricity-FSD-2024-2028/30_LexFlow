@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/hooks.js';
+import { useDispatch, useSelector } from 'react-redux';
 import { navigate } from '../router.jsx';
 import { SESSION_EXPIRED_EVENT } from '../api/api.js';
 import { setUser, setLoginRole, logout, syncUserFromStorage, showToast } from '../store/slices/appSlice.js';
@@ -22,10 +22,10 @@ export function dashboardPathFor(role) {
 
 /* ── Backward-compatible hook backed by Redux Toolkit ── */
 export function useApp() {
-  const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.app.user);
-  const loginRole = useAppSelector((state) => state.app.loginRole);
-  const toasts = useAppSelector((state) => state.app.toasts);
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.app.user);
+  const loginRole = useSelector((state) => state.app.loginRole);
+  const toasts = useSelector((state) => state.app.toasts);
 
   const toast = useCallback(
     (message, type = 'success') => {
@@ -60,8 +60,8 @@ export function useApp() {
 
 /* ── AppProvider wraps the tree and synchronizes storage events into Redux ── */
 export function AppProvider({ children }) {
-  const dispatch = useAppDispatch();
-  const toasts = useAppSelector((state) => state.app.toasts);
+  const dispatch = useDispatch();
+  const toasts = useSelector((state) => state.app.toasts);
 
   useEffect(() => {
     const onStorage = (e) => {
