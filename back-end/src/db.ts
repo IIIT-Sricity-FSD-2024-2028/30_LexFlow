@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as net from 'net';
 import { BASE_SCHEMA } from './schema-base';
+import { retryDatabaseDns } from './database-retry';
 
 // Node 20+ gives each address 250ms before trying the next, which is shorter
 // than a Neon compute cold start and shows up as ETIMEDOUT on every address.
@@ -76,7 +77,7 @@ export async function q<T extends QueryResultRow = QueryResultRow>(
   sql: string,
   params: unknown[] = [],
 ): Promise<QueryResult<T>> {
-  return pool.query<T>(sql, params);
+  return retryDatabaseDns(() => pool.query<T>(sql, params));
 }
 
 /** Read a saved JSON snapshot; returns `fallback` if nothing was saved yet. */
@@ -96,7 +97,7 @@ export function saveState(key: string, data: unknown): void {
 
 /** Run a unit of work in a transaction. */
 export async function tx<T>(fn: (c: PoolClient) => Promise<T>): Promise<T> {
-  const c = await pool.connect();
+  const c = await retryDatabaseDns(() => pool.connect());
   try {
     await c.query('BEGIN');
     const out = await fn(c);
@@ -175,7 +176,7 @@ CREATE TABLE IF NOT EXISTS subscription_charges (
     lawfirm_id      INT NOT NULL,
     tier            VARCHAR(50) NOT NULL,
     kind            VARCHAR(20) NOT NULL DEFAULT 'monthly'
-                        CHECK (kind IN ('monthly','tier_change')),
+                        CHECK (kind IN ('monthly','tier_change','renewal')),
     target_tier     VARCHAR(50),
     period          VARCHAR(7) NOT NULL,
     period_start    TIMESTAMP NOT NULL,
@@ -210,6 +211,33 @@ CREATE TABLE IF NOT EXISTS subscription_payments (
         FOREIGN KEY (lawfirm_id) REFERENCES lawfirm_meta(id) ON DELETE CASCADE
 );
 
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS period_started_at TIMESTAMPTZ;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS paid_through TIMESTAMPTZ;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS auto_renew BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS payment_method_ref TEXT;
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS scheduled_tier VARCHAR(50);
+ALTER TABLE subscription_charges ADD COLUMN IF NOT EXISTS rolling BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE subscription_charges ADD COLUMN IF NOT EXISTS failure_reason TEXT;
+ALTER TABLE subscription_charges DROP CONSTRAINT IF EXISTS subscription_charges_kind_check;
+ALTER TABLE subscription_charges ADD CONSTRAINT subscription_charges_kind_check
+    CHECK (kind IN ('monthly','tier_change','renewal'));
+UPDATE subscription_charges SET kind = 'renewal' WHERE rolling AND kind = 'monthly';
+
+-- Give existing paid subscriptions a period based on their most recent payment
+-- for the active tier. Saving a payment method still requires firm-admin consent.
+UPDATE subscriptions s
+SET period_started_at = last_payment.paid_at,
+    paid_through = last_payment.paid_at + INTERVAL '1 month'
+FROM (
+  SELECT ch.subscription_id, MAX(ch.paid_at) AS paid_at
+  FROM subscription_charges ch
+  JOIN lawfirm_meta f ON f.id = ch.lawfirm_id
+  WHERE ch.status = 'Paid' AND ch.paid_at IS NOT NULL
+    AND COALESCE(ch.target_tier, ch.tier) = f.tier
+  GROUP BY ch.subscription_id
+) last_payment
+WHERE s.id = last_payment.subscription_id AND s.paid_through IS NULL;
+
 CREATE TABLE IF NOT EXISTS tier_pricing (
     tier          VARCHAR(50) PRIMARY KEY
                       CHECK (tier IN ('Starter','Growth','Enterprise')),
@@ -236,6 +264,8 @@ CREATE TABLE IF NOT EXISTS invoice_payments (
 );
 
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS case_name      VARCHAR(255);
+-- CasesService uses app_state IDs. invoices.case_id references the relational cases table.
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS app_case_id    INT;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS advocate_name  VARCHAR(100);
 ALTER TABLE lawfirm_meta ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
 
