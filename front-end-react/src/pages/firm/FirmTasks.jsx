@@ -32,12 +32,7 @@ export default function FirmTasks({ caseId }) {
   const { data: cases = [], load: loadCases } = casesRequest;
   const { data: tasks = [], load: loadTasks } = taskQuery;
   const { data: roster = [], load: loadRoster } = rosterQuery;
-  // Lawyers assign to interns; interns may assign to lawyers or themselves, never to other interns.
-  const members = roster.filter((member) => {
-    if (isLawyer) return member.role === 'intern';
-    if (isIntern) return member.role === 'lawyer' || member.id === user?.id;
-    return ['lawyer', 'intern'].includes(member.role);
-  });
+  const members = roster.filter((member) => (isLawyer ? ['intern'] : ['lawyer', 'intern']).includes(member.role));
   const issue = taskQuery.error || casesRequest.error;
   const loading = taskQuery.loading || casesRequest.loading || rosterQuery.loading;
   const error = issue ? `Could not load tasks: ${issue.message}` : '';
@@ -297,10 +292,13 @@ export default function FirmTasks({ caseId }) {
               )}
             </div>
             <Field label="Assignee">
-              <Select value={form.assignee} onChange={(e) => setForm((f) => ({ ...f, assignee: e.target.value }))}>
+              {isIntern ? (
+                // Interns cannot assign tasks: the assignee is fixed.
+                <Input value={form.assignee || 'Unassigned'} readOnly disabled />
+              ) : <Select value={form.assignee} onChange={(e) => setForm((f) => ({ ...f, assignee: e.target.value }))}>
                 <option value="">Select…</option>
                 {assigneeNames(formCase).map((name) => <option key={name} value={name}>{name}</option>)}
-              </Select>
+              </Select>}
             </Field>
             {/* priority segmented toggle */}
             <Field label="Priority">
@@ -358,7 +356,7 @@ export default function FirmTasks({ caseId }) {
     setErrors({});
     setCaseSearch('');
     setForm({
-      name: '', caseId: selectedCase ? String(selectedCase.id) : '', assignee: '',
+      name: '', caseId: selectedCase ? String(selectedCase.id) : '', assignee: isIntern ? (user?.fullName || user?.name || '') : '',
       priority: 'LOW', dueDate: '', description: '',
     });
   }

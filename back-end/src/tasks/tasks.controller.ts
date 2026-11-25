@@ -18,17 +18,16 @@ export class TasksController {
     private readonly usersService: UsersService,
   ) {}
 
-  /** An intern may not hand a task to another intern (themselves, lawyers and admins are fine). */
-  private async assertInternMayAssign(req: any, assignedUser: unknown, firmIdFromBody?: string): Promise<void> {
+  /** Interns cannot assign tasks: the assignee must stay empty or be the intern themself. */
+  private async assertInternNotAssigning(req: any, assignedUser: unknown): Promise<void> {
     const role = String(req.user?.role ?? req.headers?.['role'] ?? '').toLowerCase();
     const name = typeof assignedUser === 'string' ? assignedUser.trim().toLowerCase() : '';
-    if (role !== UserRole.INTERN || !name) return;
+    if (role !== UserRole.INTERN || !name || name === 'unassigned') return;
 
-    const firmId = req.user?.firmId ?? firmIdFromBody;
-    if (!firmId) throw new ForbiddenException('Cannot verify the assignee without a firm');
-    const interns = await this.usersService.getUsersByFirm(firmId, UserRole.INTERN);
-    const other = interns.find((i) => i.id !== req.user?.id && i.fullName.trim().toLowerCase() === name);
-    if (other) throw new ForbiddenException('Interns cannot assign tasks to other interns');
+    const me = req.user?.id ? await this.usersService.findOne(req.user.id) : null;
+    if (me?.fullName.trim().toLowerCase() !== name) {
+      throw new ForbiddenException('Interns cannot assign tasks');
+    }
   }
 
   @Get()
@@ -59,7 +58,7 @@ export class TasksController {
   @Post()
   @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.INTERN)
   async create(@Req() req: any, @Body() taskData: Partial<Task>): Promise<Task> {
-    await this.assertInternMayAssign(req, taskData.assignedUser, taskData.firmId);
+    await this.assertInternNotAssigning(req, taskData.assignedUser);
     return this.tasksService.create(taskData);
   }
 
@@ -67,9 +66,9 @@ export class TasksController {
   @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.INTERN)
   async update(@Req() req: any, @Param('id') id: string, @Body() updateData: Partial<Task>): Promise<Task> {
     const current = this.tasksService.findOne(id);
-    // Only check when the assignee actually changes, so an intern can still edit other fields.
+    // Only check when the assignee changes, so an intern can still edit other fields.
     if (updateData.assignedUser !== undefined && updateData.assignedUser !== current.assignedUser) {
-      await this.assertInternMayAssign(req, updateData.assignedUser, updateData.firmId ?? current.firmId);
+      await this.assertInternNotAssigning(req, updateData.assignedUser);
     }
     return this.tasksService.update(id, updateData);
   }
