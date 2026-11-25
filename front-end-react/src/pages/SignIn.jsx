@@ -39,7 +39,7 @@ export default function SignIn() {
 
       signIn(user); // stores user + normalises role
       toast('Welcome back, ' + (user.fullName || user.name || 'User') + '!');
-      navigate(dashboardPathFor(role).replace('#', '')); // go to the role's dashboard
+      navigate(dashboardPathFor(role)); // go to the role's dashboard
     } catch (err) {
       setError(err.message || 'Unable to sign in right now. Please check backend server.');
     } finally {
@@ -50,7 +50,7 @@ export default function SignIn() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-page p-4">
       {/* Logo back to landing */}
-      <a href="#/" className="fixed left-6 top-5 text-xl font-extrabold text-brand">LexFlow</a>
+      <a href="/" className="fixed left-6 top-5 text-xl font-extrabold text-brand">LexFlow</a>
 
       <Card className="w-full max-w-md p-8">
         <h1 className="text-2xl font-bold text-slate-900">Sign-in</h1>
@@ -80,9 +80,9 @@ export default function SignIn() {
 
         <p className="mt-6 text-center text-sm text-slate-500">
           Do not have an account? Sign up as a{' '}
-          <a href="#/onboarding/client/1" className="font-semibold text-indigo-500 hover:underline">Client</a>
+          <a href="/onboarding/client/1" className="font-semibold text-indigo-500 hover:underline">Client</a>
           {' '}or register your{' '}
-          <a href="#/onboarding/firm/1" className="font-semibold text-indigo-500 hover:underline">Law Firm</a>
+          <a href="/onboarding/firm/1" className="font-semibold text-indigo-500 hover:underline">Law Firm</a>
         </p>
       </Card>
     </div>

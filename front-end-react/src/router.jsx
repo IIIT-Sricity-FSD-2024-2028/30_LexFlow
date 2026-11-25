@@ -2,7 +2,7 @@
  * router.jsx - React Router (react-router-dom) integration & navigation bridge.
  *
  * Provides compatibility helpers for existing components while delegating routing
- * to react-router-dom (HashRouter, Routes, Route, Link, useNavigate, useParams, useLocation).
+ * to react-router-dom (BrowserRouter, Routes, Route, Link, useNavigate, useParams, useLocation).
  */
 
 import {
@@ -22,16 +22,13 @@ export function setGlobalNavigate(navFn) {
 
 /**
  * Programmatically navigate to a route: navigate('/client/cases').
- * Uses React Router's navigator when available, falling back to hash update.
+ * Uses React Router's navigator when available, falling back to a full page load.
  */
 export function navigate(path) {
   if (globalNavigate) {
     globalNavigate(path);
   } else {
-    const target = path.startsWith('/') ? `#${path}` : `#/${path}`;
-    if (window.location.hash !== target) {
-      window.location.hash = target;
-    }
+    window.location.assign(path);
   }
 }
 

@@ -99,7 +99,7 @@ export default function SADashboard() {
       <Card>
         <div className="flex items-center justify-between border-b border-slate-100 p-5">
           <h2 className="font-bold text-slate-900">Top earning firms</h2>
-          <a href="#/superadmin/revenue" className="text-sm font-semibold text-indigo-600 hover:underline">See all →</a>
+          <a href="/superadmin/revenue" className="text-sm font-semibold text-indigo-600 hover:underline">See all →</a>
         </div>
         <Table>
           <thead>

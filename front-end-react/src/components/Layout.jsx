@@ -33,7 +33,7 @@ export default function Layout({ roles = [], children }) {
     // superadmin bypasses every gate.
     const r = (user.role || '').toLowerCase();
     if (roles.length > 0 && r !== 'superadmin' && !roles.includes(r)) {
-      navigate(dashboardPathFor(r).replace('#', '')); // go to own dashboard
+      navigate(dashboardPathFor(r)); // go to own dashboard
     }
   }, [user, roles, navigate]);
 

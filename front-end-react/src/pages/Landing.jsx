@@ -42,8 +42,7 @@ export default function Landing() {
     else navigate('/signin');
   };
 
-  /* The router owns the URL hash (#/signin ...), so "#features" would be a
-     404 route. Scroll to the section instead of changing the hash. */
+  /* Scroll to the section instead of changing the URL. */
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
   return (
@@ -51,7 +50,7 @@ export default function Landing() {
       {/* ══════════════ HEADER ══════════════ */}
       <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <a href="#/" className="flex items-center"><img src="/img/logo.svg" alt="LexFlow logo" className="h-8" /></a>
+          <a href="/" className="flex items-center"><img src="/img/logo.svg" alt="LexFlow logo" className="h-8" /></a>
 
           {/* Section anchors */}
           <nav className="hidden gap-7 text-sm font-medium text-slate-600 md:flex">

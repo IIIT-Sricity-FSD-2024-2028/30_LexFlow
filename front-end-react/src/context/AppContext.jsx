@@ -7,16 +7,17 @@
 
 import { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks.js';
+import { navigate } from '../router.jsx';
 import { SESSION_EXPIRED_EVENT } from '../api/api.js';
 import { setUser, setLoginRole, logout, syncUserFromStorage, showToast } from '../store/slices/appSlice.js';
 
 /* ── Helper: which page should each role land on after signing in? ── */
 export function dashboardPathFor(role) {
   const r = (role || '').toLowerCase();
-  if (r === 'client') return '#/client/dashboard';
-  if (['firmadmin', 'lawyer', 'intern'].includes(r)) return '#/firm/dashboard';
-  if (r === 'superadmin') return '#/superadmin/dashboard';
-  return '#/signin';
+  if (r === 'client') return '/client/dashboard';
+  if (['firmadmin', 'lawyer', 'intern'].includes(r)) return '/firm/dashboard';
+  if (r === 'superadmin') return '/superadmin/dashboard';
+  return '/signin';
 }
 
 /* ── Backward-compatible hook backed by Redux Toolkit ── */
@@ -44,7 +45,7 @@ export function useApp() {
 
   const signOut = useCallback(() => {
     dispatch(logout());
-    window.location.hash = '';
+    navigate('/');
   }, [dispatch]);
 
   const chooseLoginRole = useCallback(

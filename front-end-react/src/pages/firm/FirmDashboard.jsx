@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/api.js';
 import { useApp } from '../../context/AppContext.jsx';
+import { navigate } from '../../router.jsx';
 import { useResource } from '../../store/resource.js';
 import { consultationList } from '../../store/slices/intakeSlice.js';
 import { useAppDispatch } from '../../store/hooks.js';
@@ -270,6 +271,6 @@ export default function FirmDashboard() {
 
   function navigate2Chat(id) {
     sessionStorage.setItem('active_cons_id', id);
-    window.location.hash = '/firm/chat';
+    navigate('/firm/chat');
   }
 }

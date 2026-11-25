@@ -100,7 +100,7 @@ export default function SARevenue() {
       <Card className="mb-6">
         <div className="flex items-center justify-between border-b border-slate-100 p-5">
           <h2 className="font-bold text-slate-900">Plan mix</h2>
-          <a href="#/superadmin/settings" className="text-sm font-semibold text-indigo-600 hover:underline">Edit pricing →</a>
+          <a href="/superadmin/settings" className="text-sm font-semibold text-indigo-600 hover:underline">Edit pricing →</a>
         </div>
         <Table>
           <thead><tr><Th>Tier</Th><Th>Firms</Th><Th>Price / month</Th><Th>MRR</Th></tr></thead>

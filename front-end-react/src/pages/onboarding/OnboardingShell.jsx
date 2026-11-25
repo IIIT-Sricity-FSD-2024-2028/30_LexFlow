@@ -12,7 +12,7 @@ export default function OnboardingShell({ steps, current, children }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-page p-4">
       {/* Logo back to landing */}
-      <a href="#/" className="fixed left-6 top-5 text-xl font-extrabold text-brand">LexFlow</a>
+      <a href="/" className="fixed left-6 top-5 text-xl font-extrabold text-brand">LexFlow</a>
 
       <div className="w-full max-w-3xl rounded-2xl bg-white p-8 shadow-lg md:p-12">
         {/* ── Stepper: circles joined by a line ── */}
