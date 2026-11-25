@@ -8,6 +8,7 @@ import {
 import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto, CreateFirmDto, UpdateFirmDto } from './dto';
 import { FirmOnboardingDto } from './dto/firm-onboarding.dto';
 import { FirmOnboardingResponseDto } from './dto/firm-onboarding-response.dto';
+import { CasesService } from '../cases/cases.service';
 import {
   q, tx, hashPassword, verifyPassword, parseActorId, ACTOR_TABLE, ActorKind,
 } from '../db';
@@ -183,6 +184,8 @@ export const ACTORS_UNION = `
 export class UsersService {
   private onboardingSessions: Map<string, FirmOnboardingSession> = new Map();
 
+  constructor(private readonly casesService: CasesService) {}
+
   async findAll(role?: UserRole): Promise<UserResponseDto[]> {
     const filter = role ? `WHERE u.kind = '${this.kindOfRole(role)}'` : '';
     const { rows } = await q(`SELECT * FROM (${ACTORS_UNION}) u ${filter} ORDER BY u.id`);
@@ -198,9 +201,11 @@ export class UsersService {
                 SELECT client_id FROM consultations WHERE lawfirm_id = $1
                 UNION
                 SELECT cc.client_id FROM case_clients cc
-                  JOIN cases cs ON cs.id = cc.case_id WHERE cs.lawfirm_id = $1))
+                  JOIN cases cs ON cs.id = cc.case_id WHERE cs.lawfirm_id = $1
+                UNION
+                SELECT unnest($2::int[])))
        ORDER BY u.id`,
-      [fid],
+      [fid, this.casesService.getFirmClientIds(`firm-${fid}`)],
     );
     return rows.map(rowToActor).map(actorToResponse);
   }
@@ -675,9 +680,11 @@ export class UsersService {
            SELECT client_id FROM consultations WHERE lawfirm_id = $1
            UNION
            SELECT cc.client_id FROM case_clients cc
-             JOIN cases cs ON cs.id = cc.case_id WHERE cs.lawfirm_id = $1)
+             JOIN cases cs ON cs.id = cc.case_id WHERE cs.lawfirm_id = $1
+           UNION
+           SELECT unnest($2::int[]))
          ORDER BY id`,
-        [fid],
+        [fid, this.casesService.getFirmClientIds(`firm-${fid}`)],
       );
       return rows.map(rowToActor).map(actorToResponse);
     }

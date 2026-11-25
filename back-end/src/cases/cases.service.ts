@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
-import { loadState, saveState } from '../db';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { loadState, parseActorId, q, saveState } from '../db';
 import { CreateCaseDto } from './dto/create-case.dto';
 import { UpdateCaseDto } from './dto/update-case.dto';
 import { Case } from './interfaces/case.interface';
@@ -9,14 +9,49 @@ export class CasesService implements OnModuleInit {
   private cases: Case[] = [];
   private idCounter = 1;
 
-  constructor() {
-    this.seedCases();
-  }
-
   // Runs once after the DB is ready: use the saved cases if there are any.
   async onModuleInit() {
     this.cases = await loadState('cases', this.cases);
+    await this.normalizeClientIds(this.cases);
     this.idCounter = Math.max(0, ...this.cases.map((c) => c.id)) + 1;
+  }
+
+  private async normalizeClientIds(records: Pick<Case, 'client_id'>[]) {
+    const emails = records.map(({ client_id }) => client_id?.trim().toLowerCase())
+      .filter((email): email is string => !!email?.includes('@'));
+    if (!emails.length) return;
+
+    // Older consultations used an email as the client reference.
+    const { rows } = await q<{ id: number; email: string }>(
+      `SELECT min(id) AS id, lower(trim(email_address)) AS email
+       FROM clients WHERE lower(trim(email_address)) = ANY($1::text[])
+       GROUP BY lower(trim(email_address)) HAVING count(*) = 1`,
+      [[...new Set(emails)]],
+    );
+    const ids = new Map(rows.map(({ id, email }) => [email, `cl-${id}`]));
+    for (const record of records) {
+      const clientId = ids.get(record.client_id?.trim().toLowerCase() ?? '');
+      if (clientId) record.client_id = clientId;
+    }
+  }
+
+  private async requireClientId(reference?: string): Promise<string> {
+    const record = { client_id: reference };
+    await this.normalizeClientIds([record]);
+    const client = parseActorId(record.client_id ?? '');
+    if (client?.kind === 'cl' && client.num > 0 && client.num <= 2147483647) {
+      const { rows } = await q('SELECT id FROM clients WHERE id = $1', [client.num]);
+      if (rows.length) return `cl-${client.num}`;
+    }
+    throw new BadRequestException('Select a registered client for this case.');
+  }
+
+  getFirmClientIds(firmId: string): number[] {
+    const ids = this.findAll({ firmId }).flatMap(({ client_id }) => {
+      const parsed = parseActorId(client_id ?? '');
+      return parsed?.kind === 'cl' ? [parsed.num] : [];
+    });
+    return [...new Set(ids)];
   }
 
   /** Can this logged-in user see this case? (same rules as the React page) */
@@ -27,55 +62,12 @@ export class CasesService implements OnModuleInit {
     return c.lawfirm_id === user.firmId; // firmadmin / lawyer / intern
   }
 
-  private seedCases() {
-    const now = new Date().toISOString();
-    this.cases = [
-      {
-        id: this.idCounter++,
-        cnr: '100001',
-        case_type: 'Criminal',
-        brief_description: 'State vs John Doe - Narcotics case',
-        status: 'Active',
-        filed_date: '2024-01-15',
-        created_at: now,
-        lawfirm_id: 'firm-1',
-        client_id: 'cl-1', // Client Alice
-        lawyer_id: 'lw-1', // Lawyer Bob
-        client: { opposingParty: 'State of Maharashtra' },
-      },
-      {
-        id: this.idCounter++,
-        cnr: '100002',
-        case_type: 'Civil',
-        brief_description: 'Property dispute - Sharma vs Gupta',
-        status: 'Active',
-        filed_date: '2024-02-20',
-        created_at: now,
-        lawfirm_id: 'firm-1',
-        client_id: 'cl-1', // Client Alice
-        lawyer_id: 'lw-1', // Lawyer Bob
-        client: { opposingParty: 'Gupta Estates Pvt Ltd' },
-      },
-      {
-        id: this.idCounter++,
-        cnr: '100003',
-        case_type: 'Corporate',
-        brief_description: 'Contract breach - TechCorp vs SoftSystems',
-        status: 'Pending',
-        filed_date: '2024-03-05',
-        created_at: now,
-        lawfirm_id: 'firm-1',
-        client_id: 'cl-1', // Client Alice
-        lawyer_id: 'lw-1', // Lawyer Bob
-        client: { opposingParty: 'SoftSystems Ltd' },
-      },
-    ];
-  }
-
-  create(createCaseDto: CreateCaseDto): Case {
+  async create(createCaseDto: CreateCaseDto): Promise<Case> {
+    const clientId = await this.requireClientId(createCaseDto.client_id);
     const newCase: Case = {
       id: this.idCounter++,
       ...createCaseDto,
+      client_id: clientId,
       created_at: new Date().toISOString(),
       status: createCaseDto.status || 'Active',
     };
@@ -111,14 +103,22 @@ export class CasesService implements OnModuleInit {
     return found;
   }
 
-  update(id: any, updateCaseDto: UpdateCaseDto): Case {
-    const numericId = Number(id);
-    const caseIndex = this.cases.findIndex(c => Number(c.id) === numericId);
-    if (caseIndex === -1) throw new NotFoundException(`Case with ID ${id} not found`);
+  async update(id: any, updateCaseDto: UpdateCaseDto): Promise<Case> {
+    const existing = this.findOne(id);
+    const { client_id: requestedClientId, ...changes } = updateCaseDto;
+    const clientId = await this.requireClientId(
+      requestedClientId === undefined ? existing.client_id : requestedClientId,
+    );
 
+    const current = this.findOne(id);
+    const caseIndex = this.cases.indexOf(current);
     this.cases[caseIndex] = {
-      ...this.cases[caseIndex],
-      ...updateCaseDto,
+      ...current,
+      ...changes,
+      // Keep a client reassignment that happened while an unrelated edit was validating.
+      client_id: requestedClientId === undefined && current.client_id !== existing.client_id
+        ? current.client_id
+        : clientId,
     };
     saveState('cases', this.cases);
     return this.cases[caseIndex];

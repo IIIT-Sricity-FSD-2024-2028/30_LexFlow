@@ -50,6 +50,20 @@ export class UserResponseDto {
   @ApiProperty({ required: false, example: 'available' })
   availability?: 'available' | 'unavailable';
 
+  @ApiProperty({
+    description: 'Bar Council enrollment number (lawyers)',
+    example: 'MAH/1234/2018',
+    required: false,
+  })
+  barNumber?: string;
+
+  @ApiProperty({
+    description: '12-digit Aadhaar card number in 4-4-4 format (primary key for clients)',
+    example: '5432-8765-4321',
+    required: false,
+  })
+  aadhaar?: string;
+
   @ApiProperty({ required: false, example: 'Individual', description: 'Clients only: Individual | Business' })
   accountType?: string;
 

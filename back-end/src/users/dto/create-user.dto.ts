@@ -72,6 +72,24 @@ export class CreateUserDto {
   @IsString()
   availability?: 'available' | 'unavailable';
 
+  @ApiProperty({
+    description: 'Bar Council enrollment number for lawyers (e.g. MAH/1234/2018 or DL/5678/2015)',
+    example: 'MAH/1234/2018',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  barNumber?: string;
+
+  @ApiProperty({
+    description: '12-digit Indian Aadhaar card number in 4-4-4 format acting as client primary key',
+    example: '5432-8765-4321',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  aadhaar?: string;
+
   @ApiProperty({ required: false, example: 'firm-1' })
   @IsOptional()
   @IsString()

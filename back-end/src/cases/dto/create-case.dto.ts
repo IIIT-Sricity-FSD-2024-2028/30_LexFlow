@@ -17,9 +17,9 @@ export class CreateCaseDto {
   @IsString()
   lawyer_id?: string;
 
-  @IsOptional()
   @IsString()
-  client_id?: string;
+  @IsNotEmpty({ message: 'Select a registered client for this case.' })
+  client_id: string;
 
   @IsString()
   @IsNotEmpty()
