@@ -143,7 +143,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       const { password: _pw, ...safeUser } = user;
-      localStorage.setItem('currentUser', JSON.stringify(safeUser));
+      localStorage.setItem('currentUser', JSON.stringify(
+        typeof AuthService !== 'undefined' ? AuthService.minimalUser(safeUser) : { id: safeUser.id, fullName: safeUser.fullName, email: safeUser.email, role: safeUser.role }
+      ));
 
       sessionStorage.removeItem(DRAFT_KEY);
 

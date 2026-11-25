@@ -7,7 +7,18 @@ const AuthService = (() => {
     return 'pages/sign-in.html';
   }
 
+  // Only what the UI needs to route/render. PII (phone, address, aadhaar...)
+  // is fetched from GET /users/:id on demand, never cached here.
+  const KEEP = ['id', 'userId', 'clientId', 'fullName', 'name', 'email', 'role', 'firmId', 'firmName', 'caseAccess'];
+  function minimalUser(u) {
+    const out = {};
+    KEEP.forEach(k => { if (u && u[k] !== undefined) out[k] = u[k]; });
+    return out;
+  }
+
   return {
+    minimalUser,
+
     getCurrentUser() {
       try {
         const raw = localStorage.getItem('currentUser');
@@ -23,7 +34,7 @@ const AuthService = (() => {
         try {
           const user = await window.LexFlowAPI.auth.login(email, password, role);
           if (user) {
-            localStorage.setItem('currentUser', JSON.stringify(user));
+            localStorage.setItem('currentUser', JSON.stringify(minimalUser(user)));
             return { success: true, user };
           }
         } catch (err) {
@@ -46,7 +57,7 @@ const AuthService = (() => {
       }
 
       const { password: _pw, ...safeUser } = user;
-      localStorage.setItem('currentUser', JSON.stringify(safeUser));
+      localStorage.setItem('currentUser', JSON.stringify(minimalUser(safeUser)));
       return { success: true, user: safeUser };
     },
 

@@ -1,6 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { getCurrentUser } from '../../api/api.js';
 
+// Cache only what the UI needs; PII is fetched from GET /users/:id on demand.
+const KEEP = ['id', 'userId', 'clientId', 'fullName', 'name', 'email', 'role', 'firmId', 'firmName', 'caseAccess'];
+const minimalUser = (u) => Object.fromEntries(KEEP.filter((k) => u[k] !== undefined).map((k) => [k, u[k]]));
+
 const initialState = {
   user: getCurrentUser(),
   loginRole: localStorage.getItem('loginRole') || '',
@@ -20,7 +24,7 @@ const appSlice = createSlice({
         return;
       }
       const map = { firmadmin: 'firmAdmin', superadmin: 'superAdmin' };
-      const normalized = { ...rawUser, role: map[rawUser?.role] || rawUser?.role || '' };
+      const normalized = { ...minimalUser(rawUser), role: map[rawUser?.role] || rawUser?.role || '' };
       state.user = normalized;
       localStorage.setItem('currentUser', JSON.stringify(normalized));
       localStorage.setItem('userRole', normalized.role);
