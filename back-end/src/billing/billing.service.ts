@@ -219,7 +219,7 @@ export class BillingService {
     return this.findOneInvoice(number);
   }
 
-  async findAllInvoices(role: string, callerId?: string, callerName?: string): Promise<InvoiceRecord[]> {
+  async findAllInvoices(role: string, callerId?: string): Promise<InvoiceRecord[]> {
     const r = (role || '').toUpperCase().trim();
     const base = `${INVOICE_SELECT}`;
 
@@ -227,14 +227,6 @@ export class BillingService {
       const parsed = parseActorId(callerId);
       if (!parsed || parsed.kind !== 'cl') return [];
       const { rows } = await q(`${base} WHERE i.client_id = $1 ORDER BY i.issued_at DESC`, [parsed.num]);
-      return rows.map(rowToInvoice);
-    }
-
-    if (r === 'LAWYER' && callerName) {
-      const { rows } = await q(
-        `${base} WHERE lower(i.advocate_name) = lower($1) ORDER BY i.issued_at DESC`,
-        [callerName.trim()],
-      );
       return rows.map(rowToInvoice);
     }
 
@@ -246,7 +238,7 @@ export class BillingService {
       return rows.map(rowToInvoice);
     }
 
-    // SUPERADMIN → all invoices
+    if (r !== 'SUPERADMIN') return [];
     const { rows } = await q(`${base} ORDER BY i.issued_at DESC`);
     return rows.map(rowToInvoice);
   }
@@ -309,8 +301,8 @@ export class BillingService {
     return { message: `Invoice ${id} deleted successfully` };
   }
 
-  async getSummary(role: string, callerId?: string, callerName?: string) {
-    const scoped = await this.findAllInvoices(role, callerId, callerName);
+  async getSummary(role: string, callerId?: string) {
+    const scoped = await this.findAllInvoices(role, callerId);
     let totalBilled = 0, totalPaid = 0, pendingAmount = 0,
       overdueAmount = 0, paidCount = 0, overdueCount = 0;
     scoped.forEach((inv) => {
@@ -348,7 +340,7 @@ export class BillingService {
       return rows.map(rowToPayment);
     }
 
-    // SUPERADMIN / LAWYER → all payments
+    if (r !== 'SUPERADMIN') return [];
     const { rows } = await q(`${base} ORDER BY p.paid_on DESC`);
     return rows.map(rowToPayment);
   }

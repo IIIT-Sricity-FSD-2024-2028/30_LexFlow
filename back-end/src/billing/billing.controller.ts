@@ -1,7 +1,7 @@
 import { FirmWrite } from '../common/decorators/firm-write.decorator';
 import {
   Controller, Get, Post, Body, Patch, Param,
-  Delete, HttpCode, HttpStatus, UseGuards, Headers, Req, UnauthorizedException } from '@nestjs/common';
+  Delete, HttpCode, HttpStatus, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
 import {
   ApiTags, ApiOperation, ApiResponse, ApiParam, ApiHeader,
 } from '@nestjs/swagger';
@@ -19,42 +19,38 @@ interface ApiWrapper<T> { success: boolean; message: string; data: T; }
 const ok = <T>(message: string, data: T): ApiWrapper<T> => ({ success: true, message, data });
 
 @ApiTags('Billing')
-@ApiHeader({ name: 'role', description: 'client | lawyer | intern | firmadmin | superadmin', required: true })
-@ApiHeader({ name: 'x-user-id', description: 'Caller user-id (for CLIENT/LAWYER scoped views)', required: false })
+@ApiHeader({ name: 'role', description: 'client | firmadmin | superadmin', required: true })
 @UseGuards(RolesGuard)
 @FirmWrite()
 @Controller('billing')
 export class BillingController {
   constructor(private readonly billingService: BillingService) { }
 
-  private invoiceActor(req: { user?: { role: string; firmId?: string } }) {
+  private invoiceActor(req: { user?: { id: string; role: string; firmId?: string } }) {
     if (!req.user) throw new UnauthorizedException('Login required');
     return req.user;
   }
 
   @Get('cases')
-  @Roles(UserRole.FIRMADMIN, UserRole.LAWYER)
+  @Roles(UserRole.FIRMADMIN)
   getCases(@Req() req): ApiWrapper<InvoiceCaseEntry[]> {
     return ok('Cases retrieved successfully', this.billingService.getInvoiceCases(this.invoiceActor(req).firmId));
   }
 
   // GET /billing/clients
   @Get('clients')
-  @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.SUPERADMIN)
-  async getClients(
-    @Req() req,
-    @Headers('x-user-id') callerId: string,
-  ): Promise<ApiWrapper<ClientEntry[]>> {
+  @Roles(UserRole.FIRMADMIN, UserRole.SUPERADMIN)
+  async getClients(@Req() req): Promise<ApiWrapper<ClientEntry[]>> {
     return ok(
       'Clients retrieved successfully',
-      await this.billingService.getClients(req.user?.id ?? callerId),
+      await this.billingService.getClients(this.invoiceActor(req).id),
     );
   }
 
   // POST /billing/invoices
   @Post('invoices')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.SUPERADMIN)
+  @Roles(UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Create a new invoice' })
   @ApiResponse({ status: 201, description: 'Invoice created' })
   @ApiResponse({ status: 404, description: 'Client ID not found or not a client' })
@@ -67,51 +63,44 @@ export class BillingController {
 
   // GET /billing/invoices
   @Get('invoices')
-  @Roles(UserRole.CLIENT, UserRole.LAWYER, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.CLIENT, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({
     summary: 'Get invoices (role-scoped)',
     description:
-      'CLIENT → only their own invoices (pass `x-user-id`).\n' +
-      'LAWYER → invoices where they are the advocate (pass `x-user-name`).\n' +
-      'FIRMADMIN / SUPERADMIN → all invoices.',
+      'CLIENT ? their own invoices.\n' +
+      'FIRMADMIN ? invoices for their firm.\n' +
+      'SUPERADMIN ? all invoices.',
   })
-  async findAllInvoices(
-    @Headers('role') role: string,
-    @Req() req,
-    @Headers('x-user-id') callerId: string,
-    @Headers('x-user-name') callerName: string,
-  ): Promise<ApiWrapper<InvoiceRecord[]>> {
+  async findAllInvoices(@Req() req): Promise<ApiWrapper<InvoiceRecord[]>> {
+    const actor = this.invoiceActor(req);
     return ok('Invoices retrieved successfully',
-      await this.billingService.findAllInvoices(req.user?.role ?? role, req.user?.id ?? callerId, req.user?.fullName ?? callerName));
+      await this.billingService.findAllInvoices(actor.role, actor.id));
   }
 
   // GET /billing/invoices/summary
   @Get('invoices/summary')
-  @Roles(UserRole.CLIENT, UserRole.LAWYER, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.CLIENT, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Billing summary stats (role-scoped)' })
-  async getSummary(
-    @Headers('role') role: string,
-    @Req() req,
-    @Headers('x-user-id') callerId: string,
-    @Headers('x-user-name') callerName: string,
-  ): Promise<ApiWrapper<object>> {
+  async getSummary(@Req() req): Promise<ApiWrapper<object>> {
+    const actor = this.invoiceActor(req);
     return ok('Summary retrieved successfully',
-      await this.billingService.getSummary(req.user?.role ?? role, req.user?.id ?? callerId, req.user?.fullName ?? callerName));
+      await this.billingService.getSummary(actor.role, actor.id));
   }
 
   // GET /billing/invoices/:id
   @Get('invoices/:id')
-  @Roles(UserRole.CLIENT, UserRole.LAWYER, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.CLIENT, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Get single invoice by ID' })
   @ApiParam({ name: 'id', example: 'INV-A1B2C3D4' })
   @ApiResponse({ status: 404, description: 'Invoice not found' })
-  async findOneInvoice(@Param('id') id: string): Promise<ApiWrapper<InvoiceRecord>> {
+  async findOneInvoice(@Param('id') id: string, @Req() req): Promise<ApiWrapper<InvoiceRecord>> {
+    this.invoiceActor(req);
     return ok('Invoice retrieved successfully', await this.billingService.findOneInvoice(id));
   }
 
   // PATCH /billing/invoices/:id
   @Patch('invoices/:id')
-  @Roles(UserRole.FIRMADMIN, UserRole.LAWYER, UserRole.SUPERADMIN)
+  @Roles(UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Update an invoice (partial)' })
   @ApiParam({ name: 'id', example: 'INV-A1B2C3D4' })
   async updateInvoice(
@@ -134,25 +123,24 @@ export class BillingController {
 
   // GET /billing/payments
   @Get('payments')
-  @Roles(UserRole.CLIENT, UserRole.LAWYER, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.CLIENT, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Get payments (role-scoped)' })
-  async findAllPayments(
-    @Headers('role') role: string,
-    @Req() req,
-    @Headers('x-user-id') callerId: string,
-  ): Promise<ApiWrapper<PaymentRecord[]>> {
+  async findAllPayments(@Req() req): Promise<ApiWrapper<PaymentRecord[]>> {
+    const actor = this.invoiceActor(req);
     return ok('Payments retrieved successfully',
-      await this.billingService.findAllPayments(req.user?.role ?? role, req.user?.id ?? callerId));
+      await this.billingService.findAllPayments(actor.role, actor.id));
   }
 
   // GET /billing/payments/invoice/:invoiceId
   @Get('payments/invoice/:invoiceId')
-  @Roles(UserRole.CLIENT, UserRole.LAWYER, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.CLIENT, UserRole.FIRMADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Get payments for a specific invoice' })
   @ApiParam({ name: 'invoiceId', example: 'INV-A1B2C3D4' })
   async findPaymentsByInvoice(
     @Param('invoiceId') invoiceId: string,
+    @Req() req,
   ): Promise<ApiWrapper<PaymentRecord[]>> {
+    this.invoiceActor(req);
     return ok('Payments retrieved successfully',
       await this.billingService.findPaymentsByInvoice(invoiceId));
   }

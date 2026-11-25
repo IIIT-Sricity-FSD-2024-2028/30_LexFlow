@@ -25,7 +25,6 @@ import ClientDashboard from './pages/client/ClientDashboard.jsx';
 import LawFirmSearch from './pages/client/LawFirmSearch.jsx';
 import ClientCases from './pages/client/ClientCases.jsx';
 import ClientCaseDetails from './pages/client/ClientCaseDetails.jsx';
-import AdvocateProfile from './pages/client/AdvocateProfile.jsx';
 import ClientBilling from './pages/client/ClientBilling.jsx';
 import PayNow from './pages/client/PayNow.jsx';
 import Transactions from './pages/client/Transactions.jsx';
@@ -64,7 +63,6 @@ function withRouteParams(Component) {
 }
 
 const ParamClientCaseDetails = withRouteParams(ClientCaseDetails);
-const ParamAdvocateProfile = withRouteParams(AdvocateProfile);
 const ParamPayNow = withRouteParams(PayNow);
 const ParamFirmCaseDetails = withRouteParams(FirmCaseDetails);
 const ParamFirmTasks = withRouteParams(FirmTasks);
@@ -100,7 +98,6 @@ export default function App() {
         <Route path="/client/search" element={<Layout roles={['client']}><LawFirmSearch /></Layout>} />
         <Route path="/client/cases" element={<Layout roles={['client']}><ClientCases /></Layout>} />
         <Route path="/client/cases/:id" element={<Layout roles={['client']}><ParamClientCaseDetails /></Layout>} />
-        <Route path="/client/advocate/:id" element={<Layout roles={['client']}><ParamAdvocateProfile /></Layout>} />
         <Route path="/client/billing" element={<Layout roles={['client']}><ClientBilling /></Layout>} />
         <Route path="/client/billing/pay/:id" element={<Layout roles={['client']}><ParamPayNow /></Layout>} />
         <Route path="/client/transactions" element={<Layout roles={['client']}><Transactions /></Layout>} />
@@ -111,7 +108,7 @@ export default function App() {
         <Route path="/firm/cases/:id" element={<Layout roles={['firmadmin', 'lawyer', 'intern']}><ParamFirmCaseDetails /></Layout>} />
         <Route path="/firm/tasks" element={<Layout roles={['firmadmin', 'lawyer', 'intern']}><ParamFirmTasks /></Layout>} />
         <Route path="/firm/tasks/:caseId" element={<Layout roles={['firmadmin', 'lawyer', 'intern']}><ParamFirmTasks /></Layout>} />
-        <Route path="/firm/billing" element={<Layout roles={['firmadmin', 'lawyer']}><FirmBilling /></Layout>} />
+        <Route path="/firm/billing" element={<Layout roles={['firmadmin']}><FirmBilling /></Layout>} />
         <Route path="/firm/users" element={<Layout roles={['firmadmin']}><FirmUsers /></Layout>} />
 
         {/* Documents / activity log */}

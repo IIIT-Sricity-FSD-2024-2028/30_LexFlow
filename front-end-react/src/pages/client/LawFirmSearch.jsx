@@ -158,8 +158,8 @@ export default function LawFirmSearch() {
               {/* description */}
               <p className="mt-3 line-clamp-2 text-sm text-slate-500">{firm.description}</p>
 
-              {/* stats row */}
-              <div className="mt-4 flex items-center gap-4 text-xs font-semibold text-slate-600">
+              {/* rating and reviews */}
+              <div className="mt-4 text-xs font-semibold">
                 {(Number(firm.reviews || 0) === 0 || Number(firm.rating || 0) === 0) ? (
                   <span className="flex items-center gap-1 text-slate-400">
                     ★ 0.0 <span className="font-normal text-slate-400">(0 reviews)</span>
@@ -169,7 +169,6 @@ export default function LawFirmSearch() {
                     ★ {Number(firm.rating).toFixed(1)} <span className="font-normal text-slate-400">({firm.reviews} reviews)</span>
                   </span>
                 )}
-                <span>₹{firm.price || '—'}/hr</span>
               </div>
 
               {/* actions */}

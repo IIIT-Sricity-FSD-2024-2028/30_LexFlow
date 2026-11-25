@@ -1870,18 +1870,9 @@
         "operationId": "BillingController_getCases",
         "parameters": [
           {
-            "name": "x-user-id",
-            "in": "header",
-            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "role",
             "in": "header",
-            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "description": "client | firmadmin | superadmin",
             "required": true,
             "schema": {
               "type": "string"
@@ -1903,27 +1894,10 @@
         "operationId": "BillingController_getClients",
         "parameters": [
           {
-            "name": "x-user-id",
-            "in": "header",
-            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "role",
             "in": "header",
-            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "description": "client | firmadmin | superadmin",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -1944,18 +1918,9 @@
         "operationId": "BillingController_createInvoice",
         "parameters": [
           {
-            "name": "x-user-id",
-            "in": "header",
-            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "role",
             "in": "header",
-            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "description": "client | firmadmin | superadmin",
             "required": true,
             "schema": {
               "type": "string"
@@ -1986,47 +1951,14 @@
         ]
       },
       "get": {
-        "description": "CLIENT → only their own invoices (pass `x-user-id`).\nLAWYER → invoices where they are the advocate (pass `x-user-name`).\nFIRMADMIN / SUPERADMIN → all invoices.",
+        "description": "CLIENT ? their own invoices.\nFIRMADMIN ? invoices for their firm.\nSUPERADMIN ? all invoices.",
         "operationId": "BillingController_findAllInvoices",
         "parameters": [
           {
-            "name": "x-user-id",
-            "in": "header",
-            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "role",
             "in": "header",
-            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "description": "client | firmadmin | superadmin",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "role",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-name",
-            "required": true,
-            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -2048,43 +1980,10 @@
         "operationId": "BillingController_getSummary",
         "parameters": [
           {
-            "name": "x-user-id",
-            "in": "header",
-            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "role",
             "in": "header",
-            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "description": "client | firmadmin | superadmin",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "role",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-name",
-            "required": true,
-            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -2106,18 +2005,9 @@
         "operationId": "BillingController_findOneInvoice",
         "parameters": [
           {
-            "name": "x-user-id",
-            "in": "header",
-            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "role",
             "in": "header",
-            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "description": "client | firmadmin | superadmin",
             "required": true,
             "schema": {
               "type": "string"
@@ -2147,18 +2037,9 @@
         "operationId": "BillingController_updateInvoice",
         "parameters": [
           {
-            "name": "x-user-id",
-            "in": "header",
-            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "role",
             "in": "header",
-            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "description": "client | firmadmin | superadmin",
             "required": true,
             "schema": {
               "type": "string"
@@ -2198,18 +2079,9 @@
         "operationId": "BillingController_removeInvoice",
         "parameters": [
           {
-            "name": "x-user-id",
-            "in": "header",
-            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "role",
             "in": "header",
-            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "description": "client | firmadmin | superadmin",
             "required": true,
             "schema": {
               "type": "string"
@@ -2241,35 +2113,10 @@
         "operationId": "BillingController_findAllPayments",
         "parameters": [
           {
-            "name": "x-user-id",
-            "in": "header",
-            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "role",
             "in": "header",
-            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "description": "client | firmadmin | superadmin",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "role",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-user-id",
-            "required": true,
-            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -2291,18 +2138,9 @@
         "operationId": "BillingController_findPaymentsByInvoice",
         "parameters": [
           {
-            "name": "x-user-id",
-            "in": "header",
-            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "role",
             "in": "header",
-            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "description": "client | firmadmin | superadmin",
             "required": true,
             "schema": {
               "type": "string"
@@ -2334,18 +2172,9 @@
         "operationId": "BillingController_recordPayment",
         "parameters": [
           {
-            "name": "x-user-id",
-            "in": "header",
-            "description": "Caller user-id (for CLIENT/LAWYER scoped views)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "role",
             "in": "header",
-            "description": "client | lawyer | intern | firmadmin | superadmin",
+            "description": "client | firmadmin | superadmin",
             "required": true,
             "schema": {
               "type": "string"

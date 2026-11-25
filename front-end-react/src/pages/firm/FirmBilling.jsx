@@ -2,7 +2,7 @@
  * Firm Billing - invoices + payments + the firm's platform subscription.
  * Cards: 4 summaries, Subscription Charges, Your Plan, Invoices
  * (search + tabs + CRUD + print), Payment History.
- * Serves firmAdmin and lawyer (interns are blocked by the route guard).
+ * Serves firm admins.
  */
 
 import { useEffect, useMemo, useState } from 'react';

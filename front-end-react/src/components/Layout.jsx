@@ -22,6 +22,8 @@ export default function Layout({ roles = [], children }) {
   const navigate = useNavigate();
 
   const currentPath = location.pathname || '/';
+  const role = (user?.role || '').toLowerCase();
+  const canView = role === 'superadmin' || roles.length === 0 || roles.includes(role);
 
   useEffect(() => {
     // Case 1: visitor is not logged in at all.
@@ -31,14 +33,12 @@ export default function Layout({ roles = [], children }) {
     }
     // Case 2: logged in, but this page is for a different role.
     // superadmin bypasses every gate.
-    const r = (user.role || '').toLowerCase();
-    if (roles.length > 0 && r !== 'superadmin' && !roles.includes(r)) {
-      navigate(dashboardPathFor(r)); // go to own dashboard
+    if (!canView) {
+      navigate(dashboardPathFor(role));
     }
-  }, [user, roles, navigate]);
+  }, [user, canView, role, navigate]);
 
-  // While redirecting (no user) render nothing to avoid a flash of content.
-  if (!user) return null;
+  if (!user || !canView) return null;
 
   return (
     <div className="min-h-screen bg-page">

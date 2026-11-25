@@ -4,7 +4,7 @@
  * Configured with React Router's <Link> for client-side transitions.
  * The links it shows depend on the signed-in role:
  *   client     -> Consultations, Cases, Documents, Billing, Find a Law Firm
- *   firm staff -> Consultations, Cases, Tasks, Documents, Billing (not intern), User Mgmt (admin only)
+ *   firm staff -> Consultations, Cases, Tasks, Documents, plus Billing and User Management for firm admins
  *   superadmin -> Overview, Revenue, Law Firms, Lawyers, Users, Consultations, Invoices, Settings
  */
 
@@ -29,7 +29,7 @@ const FIRM_NAV = [
   { to: '/firm/cases', label: 'Cases', icon: 'briefcase' },
   { to: '/firm/tasks', label: 'Tasks', icon: 'check' },
   { to: '/documents', label: 'Documents', icon: 'document' },
-  { to: '/firm/billing', label: 'Billing', icon: 'dollar' },
+  { to: '/firm/billing', label: 'Billing', icon: 'dollar', onlyAdmin: true },
   { to: '/firm/users', label: 'User Management', icon: 'users', onlyAdmin: true },
 ];
 
@@ -86,7 +86,6 @@ export default function Sidebar({ currentPath = '/', open, onClose }) {
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
         {nav
           .filter((item) => !item.onlyAdmin || role === 'firmadmin') // hide admin-only links
-          .filter((item) => !(role === 'intern' && item.label === 'Billing')) // interns can't see billing
           .map((item) => (
             <Link
               key={item.to}
