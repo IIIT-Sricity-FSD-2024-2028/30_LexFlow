@@ -1,5 +1,6 @@
 import {
   IsString,
+  IsInt,
   IsNumber,
   IsPositive,
   IsOptional,
@@ -18,7 +19,13 @@ export class UpdateInvoiceDto {
   @IsString()
   clientId?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ description: 'ID of the replacement case', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  caseId?: number;
+
+  @ApiProperty({ description: 'Exact case name for older clients', required: false })
   @IsOptional()
   @IsString()
   caseName?: string;

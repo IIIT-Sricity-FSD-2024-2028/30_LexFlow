@@ -1,6 +1,7 @@
 import {
   IsNotEmpty,
   IsString,
+  IsInt,
   IsNumber,
   IsPositive,
   IsOptional,
@@ -25,13 +26,16 @@ export class CreateInvoiceDto {
   @IsString()
   clientId!: string;
 
-  @ApiProperty({
-    description: 'Case name',
-    example: 'Property Dispute vs. Urban Developers'
-  })
-  @IsNotEmpty()
+  @ApiProperty({ description: 'ID of the case selected from the firm’s cases', required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  caseId?: number;
+
+  @ApiProperty({ description: 'Exact case name for older clients that send a name instead of an ID', required: false })
+  @IsOptional()
   @IsString()
-  caseName!: string;
+  caseName?: string;
 
   @ApiProperty({
     description: 'Advocate / lawyer name',
