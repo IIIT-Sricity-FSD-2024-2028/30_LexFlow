@@ -24,6 +24,7 @@ export default function FirmTasks({ caseId }) {
   const { user, toast } = useApp();
   const role = (user?.role || 'firmadmin').toLowerCase();
   const isLawyer = role === 'lawyer';
+  const isIntern = role === 'intern';
 
   const casesRequest = useCaseList(user, role);
   const taskQuery = useResource(taskList, { firmId: user?.firmId, role });
@@ -31,7 +32,12 @@ export default function FirmTasks({ caseId }) {
   const { data: cases = [], load: loadCases } = casesRequest;
   const { data: tasks = [], load: loadTasks } = taskQuery;
   const { data: roster = [], load: loadRoster } = rosterQuery;
-  const members = roster.filter((member) => (isLawyer ? ['intern'] : ['lawyer', 'intern']).includes(member.role));
+  // Lawyers assign to interns; interns may assign to lawyers or themselves, never to other interns.
+  const members = roster.filter((member) => {
+    if (isLawyer) return member.role === 'intern';
+    if (isIntern) return member.role === 'lawyer' || member.id === user?.id;
+    return ['lawyer', 'intern'].includes(member.role);
+  });
   const issue = taskQuery.error || casesRequest.error;
   const loading = taskQuery.loading || casesRequest.loading || rosterQuery.loading;
   const error = issue ? `Could not load tasks: ${issue.message}` : '';
