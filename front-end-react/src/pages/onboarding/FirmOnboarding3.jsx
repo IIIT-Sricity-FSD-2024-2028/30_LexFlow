@@ -100,6 +100,13 @@ export default function FirmOnboarding3() {
 
   /* Live password rules (same 4-of-5 rule as the client flow). */
   const score = passwordScore(form.password);
+  const rules = [
+    ['At least 8 characters', form.password.length >= 8],
+    ['At least one uppercase letter (A-Z)', /[A-Z]/.test(form.password)],
+    ['At least one lowercase letter (a-z)', /[a-z]/.test(form.password)],
+    ['At least one number (0-9)', /\d/.test(form.password)],
+    ['At least one special character (!@#$%^&*...)', /[^A-Za-z0-9]/.test(form.password)],
+  ];
 
   return (
     <OnboardingShell steps={['Firm Info', 'Contact Info', 'Admin Setup']} current={2}>
@@ -164,6 +171,13 @@ export default function FirmOnboarding3() {
               {score}/5 password rules satisfied
             </p>
           )}
+          <ul className="mt-2 space-y-1">
+            {rules.map(([label, ok]) => (
+              <li key={label} className={`text-xs ${ok ? 'text-green-700' : 'text-slate-400'}`}>
+                {ok ? '✓' : '○'} {label}
+              </li>
+            ))}
+          </ul>
         </Field>
         <Field label="Confirm Password" required error={errors.confirm}>
           <Input type="password" placeholder="Re-enter your password" value={form.confirm}
