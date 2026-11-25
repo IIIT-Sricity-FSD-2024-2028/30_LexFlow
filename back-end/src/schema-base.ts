@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS lawfirm_admin (
     lawfirm_id      INT NOT NULL,
     name            VARCHAR(100) NOT NULL,
     email           VARCHAR(255) UNIQUE NOT NULL,
+    aadhaar_last4   VARCHAR(4) CHECK (aadhaar_last4 ~ '^[0-9]{4}$'),
     password_hash   TEXT NOT NULL,
     is_active       BOOLEAN DEFAULT TRUE,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -97,6 +98,7 @@ CREATE TABLE IF NOT EXISTS lawfirm_admin (
 
 CREATE TABLE IF NOT EXISTS clients (
     id              INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    aadhaar_last4   VARCHAR(4) CHECK (aadhaar_last4 ~ '^[0-9]{4}$'),
     aadhaar_number  VARCHAR(14) UNIQUE CHECK (aadhaar_number ~ '^\d{4}-\d{4}-\d{4}$'),
     client_type     VARCHAR(20) NOT NULL CHECK (client_type IN ('Individual', 'Business')),
     name            VARCHAR(100) NOT NULL,
@@ -152,6 +154,7 @@ CREATE TABLE IF NOT EXISTS interns (
     name            VARCHAR(100) NOT NULL,
     email           VARCHAR(255) UNIQUE NOT NULL,
     contact_number  VARCHAR(15),
+    aadhaar_last4   VARCHAR(4) CHECK (aadhaar_last4 ~ '^[0-9]{4}$'),
     password_hash   TEXT NOT NULL,
     is_active       BOOLEAN DEFAULT TRUE,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

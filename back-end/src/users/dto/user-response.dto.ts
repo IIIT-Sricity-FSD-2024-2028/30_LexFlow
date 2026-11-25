@@ -58,11 +58,11 @@ export class UserResponseDto {
   barNumber?: string;
 
   @ApiProperty({
-    description: '12-digit Aadhaar card number in 4-4-4 format (primary key for clients)',
-    example: '5432-8765-4321',
+    description: 'Last four digits of the recorded Aadhaar number for a client, intern or firm admin',
+    example: '4321',
     required: false,
   })
-  aadhaar?: string;
+  aadhaarLast4?: string;
 
   @ApiProperty({ required: false, example: 'Individual', description: 'Clients only: Individual | Business' })
   accountType?: string;

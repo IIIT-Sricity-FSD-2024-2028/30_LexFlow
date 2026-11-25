@@ -136,11 +136,12 @@ export default function ClientOnboarding1() {
             placeholder="5432-8765-4321"
             value={form.aadhaar}
             onChange={set('aadhaar')}
+            inputMode="numeric"
             maxLength={14}
             error={!!errors.aadhaar}
           />
           <p className="mt-1 text-xs text-slate-500">
-            Must be 12 digits in 4-4-4 format (e.g., 5432-8765-4321). This acts as your unique client identifier.
+            Enter 12 digits. Only the last four are saved.
           </p>
         </Field>
 

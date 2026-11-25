@@ -141,3 +141,13 @@ export class FirmOnboardingDto {
   @IsIn(['Starter', 'Growth', 'Enterprise'])
   tier?: 'Starter' | 'Growth' | 'Enterprise';
 }
+
+export class FirmAdminOnboardingDto extends FirmOnboardingDto {
+  @ApiProperty({
+    description: 'Aadhaar number for the firm admin. Only the last four digits are saved.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  adminAadhaar?: string;
+}

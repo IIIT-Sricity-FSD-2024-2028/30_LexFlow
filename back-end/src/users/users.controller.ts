@@ -25,7 +25,7 @@ import {
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto, UpdateUserDto, CreateFirmDto, UpdateFirmDto } from './dto';
-import { FirmOnboardingDto } from './dto/firm-onboarding.dto';
+import { FirmAdminOnboardingDto, FirmOnboardingDto } from './dto/firm-onboarding.dto';
 import { FirmOnboardingResponseDto } from './dto/firm-onboarding-response.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { AuthService } from '../auth/auth.service';
@@ -65,8 +65,8 @@ export class UsersController {
     status: 404,
     description: 'Firm not found or has no users',
   })
-  async getUsersByFirm(@Param('firmId') firmId: string): Promise<UserResponseDto[]> {
-    return this.usersService.findUsersByFirm(firmId);
+  async getUsersByFirm(@Param('firmId') firmId: string, @Req() req): Promise<UserResponseDto[]> {
+    return this.usersService.findUsersByFirm(firmId, req.user);
   }
 
   @Public()
@@ -183,8 +183,8 @@ export class UsersController {
     status: 403,
     description: 'Forbidden - only firmadmin role can view all users',
   })
-  async findAll(@Query('role') role?: UserRole): Promise<UserResponseDto[]> {
-    return this.usersService.findAll(role);
+  async findAll(@Req() req, @Query('role') role?: UserRole): Promise<UserResponseDto[]> {
+    return this.usersService.findAll(role, req.user);
   }
 
   /**
@@ -364,8 +364,8 @@ export class UsersController {
     status: 403,
     description: 'Forbidden - role header is required',
   })
-  async findOne(@Param('id') id: string): Promise<UserResponseDto> {
-    return this.usersService.findOne(id);
+  async findOne(@Param('id') id: string, @Req() req): Promise<UserResponseDto> {
+    return this.usersService.findOne(id, req.user);
   }
 
   /**
@@ -391,8 +391,8 @@ export class UsersController {
     status: 404,
     description: 'User not found',
   })
-  async updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
-    return this.usersService.updateUser(id, updateUserDto);
+  async updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto, @Req() req): Promise<UserResponseDto> {
+    return this.usersService.updateUser(id, updateUserDto, req.user);
   }
 
   /**
@@ -487,7 +487,7 @@ export class UsersController {
   })
   async submitStep3(
     @Param('sessionId') sessionId: string,
-    @Body() onboardingDto: FirmOnboardingDto,
+    @Body() onboardingDto: FirmAdminOnboardingDto,
   ): Promise<FirmOnboardingResponseDto> {
     return this.usersService.submitOnboardingStep3(sessionId, onboardingDto);
   }

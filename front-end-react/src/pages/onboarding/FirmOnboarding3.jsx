@@ -1,8 +1,6 @@
 /**
  * Firm Onboarding - Step 3: admin profile + plan (tier) selection.
- * Completes the server-side session, signs the firm admin in, and opens
- * the firm dashboard. Falls back to a direct user creation when no
- * session exists (same two paths as the vanilla script).
+ * Completes the server-side session, signs the firm admin in, and opens billing.
  */
 
 import { useEffect, useState } from 'react';
@@ -13,6 +11,7 @@ import { useApp } from '../../context/AppContext.jsx';
 import { Button, Field, Input } from '../../components/ui.jsx';
 import {
   validateName, validateEmail, validatePassword, validateConfirm, passwordScore,
+  formatAadhaar, validateAadhaar,
 } from '../../lib/validators.js';
 
 export default function FirmOnboarding3() {
@@ -21,7 +20,7 @@ export default function FirmOnboarding3() {
   const [plans, setPlans] = useState([]);         // tier cards from the backend
   const [plansError, setPlansError] = useState('');
   const [selectedTier, setSelectedTier] = useState('Starter'); // default plan
-  const [form, setForm] = useState({ adminName: '', adminEmail: '', password: '', confirm: '', terms: false });
+  const [form, setForm] = useState({ adminName: '', adminEmail: '', adminAadhaar: '', password: '', confirm: '', terms: false });
   const [errors, setErrors] = useState({});
   const [alert, setAlert] = useState('');
   const [busy, setBusy] = useState(false);
@@ -42,10 +41,10 @@ export default function FirmOnboarding3() {
 
   const submit = async (e) => {
     e.preventDefault();
-    // Validate all five fields.
     const er = {
       adminName: validateName(form.adminName, { twoWords: false }),
       adminEmail: validateEmail(form.adminEmail),
+      adminAadhaar: validateAadhaar(form.adminAadhaar, { required: false }),
       password: validatePassword(form.password),
       confirm: validateConfirm(form.confirm, form.password),
       terms: form.terms ? null : 'Please accept the Terms of Service.',
@@ -59,43 +58,25 @@ export default function FirmOnboarding3() {
     setBusy(true);
     try {
       const sessionId = sessionStorage.getItem('firmOnboardingSessionId');
+      if (!sessionId) throw new Error('Start from Firm Info to set up your firm admin account.');
       const body = {
         adminName: form.adminName.trim(),
         adminEmail: form.adminEmail.trim().toLowerCase(),
+        adminAadhaar: form.adminAadhaar || undefined,
         password: form.password,
         confirmPassword: form.confirm,
         tier: selectedTier,
       };
 
-      let adminUser;
-      if (sessionId) {
-        // Primary path: finish the onboarding session -> { adminUserId, firmId }.
-        const result = await api.users.onboardingStep3(sessionId, body);
-        const draft = JSON.parse(sessionStorage.getItem('firmDraft') || '{}');
-        adminUser = {
-          id: result.adminUserId,
-          fullName: body.adminName,
-          email: body.adminEmail,
-          role: 'firmadmin',          // normalised to firmAdmin by signIn()
-          firmId: result.firmId,
-          firmName: draft.fullName,
-        };
-      } else {
-        // Fallback path: create the admin directly through /users.
-        const draft = JSON.parse(sessionStorage.getItem('firmDraft') || '{}');
-        const created = await api.users.create({
-          fullName: body.adminName,
-          email: body.adminEmail,
-          role: 'firmadmin',
-          password: body.password,
-          phone: draft.phone || undefined,
-          addressLine1: draft.street,
-          city: draft.city,
-          state: draft.state,
-          pinCode: draft.zip,
-        }, 'superadmin');
-        adminUser = { ...created, role: 'firmadmin' };
-      }
+      const result = await api.users.onboardingStep3(sessionId, body);
+      const adminUser = {
+        id: result.adminUserId,
+        fullName: body.adminName,
+        email: body.adminEmail,
+        role: 'firmadmin',
+        firmId: result.firmId,
+        firmName: result.name,
+      };
 
       // Clean up the wizard's temporary storage.
       sessionStorage.removeItem('firmDraft');
@@ -164,6 +145,16 @@ export default function FirmOnboarding3() {
         </Field>
         <Field label="Admin Email Address" required error={errors.adminEmail}>
           <Input type="email" placeholder="rahul.verma@lawfirm.in" value={form.adminEmail} onChange={set('adminEmail')} error={!!errors.adminEmail} />
+        </Field>
+        <Field label="Admin Aadhaar Number" error={errors.adminAadhaar} className="md:col-span-2">
+          <Input inputMode="numeric" maxLength={14} value={form.adminAadhaar}
+            onChange={(e) => {
+              setForm((f) => ({ ...f, adminAadhaar: formatAadhaar(e.target.value) }));
+              setErrors((er) => ({ ...er, adminAadhaar: null }));
+              setAlert('');
+            }}
+            error={!!errors.adminAadhaar} />
+          <p className="mt-1 text-xs text-slate-500">Optional. Only the last four digits are saved.</p>
         </Field>
         <Field label="Password" required error={errors.password}>
           <Input type="password" placeholder="Create a strong password" value={form.password}

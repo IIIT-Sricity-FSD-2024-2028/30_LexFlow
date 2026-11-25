@@ -50,7 +50,7 @@ export default function FirmUsers() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return users.filter((u) => {
-      const okSearch = !q || `${u.fullName || u.name} ${u.email} ${u.barNumber || ''} ${u.aadhaar || ''} ${u.id}`.toLowerCase().includes(q);
+      const okSearch = !q || `${u.fullName || u.name} ${u.email} ${u.barNumber || ''} ${u.id}`.toLowerCase().includes(q);
       const okRole = roleFilter === 'all' || u.role === roleFilter;
       return okSearch && okRole;
     });
@@ -66,6 +66,9 @@ export default function FirmUsers() {
   const clients = users.filter((u) => u.role === 'client' && u.accountStatus !== 'inactive').length;
 
   /* ── Save (create or update) ── */
+  const usesAadhaar = ['client', 'intern', 'firmadmin'].includes(form?.role);
+  const requiresAadhaar = form?.role === 'client' && !form.aadhaarLast4;
+
   const saveUser = async () => {
     if (!form.fullName.trim() || !form.email.trim() || !form.role) {
       toast('Name, email and role are required.', 'error');
@@ -85,8 +88,8 @@ export default function FirmUsers() {
       }
     }
 
-    if (form.role === 'client') {
-      const aadhaarErr = validateAadhaar(form.aadhaar);
+    if (usesAadhaar) {
+      const aadhaarErr = validateAadhaar(form.aadhaar, { required: requiresAadhaar });
       if (aadhaarErr) {
         toast(aadhaarErr, 'error');
         return;
@@ -104,7 +107,7 @@ export default function FirmUsers() {
         availability: form.availability,
         firmId: user?.firmId || 'firm-1',
         barNumber: form.role === 'lawyer' ? formatBarNumber(form.barNumber) : undefined,
-        aadhaar: form.role === 'client' ? formatAadhaar(form.aadhaar) : undefined,
+        aadhaar: usesAadhaar && form.aadhaar ? formatAadhaar(form.aadhaar) : undefined,
       };
 
       if (form.id) {
@@ -156,7 +159,7 @@ export default function FirmUsers() {
     <>
       <PageHeader
         title="User Management"
-        subtitle="Invite and manage the members of your firm with verified Bar and Aadhaar credentials."
+        subtitle="Manage firm accounts, lawyer enrollment numbers, and Aadhaar references."
         actions={<Button id="add-user-btn" onClick={() => {
           setForm({
             fullName: '',
@@ -187,7 +190,7 @@ export default function FirmUsers() {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative max-w-md flex-1">
           <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <Input className="!pl-9" placeholder="Search users by name, email, bar no, aadhaar..." value={search}
+          <Input className="!pl-9" placeholder="Search users by name, email or Bar number..." value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         </div>
         <Select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }} className="!w-44">
@@ -211,7 +214,7 @@ export default function FirmUsers() {
                 <Th>Name & Identity</Th>
                 <Th>Email & Phone</Th>
                 <Th>Role</Th>
-                <Th>Credential (Bar No. / Aadhaar PK)</Th>
+                <Th>Bar No. / Aadhaar reference</Th>
                 <Th>Status</Th>
                 <Th>Actions</Th>
               </tr>
@@ -219,9 +222,9 @@ export default function FirmUsers() {
             <tbody>
               {visible.map((u) => {
                 const isLawyer = (u.role || '').toLowerCase() === 'lawyer';
-                const isClient = (u.role || '').toLowerCase() === 'client';
+                const hasAadhaarField = ['client', 'intern', 'firmadmin'].includes((u.role || '').toLowerCase());
                 const barNum = u.barNumber || u.barEnrollmentNumber;
-                const aadhaarNum = u.aadhaar || u.aadhaarNumber || (isClient && /^\d{4}-\d{4}-\d{4}$/.test(u.id) ? u.id : null);
+                const aadhaarLast4 = u.aadhaarLast4;
 
                 return (
                   <tr key={u.id} className="hover:bg-slate-50">
@@ -242,18 +245,13 @@ export default function FirmUsers() {
                     </Td>
                     <Td><Badge variant={roleTone[u.role] || 'slate'}>{roleLabel(u.role)}</Badge></Td>
                     <Td>
-                      {isLawyer && barNum && (
-                        <div>
-                          <Badge variant="indigo" className="font-mono text-xs">{barNum}</Badge>
-                          <span className="mt-0.5 block text-[11px] text-slate-400">Bar Verified</span>
-                        </div>
-                      )}
-                      {isClient && aadhaarNum && (
-                        <div>
-                          <Badge variant="green" className="font-mono text-xs">{aadhaarNum}</Badge>
-                        </div>
-                      )}
-                      {!barNum && !aadhaarNum && <span className="text-xs text-slate-400">—</span>}
+                      {isLawyer && (barNum
+                        ? <Badge variant="indigo" className="font-mono text-xs">{barNum}</Badge>
+                        : <Badge variant="amber">Bar number missing</Badge>)}
+                      {hasAadhaarField && (aadhaarLast4
+                        ? <Badge variant="green" className="font-mono text-xs">XXXX-XXXX-{aadhaarLast4}</Badge>
+                        : <Badge variant="amber">Aadhaar missing</Badge>)}
+                      {!isLawyer && !hasAadhaarField && <span className="text-xs text-slate-400">—</span>}
                     </Td>
                     <Td>
                       <span className="flex items-center gap-2 text-xs">
@@ -271,7 +269,8 @@ export default function FirmUsers() {
                           phone: u.phone || '',
                           role: u.role,
                           barNumber: u.barNumber || u.barEnrollmentNumber || '',
-                          aadhaar: u.aadhaar || u.aadhaarNumber || '',
+                          aadhaar: '',
+                          aadhaarLast4: u.aadhaarLast4 || '',
                           accountStatus: u.accountStatus || 'active',
                           availability: u.availability || 'available',
                         })}
@@ -315,7 +314,7 @@ export default function FirmUsers() {
             </Field>
             {/* Firm Admin option only appears when editing an actual admin (vanilla rule) */}
             <Field label="Role" required>
-              <Select id="user-role-select" value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
+              <Select id="user-role-select" value={form.role} disabled={!!form.id} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
                 {['lawyer', 'intern', 'client', ...(form.id && form.role === 'firmadmin' ? ['firmadmin'] : [])].map((r) => (
                   <option key={r} value={r}>{roleLabel(r)}</option>
                 ))}
@@ -338,7 +337,7 @@ export default function FirmUsers() {
                   const v = verifyBarNumber(form.barNumber);
                   return v.isValid ? (
                     <p className="mt-1 text-xs font-semibold text-emerald-600">
-                      ✓ Verified: {v.council} (Roll #{v.rollNumber}, Year {v.year})
+                      ✓ Format valid: {v.council} (Roll #{v.rollNumber}, Year {v.year})
                     </p>
                   ) : (
                     <p className="mt-1 text-xs text-red-500">{v.error}</p>
@@ -347,11 +346,11 @@ export default function FirmUsers() {
               </Field>
             )}
 
-            {/* Client Aadhaar field (12 digits, 4-4-4) */}
-            {form.role === 'client' && (
-              <Field label="Aadhaar Card Number" required>
+            {usesAadhaar && (
+              <Field label="Aadhaar Card Number" required={requiresAadhaar}>
                 <Input
                   id="client-aadhaar-input"
+                  inputMode="numeric"
                   placeholder="5432-8765-4321"
                   maxLength={14}
                   value={form.aadhaar || ''}
@@ -359,11 +358,15 @@ export default function FirmUsers() {
                 />
                 {(() => {
                   if (!form.aadhaar) return (
-                    <p className="mt-1 text-xs text-slate-500">12 digits in 4-4-4 format.</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {form.aadhaarLast4
+                        ? `Recorded number ends in ${form.aadhaarLast4}. Enter a new number to replace it.`
+                        : 'Enter 12 digits. Only the last four are saved.'}
+                    </p>
                   );
                   const v = verifyAadhaar(form.aadhaar);
                   return v.isValid ? (
-                    <p className="mt-1 text-xs font-semibold text-emerald-600">✓ Valid 12-digit Aadhaar Card (4-4-4)</p>
+                    <p className="mt-1 text-xs font-semibold text-emerald-600">✓ Format valid</p>
                   ) : (
                     <p className="mt-1 text-xs text-red-500">{v.error}</p>
                   );

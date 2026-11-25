@@ -4,9 +4,10 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { CreateUserDto, LoginUserDto, UserRole, UserResponseDto, CreateFirmDto, UpdateFirmDto } from './dto';
-import { FirmOnboardingDto } from './dto/firm-onboarding.dto';
+import { FirmAdminOnboardingDto, FirmOnboardingDto } from './dto/firm-onboarding.dto';
 import { FirmOnboardingResponseDto } from './dto/firm-onboarding-response.dto';
 import { CasesService } from '../cases/cases.service';
 import {
@@ -67,6 +68,31 @@ interface ActorRow {
   created_at: Date;
   client_type?: string | null; // clients only
   address?: string | null;     // clients only
+  bar_enrollment_number?: string | null;
+  aadhaar_last4?: string | null;
+}
+
+function requireBarNumber(value?: string): string {
+  const number = value?.replace(/\s+/g, '').toUpperCase();
+  if (!number) throw new BadRequestException('Bar Council enrollment number is required for lawyers.');
+  const match = /^([A-Z]{1,4}(?:&[A-Z]+)?)[/-](\d{1,6})[/-](\d{2}|\d{4})$/.exec(number);
+  if (!match) throw new BadRequestException('Use the Bar enrollment format STATE/ROLL/YEAR.');
+  const [, council, roll, enteredYear] = match;
+  let year = Number(enteredYear);
+  if (enteredYear.length === 2) year += year <= 30 ? 2000 : 1900;
+  if (Number(roll) < 1 || year < 1950 || year > new Date().getFullYear()) {
+    throw new BadRequestException('Enter a valid Bar enrollment roll number and year.');
+  }
+  return `${council}/${Number(roll)}/${year}`;
+}
+
+function requireAadhaarLast4(value?: string): string {
+  const number = value?.trim();
+  if (!number) throw new BadRequestException('Aadhaar number is required for clients.');
+  if (!/^(?:\d{12}|\d{4}-\d{4}-\d{4})$/.test(number) || /^(\d)\1{11}$/.test(number.replace(/-/g, ''))) {
+    throw new BadRequestException('Enter a valid 12-digit Aadhaar number.');
+  }
+  return number.slice(-4);
 }
 
 function parseFirmId(firmId: string): number {
@@ -126,6 +152,8 @@ function rowToActor(r: Record<string, unknown>): ActorRow {
     created_at: r.created_at as Date,
     client_type: (r.client_type as string) || null,
     address: (r.address as string) || null,
+    bar_enrollment_number: (r.bar_enrollment_number as string) || null,
+    aadhaar_last4: (r.aadhaar_last4 as string) || null,
   };
 }
 
@@ -137,8 +165,19 @@ export const ROLE_OF_KIND: Record<ActorKind, UserRole> = {
   cl: UserRole.CLIENT,
 };
 
-function actorToResponse(a: ActorRow): UserResponseDto {
+interface FirmAdminAadhaarViewer {
+  role: UserRole;
+  firmId?: string;
+}
+
+function canManageFirmAdminAadhaar(viewer?: FirmAdminAadhaarViewer, firmId?: string): boolean {
+  return viewer?.role === UserRole.SUPERADMIN ||
+    (viewer?.role === UserRole.FIRMADMIN && !!firmId && viewer.firmId === firmId);
+}
+
+function actorToResponse(a: ActorRow, viewer?: FirmAdminAadhaarViewer): UserResponseDto {
   const prefix = a.kind;
+  const firmId = a.lawfirm_id ? `firm-${a.lawfirm_id}` : undefined;
   return {
     id: `${prefix}-${a.id}`,
     fullName: a.name,
@@ -146,11 +185,15 @@ function actorToResponse(a: ActorRow): UserResponseDto {
     role: ROLE_OF_KIND[a.kind],
     createdAt: a.created_at,
     phone: a.contact_number || undefined,
-    firmId: a.lawfirm_id ? `firm-${a.lawfirm_id}` : undefined,
+    firmId,
     accountStatus: a.is_active ? 'active' : 'inactive',
     availability: 'available',
     accountType: a.client_type || undefined,
     address: a.address && a.address !== '-' ? a.address : undefined,
+    barNumber: a.bar_enrollment_number || undefined,
+    aadhaarLast4: a.kind !== 'fa' || canManageFirmAdminAadhaar(viewer, firmId)
+      ? a.aadhaar_last4 || undefined
+      : undefined,
   };
 }
 
@@ -161,23 +204,24 @@ function actorToResponse(a: ActorRow): UserResponseDto {
 export const ACTORS_UNION = `
   SELECT id, name, email, password_hash, NULL::int AS lawfirm_id,
          NULL::varchar AS contact_number, TRUE AS is_active, created_at, 'sa'::text AS kind,
-         NULL::varchar AS client_type, NULL::text AS address
+         NULL::varchar AS client_type, NULL::text AS address,
+         NULL::varchar AS bar_enrollment_number, NULL::varchar AS aadhaar_last4
     FROM platform_admin
   UNION ALL
   SELECT id, name, email, password_hash, lawfirm_id,
-         NULL::varchar, is_active, created_at, 'fa'::text, NULL::varchar, NULL::text
+         NULL::varchar, is_active, created_at, 'fa'::text, NULL::varchar, NULL::text, NULL::varchar, aadhaar_last4
     FROM lawfirm_admin
   UNION ALL
   SELECT id, name, email, password_hash, lawfirm_id,
-         contact_number, is_active, created_at, 'lw'::text, NULL::varchar, NULL::text
+         contact_number, is_active, created_at, 'lw'::text, NULL::varchar, NULL::text, bar_enrollment_number, NULL::varchar
     FROM lawyers
   UNION ALL
   SELECT id, name, email, password_hash, lawfirm_id,
-         contact_number, is_active, created_at, 'in'::text, NULL::varchar, NULL::text
+         contact_number, is_active, created_at, 'in'::text, NULL::varchar, NULL::text, NULL::varchar, aadhaar_last4
     FROM interns
   UNION ALL
   SELECT id, name, email_address AS email, password_hash, NULL::int,
-         contact_number, is_active, created_at, 'cl'::text, client_type, address
+         contact_number, is_active, created_at, 'cl'::text, client_type, address, NULL::varchar, aadhaar_last4
     FROM clients`;
 
 @Injectable()
@@ -186,13 +230,13 @@ export class UsersService {
 
   constructor(private readonly casesService: CasesService) {}
 
-  async findAll(role?: UserRole): Promise<UserResponseDto[]> {
+  async findAll(role?: UserRole, viewer?: FirmAdminAadhaarViewer): Promise<UserResponseDto[]> {
     const filter = role ? `WHERE u.kind = '${this.kindOfRole(role)}'` : '';
     const { rows } = await q(`SELECT * FROM (${ACTORS_UNION}) u ${filter} ORDER BY u.id`);
-    return rows.map(rowToActor).map(actorToResponse);
+    return rows.map(row => actorToResponse(rowToActor(row), viewer));
   }
 
-  async findUsersByFirm(firmId: string): Promise<UserResponseDto[]> {
+  async findUsersByFirm(firmId: string, viewer?: FirmAdminAadhaarViewer): Promise<UserResponseDto[]> {
     const fid = parseFirmId(firmId);
     const { rows } = await q(
       `SELECT * FROM (${ACTORS_UNION}) u
@@ -207,10 +251,10 @@ export class UsersService {
        ORDER BY u.id`,
       [fid, this.casesService.getFirmClientIds(`firm-${fid}`)],
     );
-    return rows.map(rowToActor).map(actorToResponse);
+    return rows.map(row => actorToResponse(rowToActor(row), viewer));
   }
 
-  async findOne(id: string): Promise<UserResponseDto> {
+  async findOne(id: string, viewer?: FirmAdminAadhaarViewer): Promise<UserResponseDto> {
     const parsed = parseActorId(id);
     if (!parsed) throw new NotFoundException('User not found');
     const { rows } = await q(
@@ -218,7 +262,7 @@ export class UsersService {
       [parsed.kind, parsed.num],
     );
     if (!rows.length) throw new NotFoundException('User not found');
-    return actorToResponse(rowToActor(rows[0]));
+    return actorToResponse(rowToActor(rows[0]), viewer);
   }
 
   async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
@@ -233,6 +277,9 @@ export class UsersService {
 
     const kind = this.kindOfRole(createUserDto.role);
     const firmNum = createUserDto.firmId ? parseFirmId(createUserDto.firmId) : null;
+    const barNumber = kind === 'lw' ? requireBarNumber(createUserDto.barNumber) : null;
+    const hasAadhaar = kind === 'cl' || (kind === 'in' && createUserDto.aadhaar !== undefined);
+    const aadhaarLast4 = hasAadhaar ? requireAadhaarLast4(createUserDto.aadhaar) : null;
 
     if (firmNum && (kind === 'lw' || kind === 'in')) {
       await this.assertSeatAvailable(firmNum, kind);
@@ -251,10 +298,10 @@ export class UsersService {
       }
       if (kind === 'cl') {
         const res = await c.query(
-          `INSERT INTO clients (client_type, name, contact_number, email_address, address, password_hash, is_active)
-           VALUES ('Individual', $1, $2, $3, '-', $4, $5) RETURNING id, created_at`,
+          `INSERT INTO clients (client_type, name, contact_number, email_address, address, password_hash, is_active, aadhaar_last4)
+           VALUES ('Individual', $1, $2, $3, '-', $4, $5, $6) RETURNING id, created_at`,
           [createUserDto.fullName, createUserDto.phone || '', createUserDto.email, hash,
-           createUserDto.accountStatus !== 'inactive'],
+           createUserDto.accountStatus !== 'inactive', aadhaarLast4],
         );
         // A client belongs to a firm via a consultation/case; if the caller
         // attached a firm at creation time, record that link or the client
@@ -271,11 +318,22 @@ export class UsersService {
       }
       const table = kind === 'lw' ? 'lawyers' : 'interns';
       if (!firmNum) throw new BadRequestException(`${table} require a firmId`);
+      const staff = [firmNum, createUserDto.fullName, createUserDto.email, createUserDto.phone || '',
+        hash, createUserDto.accountStatus !== 'inactive'];
+      if (kind === 'lw') {
+        const res = await c.query(
+          `INSERT INTO lawyers (lawfirm_id, name, email, contact_number, password_hash, is_active, bar_enrollment_number)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)
+           ON CONFLICT (bar_enrollment_number) DO NOTHING RETURNING id, created_at`,
+          [...staff, barNumber],
+        );
+        if (!res.rows.length) throw new ConflictException('This Bar enrollment number is already registered.');
+        return res.rows[0];
+      }
       const res = await c.query(
-        `INSERT INTO ${table} (lawfirm_id, name, email, contact_number, password_hash, is_active)
-         VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, created_at`,
-        [firmNum, createUserDto.fullName, createUserDto.email, createUserDto.phone || '',
-         hash, createUserDto.accountStatus !== 'inactive'],
+        `INSERT INTO interns (lawfirm_id, name, email, contact_number, password_hash, is_active, aadhaar_last4)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id, created_at`,
+        [...staff, aadhaarLast4],
       );
       return res.rows[0];
     });
@@ -289,12 +347,18 @@ export class UsersService {
       contact_number: createUserDto.phone || null,
       is_active: createUserDto.accountStatus !== 'inactive',
       created_at: created.created_at,
+      bar_enrollment_number: barNumber,
+      aadhaar_last4: aadhaarLast4,
     });
   }
 
-  async updateUser(id: string, updateUserDto: Partial<CreateUserDto>): Promise<UserResponseDto> {
+  async updateUser(id: string, updateUserDto: Partial<CreateUserDto>, viewer?: FirmAdminAadhaarViewer): Promise<UserResponseDto> {
     const existing = await this.findOne(id); // throws if unknown
     const parsed = parseActorId(id)!;
+
+    if (parsed.kind === 'fa' && updateUserDto.aadhaar !== undefined && !canManageFirmAdminAadhaar(viewer, existing.firmId)) {
+      throw new ForbiddenException('Only an admin of this firm or a superadmin can update this Aadhaar reference.');
+    }
 
     if (updateUserDto.email && updateUserDto.email.toLowerCase() !== existing.email.toLowerCase()) {
       if (await this.emailTaken(updateUserDto.email)) {
@@ -322,7 +386,7 @@ export class UsersService {
     };
 
     if (updateUserDto.fullName) add('name', updateUserDto.fullName);
-    if (updateUserDto.email) add('email', updateUserDto.email);
+    if (updateUserDto.email) add(parsed.kind === 'cl' ? 'email_address' : 'email', updateUserDto.email);
     if (updateUserDto.password) add('password_hash', hashPassword(updateUserDto.password));
     if (updateUserDto.phone !== undefined && parsed.kind !== 'sa' && parsed.kind !== 'fa') {
       add('contact_number', updateUserDto.phone);
@@ -333,12 +397,25 @@ export class UsersService {
     if (updateUserDto.firmId !== undefined && (parsed.kind === 'fa' || parsed.kind === 'lw' || parsed.kind === 'in')) {
       add('lawfirm_id', nextFirmNum);
     }
+    if (parsed.kind === 'lw' && updateUserDto.barNumber !== undefined) {
+      add('bar_enrollment_number', requireBarNumber(updateUserDto.barNumber));
+    }
+    if ((parsed.kind === 'cl' || parsed.kind === 'in' || parsed.kind === 'fa') && updateUserDto.aadhaar !== undefined) {
+      add('aadhaar_last4', requireAadhaarLast4(updateUserDto.aadhaar));
+    }
 
     if (sets.length) {
-      await q(
-        `UPDATE ${ACTOR_TABLE[parsed.kind]} SET ${sets.join(', ')} WHERE id = $${params.length + 1}`,
-        [...params, parsed.num],
-      );
+      try {
+        await q(
+          `UPDATE ${ACTOR_TABLE[parsed.kind]} SET ${sets.join(', ')} WHERE id = $${params.length + 1}`,
+          [...params, parsed.num],
+        );
+      } catch (error) {
+        if (error.code === '23505' && error.constraint === 'lawyers_bar_enrollment_number_key') {
+          throw new ConflictException('This Bar enrollment number is already registered.');
+        }
+        throw error;
+      }
     }
 
     // Attaching a client to a firm creates the firm↔client link (a
@@ -352,7 +429,7 @@ export class UsersService {
       );
     }
 
-    return this.findOne(id);
+    return this.findOne(id, viewer);
   }
 
   async deleteUser(id: string): Promise<void> {
@@ -434,7 +511,7 @@ export class UsersService {
     return { sessionId, step: 2 };
   }
 
-  async submitOnboardingStep3(sessionId: string, onboardingDto: FirmOnboardingDto): Promise<FirmOnboardingResponseDto> {
+  async submitOnboardingStep3(sessionId: string, onboardingDto: FirmAdminOnboardingDto): Promise<FirmOnboardingResponseDto> {
     const session = this.onboardingSessions.get(sessionId);
     if (!session) throw new BadRequestException('Invalid session ID');
 
@@ -458,6 +535,7 @@ export class UsersService {
     const data = session.data;
     const chosenTier = onboardingDto.tier ?? data.tier;
     const tier: FirmTier = chosenTier && TIER_LIMITS[chosenTier] ? chosenTier : 'Starter';
+    const aadhaarLast4 = onboardingDto.adminAadhaar === undefined ? null : requireAadhaarLast4(onboardingDto.adminAadhaar);
 
     const result = await tx(async (c) => {
       const firmRes = await c.query(
@@ -471,8 +549,8 @@ export class UsersService {
         [firmId, [data.email], [data.phone || '']],
       );
       const adminRes = await c.query(
-        `INSERT INTO lawfirm_admin (lawfirm_id, name, email, password_hash) VALUES ($1,$2,$3,$4) RETURNING id`,
-        [firmId, onboardingDto.adminName, onboardingDto.adminEmail, hashPassword(onboardingDto.password)],
+        `INSERT INTO lawfirm_admin (lawfirm_id, name, email, password_hash, aadhaar_last4) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+        [firmId, onboardingDto.adminName, onboardingDto.adminEmail, hashPassword(onboardingDto.password), aadhaarLast4],
       );
       return { firmId, firmCreatedAt: firmRes.rows[0].created_at as Date, adminId: adminRes.rows[0].id as number };
     });
@@ -520,6 +598,11 @@ export class UsersService {
     }
 
     const tier: FirmTier = dto.tier && TIER_LIMITS[dto.tier] ? dto.tier : 'Starter';
+    const createsAdmin = dto.adminName && dto.adminEmail && dto.adminPassword;
+    if (dto.adminAadhaar !== undefined && !createsAdmin) {
+      throw new BadRequestException('Enter the firm admin name, email and password to record Aadhaar.');
+    }
+    const aadhaarLast4 = dto.adminAadhaar === undefined ? null : requireAadhaarLast4(dto.adminAadhaar);
 
     const result = await tx(async (c) => {
       const firmRes = await c.query(
@@ -534,7 +617,7 @@ export class UsersService {
       );
 
       let adminUserId: string | undefined;
-      if (dto.adminName && dto.adminEmail && dto.adminPassword) {
+      if (createsAdmin) {
         const dup = await c.query(
           `SELECT 1 FROM (${ACTORS_UNION}) u WHERE lower(email) = lower($1)`,
           [dto.adminEmail],
@@ -543,8 +626,8 @@ export class UsersService {
           throw new ConflictException(`The admin email "${dto.adminEmail}" is already registered`);
         }
         const adminRes = await c.query(
-          `INSERT INTO lawfirm_admin (lawfirm_id, name, email, password_hash) VALUES ($1,$2,$3,$4) RETURNING id`,
-          [fid, dto.adminName, dto.adminEmail, hashPassword(dto.adminPassword)],
+          `INSERT INTO lawfirm_admin (lawfirm_id, name, email, password_hash, aadhaar_last4) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+          [fid, dto.adminName, dto.adminEmail, hashPassword(dto.adminPassword!), aadhaarLast4],
         );
         adminUserId = `fa-${adminRes.rows[0].id}`;
       }
@@ -654,7 +737,7 @@ export class UsersService {
     const { rows } = await q(
       `SELECT * FROM (${ACTORS_UNION}) u WHERE kind = 'cl' ORDER BY id`,
     );
-    return rows.map(rowToActor).map(actorToResponse);
+    return rows.map(row => actorToResponse(rowToActor(row)));
   }
 
   async getUserFirm(userId: string): Promise<Firm | null> {
@@ -686,7 +769,7 @@ export class UsersService {
          ORDER BY id`,
         [fid, this.casesService.getFirmClientIds(`firm-${fid}`)],
       );
-      return rows.map(rowToActor).map(actorToResponse);
+      return rows.map(row => actorToResponse(rowToActor(row)));
     }
 
     const kind = role ? this.kindOfRole(role) : null;
@@ -695,7 +778,7 @@ export class UsersService {
       `SELECT * FROM (${ACTORS_UNION}) u WHERE lawfirm_id = $1 AND kind = ANY($2) ORDER BY id`,
       [fid, kinds],
     );
-    return rows.map(rowToActor).map(actorToResponse);
+    return rows.map(row => actorToResponse(rowToActor(row)));
   }
 
   async getLawyersByFirmId(firmId?: string): Promise<UserResponseDto[]> {
@@ -703,7 +786,7 @@ export class UsersService {
       `SELECT * FROM (${ACTORS_UNION}) u WHERE kind IN ('lw','in') AND ($1::int IS NULL OR lawfirm_id = $1) ORDER BY id`,
       [firmId ? parseFirmId(firmId) : null],
     );
-    return rows.map(rowToActor).map(actorToResponse);
+    return rows.map(row => actorToResponse(rowToActor(row)));
   }
 
   // ── internals ──────────────────────────────────────────────────────────────

@@ -962,7 +962,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FirmOnboardingDto"
+                "$ref": "#/components/schemas/FirmAdminOnboardingDto"
               }
             }
           }
@@ -3455,10 +3455,10 @@
             "description": "Bar Council enrollment number (lawyers)",
             "example": "MAH/1234/2018"
           },
-          "aadhaar": {
+          "aadhaarLast4": {
             "type": "string",
-            "description": "12-digit Aadhaar card number in 4-4-4 format (primary key for clients)",
-            "example": "5432-8765-4321"
+            "description": "Last four digits of the recorded Aadhaar number for a client, intern or firm admin",
+            "example": "4321"
           },
           "accountType": {
             "type": "string",
@@ -3558,12 +3558,12 @@
           },
           "barNumber": {
             "type": "string",
-            "description": "Bar Council enrollment number for lawyers (e.g. MAH/1234/2018 or DL/5678/2015)",
+            "description": "Bar Council enrollment number. Required when creating a lawyer.",
             "example": "MAH/1234/2018"
           },
           "aadhaar": {
             "type": "string",
-            "description": "12-digit Indian Aadhaar card number in 4-4-4 format acting as client primary key",
+            "description": "12-digit Aadhaar number. Required for client creation, optional for interns and firm-admin updates. Only the last four digits are saved.",
             "example": "5432-8765-4321"
           },
           "firmId": {
@@ -3652,6 +3652,10 @@
           "adminPassword": {
             "type": "string",
             "description": "Password for the firm admin (min 6 characters)"
+          },
+          "adminAadhaar": {
+            "type": "string",
+            "description": "Aadhaar number for the optional firm admin account. Only the last four digits are saved."
           }
         },
         "required": [
@@ -3769,12 +3773,12 @@
           },
           "barNumber": {
             "type": "string",
-            "description": "Bar Council enrollment number for lawyers (e.g. MAH/1234/2018 or DL/5678/2015)",
+            "description": "Bar Council enrollment number. Required when creating a lawyer.",
             "example": "MAH/1234/2018"
           },
           "aadhaar": {
             "type": "string",
-            "description": "12-digit Indian Aadhaar card number in 4-4-4 format acting as client primary key",
+            "description": "12-digit Aadhaar number. Required for client creation, optional for interns and firm-admin updates. Only the last four digits are saved.",
             "example": "5432-8765-4321"
           },
           "firmId": {
@@ -3863,6 +3867,93 @@
               "Growth",
               "Enterprise"
             ]
+          }
+        }
+      },
+      "FirmAdminOnboardingDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "description": "Full name of the primary contact person",
+            "example": "Amit Sharma"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address of the primary contact",
+            "example": "amit.sharma@example.in"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number (10 digits)",
+            "example": "9876543210"
+          },
+          "street": {
+            "type": "string",
+            "description": "Street address",
+            "example": "21, Connaught Place"
+          },
+          "city": {
+            "type": "string",
+            "description": "City name",
+            "example": "New Delhi"
+          },
+          "state": {
+            "type": "string",
+            "description": "State name",
+            "example": "Delhi"
+          },
+          "pinCode": {
+            "type": "string",
+            "description": "PIN / Zip Code",
+            "example": "110001"
+          },
+          "logo": {
+            "type": "string",
+            "description": "Firm logo (base64 or file path)"
+          },
+          "primaryEmail": {
+            "type": "string",
+            "description": "Primary email for firm operations",
+            "example": "contact@firm.com"
+          },
+          "website": {
+            "type": "string",
+            "description": "Firm website URL",
+            "example": "https://www.yourfirm.com"
+          },
+          "adminName": {
+            "type": "string",
+            "description": "Admin full name",
+            "example": "Rahul Verma"
+          },
+          "adminEmail": {
+            "type": "string",
+            "description": "Admin email address",
+            "example": "rahul.verma@lawfirm.in"
+          },
+          "password": {
+            "type": "string",
+            "description": "Admin password (minimum 8 characters)",
+            "example": "SecurePass@123"
+          },
+          "confirmPassword": {
+            "type": "string",
+            "description": "Confirm password",
+            "example": "SecurePass@123"
+          },
+          "tier": {
+            "type": "string",
+            "description": "Pricing tier selected during onboarding. Defaults to Starter.",
+            "enum": [
+              "Starter",
+              "Growth",
+              "Enterprise"
+            ]
+          },
+          "adminAadhaar": {
+            "type": "string",
+            "description": "Aadhaar number for the firm admin. Only the last four digits are saved."
           }
         }
       },

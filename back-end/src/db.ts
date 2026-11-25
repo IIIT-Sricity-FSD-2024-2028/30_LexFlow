@@ -267,6 +267,9 @@ ALTER TABLE invoices ADD COLUMN IF NOT EXISTS case_name      VARCHAR(255);
 -- CasesService uses app_state IDs. invoices.case_id references the relational cases table.
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS app_case_id    INT;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS advocate_name  VARCHAR(100);
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS aadhaar_last4 VARCHAR(4) CHECK (aadhaar_last4 ~ '^[0-9]{4}$');
+ALTER TABLE interns ADD COLUMN IF NOT EXISTS aadhaar_last4 VARCHAR(4) CHECK (aadhaar_last4 ~ '^[0-9]{4}$');
+ALTER TABLE lawfirm_admin ADD COLUMN IF NOT EXISTS aadhaar_last4 VARCHAR(4) CHECK (aadhaar_last4 ~ '^[0-9]{4}$');
 ALTER TABLE lawfirm_meta ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
 
 CREATE INDEX IF NOT EXISTS invoices_lawfirm_idx  ON invoices(lawfirm_id);

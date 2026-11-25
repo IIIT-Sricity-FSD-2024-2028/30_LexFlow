@@ -73,7 +73,7 @@ export class CreateUserDto {
   availability?: 'available' | 'unavailable';
 
   @ApiProperty({
-    description: 'Bar Council enrollment number for lawyers (e.g. MAH/1234/2018 or DL/5678/2015)',
+    description: 'Bar Council enrollment number. Required when creating a lawyer.',
     example: 'MAH/1234/2018',
     required: false,
   })
@@ -82,7 +82,7 @@ export class CreateUserDto {
   barNumber?: string;
 
   @ApiProperty({
-    description: '12-digit Indian Aadhaar card number in 4-4-4 format acting as client primary key',
+    description: '12-digit Aadhaar number. Required for client creation, optional for interns and firm-admin updates. Only the last four digits are saved.',
     example: '5432-8765-4321',
     required: false,
   })

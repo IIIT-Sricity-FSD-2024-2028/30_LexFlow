@@ -12,10 +12,11 @@ import {
 } from '../../components/ui.jsx';
 import Icon from '../../components/Icon.jsx';
 import { initials, money, formatDate } from '../../lib/format.js';
+import { formatAadhaar, validateAadhaar } from '../../lib/validators.js';
 
 const EMPTY_FORM = {
   name: '', tier: 'Starter', email: '', phone: '', city: '', state: '', street: '', pinCode: '',
-  website: '', subtitle: '', adminName: '', adminEmail: '', adminPassword: '',
+  website: '', subtitle: '', adminName: '', adminEmail: '', adminPassword: '', adminAadhaar: '',
 };
 
 export default function SAFirms() {
@@ -77,12 +78,18 @@ export default function SAFirms() {
       toast('Firm name, contact email and phone are required.', 'error');
       return;
     }
+    const aadhaarError = validateAadhaar(f.adminAadhaar, { required: false });
+    if (aadhaarError) {
+      toast(aadhaarError, 'error');
+      return;
+    }
     setBusy(true);
     try {
       // Only send non-empty keys (backend validates per-field).
       const body = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== '' && v != null));
       if (f.id) {
         delete body.adminName; delete body.adminEmail; delete body.adminPassword; // not editable
+        delete body.adminAadhaar;
         await api.users.updateFirm(f.id, body);
         toast('Firm updated.');
       } else {
@@ -239,6 +246,11 @@ export default function SAFirms() {
                 </p>
                 <Field label="Admin name"><Input value={form.adminName} onChange={(e) => setForm((x) => ({ ...x, adminName: e.target.value }))} /></Field>
                 <Field label="Admin email"><Input type="email" value={form.adminEmail} onChange={(e) => setForm((x) => ({ ...x, adminEmail: e.target.value }))} /></Field>
+                <Field label="Admin Aadhaar Number" className="sm:col-span-2">
+                  <Input inputMode="numeric" maxLength={14} value={form.adminAadhaar}
+                    onChange={(e) => setForm((x) => ({ ...x, adminAadhaar: formatAadhaar(e.target.value) }))} />
+                  <p className="mt-1 text-xs text-slate-500">Only the last four digits are saved.</p>
+                </Field>
                 <Field label="Password" className="sm:col-span-2">
                   <Input value={form.adminPassword} onChange={(e) => setForm((x) => ({ ...x, adminPassword: e.target.value }))} placeholder="min 6 characters" />
                 </Field>

@@ -12,6 +12,7 @@ import {
 } from '../../components/ui.jsx';
 import Icon from '../../components/Icon.jsx';
 import { initials, roleLabel, formatDate } from '../../lib/format.js';
+import { formatAadhaar, formatBarNumber, validateAadhaar, validateBarNumber } from '../../lib/validators.js';
 
 const ROLES = ['client', 'lawyer', 'intern', 'firmadmin', 'superadmin'];
 const roleTone = { firmadmin: 'purple', superadmin: 'purple', lawyer: 'blue', intern: 'slate', client: 'green' };
@@ -51,20 +52,31 @@ export default function SAUsers() {
     });
   }, [users, search, roleFilter]);
 
+  const usesAadhaar = ['client', 'intern', 'firmadmin'].includes(form?.role);
+  const requiresAadhaar = form?.role === 'client' && !form.aadhaarLast4;
+
   const saveUser = async () => {
     if (!form.fullName.trim() || !form.email.trim() || !form.role) {
       toast('Name, email and role are required.', 'error');
       return;
     }
+    const { id, password, barNumber, aadhaar, aadhaarLast4, ...body } = form;
+    const credentialError = body.role === 'lawyer' ? validateBarNumber(barNumber)
+      : usesAadhaar ? validateAadhaar(aadhaar, { required: requiresAadhaar }) : null;
+    if (credentialError) {
+      toast(credentialError, 'error');
+      return;
+    }
+    if (body.role === 'lawyer') body.barNumber = formatBarNumber(barNumber);
+    if (usesAadhaar && aadhaar) body.aadhaar = formatAadhaar(aadhaar);
+
     setBusy(true);
     try {
-      if (form.id) {
-        const { password, id, ...body } = form; // never send a password on edit
-        await api.users.update(id, body);
+      if (id) {
+        await api.users.update(id, body, 'superadmin');
         toast('User updated.');
       } else {
-        const { id, ...body } = form;
-        await api.users.create(body);
+        await api.users.create({ ...body, password }, 'superadmin');
         toast('User created.');
       }
       setForm(null);
@@ -138,6 +150,7 @@ export default function SAUsers() {
                     <button title="Edit" aria-label="Edit user" onClick={() => setForm({
                       id: u.id, fullName: u.fullName || u.name || '', email: u.email || '', phone: u.phone || '',
                       role: u.role, firmId: u.firmId || '', accountStatus: u.accountStatus || 'active', password: '',
+                      barNumber: u.barNumber || '', aadhaar: '', aadhaarLast4: u.aadhaarLast4 || '',
                     })} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"><Icon name="edit" size={14} /></button>
                     <button title="Delete" aria-label="Delete user" onClick={() => deleteUser(u)}
                       className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"><Icon name="trash" size={14} /></button>
@@ -165,10 +178,25 @@ export default function SAUsers() {
             </Field>
             <Field label="Phone"><Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></Field>
             <Field label="Role" required>
-              <Select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
+              <Select value={form.role} disabled={!!form.id} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
                 {ROLES.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
               </Select>
             </Field>
+            {form.role === 'lawyer' && (
+              <Field label="Bar Council Enrollment Number" required>
+                <Input value={form.barNumber || ''} placeholder="MAH/1234/2018"
+                  onChange={(e) => setForm((f) => ({ ...f, barNumber: e.target.value }))} />
+              </Field>
+            )}
+            {usesAadhaar && (
+              <Field label="Aadhaar Card Number" required={requiresAadhaar}>
+                <Input value={form.aadhaar || ''} inputMode="numeric"
+                  onChange={(e) => setForm((f) => ({ ...f, aadhaar: formatAadhaar(e.target.value) }))} />
+                <p className="mt-1 text-xs text-slate-500">
+                  {form.aadhaarLast4 ? `Recorded number ends in ${form.aadhaarLast4}.` : 'Only the last four digits are saved.'}
+                </p>
+              </Field>
+            )}
             <Field label="Firm ID"><Input value={form.firmId} onChange={(e) => setForm((f) => ({ ...f, firmId: e.target.value }))} /></Field>
             <Field label="Account status">
               <Select value={form.accountStatus} onChange={(e) => setForm((f) => ({ ...f, accountStatus: e.target.value }))}>

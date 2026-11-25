@@ -104,4 +104,12 @@ export class CreateFirmDto {
   @IsString()
   @MinLength(6)
   adminPassword?: string;
+
+  @ApiProperty({
+    description: 'Aadhaar number for the optional firm admin account. Only the last four digits are saved.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  adminAadhaar?: string;
 }
